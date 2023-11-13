@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -I./include
+CFLAGS = -w -Wall -I./include
 
 SRCDIR = ./src
 BINDIR = .
