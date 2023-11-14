@@ -57,5 +57,15 @@ uint64_t imm_B(uint32_t instruction)
 
 uint64_t imm_U(uint32_t instruction)
 {
-	
+	return (uint64_t)(inst & 0xfffff999);
+}
+
+uint64_t imm_J(uint32_t inst) 
+{
+    return (uint64_t)((inst & 0x80000000) >> 11) | (inst & 0xff000) | ((inst >> 9) & 0x800) | ((inst >> 20) & 0x7fe);
+}
+
+uint32_t shamt(uint32_t inst) 
+{
+    return (uint32_t) (imm_I(inst) & 0x1f); // TODO: 0x1f / 0x3f ?
 }
