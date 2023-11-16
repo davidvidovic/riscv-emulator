@@ -114,12 +114,12 @@ uint64_t imm_U(uint32_t instruction)
 
 uint64_t imm_J(uint32_t inst) 
 {
-    return (uint64_t)((inst & 0x80000000) >> 11) | (inst & 0xff000) | ((inst >> 9) & 0x800) | ((inst >> 20) & 0x7fe);
+	return (uint64_t)((inst & 0x80000000) >> 11) | (inst & 0xff000) | ((inst >> 9) & 0x800) | ((inst >> 20) & 0x7fe);
 }
 
 uint32_t shamt(uint32_t inst) 
 {
-    return (uint32_t) (imm_I(inst) & 0x1f); // TODO: 0x1f / 0x3f ?
+    	return (uint32_t) (imm_I(inst) & 0x1f); // TODO: 0x1f / 0x3f ?
 }
 
 // =======================================
@@ -129,8 +129,8 @@ uint32_t shamt(uint32_t inst)
 void exec_ADDI(CPU* cpu, uint32_t instruction)
 {
 	uint64_t imm = imm_I(instruction);
-    cpu->regs[rd(instruction)] = cpu->regs[rs1(instruction)] + (int64_t)imm;
-    printf("[exec_ADDI] 		rd: 0x%x  rs1: 0x%x  rs2: 0x%x\n", rd(instruction), rs1(instruction), imm);
+    	cpu->regs[rd(instruction)] = cpu->regs[rs1(instruction)] + (int64_t)imm;
+    	printf("[exec_ADDI] 		rd: 0x%x  rs1: 0x%x  rs2: 0x%x\n", rd(instruction), rs1(instruction), imm);
 }
 
 void exec_SLLI(CPU* cpu, uint32_t instruction)
@@ -175,3 +175,44 @@ void exec_ANDI(CPU* cpu, uint32_t instruction)
 	
 }
 
+
+// =======================================
+// Executing functions
+// =======================================
+
+void dump_regs(CPU* cpu)
+{
+	printf("\n###################\nDump registers:\n\n");
+	printf("ra:	0x%x\n", &cpu->regs[1]);
+	printf("sp:	0x%x\n", &cpu->regs[2]);
+	printf("gp:	0x%x\n", &cpu->regs[3]);
+	printf("tp:	0x%x\n", &cpu->regs[4]);
+	printf("t0:	0x%x\n", &cpu->regs[5]);
+	printf("t1:	0x%x\n", &cpu->regs[6]);
+	printf("t2:	0x%x\n", &cpu->regs[7]);
+	printf("s0:	0x%x\n", &cpu->regs[8]);
+	printf("s1:	0x%x\n", &cpu->regs[9]);
+	printf("a0:	0x%x\n", &cpu->regs[10]);
+	printf("a1:	0x%x\n", &cpu->regs[11]);
+	printf("a2:	0x%x\n", &cpu->regs[12]);
+	printf("a3:	0x%x\n", &cpu->regs[13]);
+	printf("a4:	0x%x\n", &cpu->regs[14]);
+	printf("a5:	0x%x\n", &cpu->regs[15]);
+	printf("a6:	0x%x\n", &cpu->regs[16]);
+	printf("a7:	0x%x\n", &cpu->regs[17]);
+	printf("s2:	0x%x\n", &cpu->regs[18]);
+	printf("s3:	0x%x\n", &cpu->regs[19]);
+	printf("s4:	0x%x\n", &cpu->regs[20]);
+	printf("s5:	0x%x\n", &cpu->regs[21]);
+	printf("s6:	0x%x\n", &cpu->regs[22]);
+	printf("s7:	0x%x\n", &cpu->regs[23]);
+	printf("s8:	0x%x\n", &cpu->regs[24]);
+	printf("s9:	0x%x\n", &cpu->regs[25]);
+	printf("s10:	0x%x\n", &cpu->regs[26]);
+	printf("s11:	0x%x\n", &cpu->regs[27]);
+	printf("t3:	0x%x\n", &cpu->regs[28]);
+	printf("t4:	0x%x\n", &cpu->regs[29]);
+	printf("t5:	0x%x\n", &cpu->regs[30]);
+	printf("t6:	0x%x\n", &cpu->regs[31]);	
+	printf("\n###################\n\n");
+}

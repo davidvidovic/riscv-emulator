@@ -14,12 +14,14 @@ int main()
 	// addi x4, x4, 1
 	instruction = 1180179;
 	cpu_execute(&cpu, instruction);
-	printf("After execution: 	regs[%d] = 0x%x\n", rd(instruction), (uint32_t)(cpu.regs[rd(instruction)]));
+	//printf("After execution: 	regs[%d] = 0x%x\n", rd(instruction), (uint32_t)(cpu.regs[rd(instruction)]));
 		
 	// slli x4, x4, 1
 	instruction = 2232851;
 	cpu_execute(&cpu, instruction);
-	printf("After execution: 	regs[%d] = 0x%x\n", rd(instruction), (uint32_t)(cpu.regs[rd(instruction)]));
+	//printf("After execution: 	regs[%d] = 0x%x\n", rd(instruction), (uint32_t)(cpu.regs[rd(instruction)]));
+	
+	dump_regs(&cpu);
 	
 	return 0;
 }
