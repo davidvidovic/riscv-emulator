@@ -46,7 +46,15 @@ int cpu_execute(CPU* cpu, uint32_t instruction)
 				case SLTI: exec_SLTI(cpu, instruction); break;
 				case SLTIU: exec_SLTIU(cpu, instruction); break;
 				case XORI: exec_XORI(cpu, instruction); break;
-				case SRI: exec_SRI(cpu, instruction); break;
+				case SRI: 
+				{
+					switch(funct7)
+					{
+						case SRLI: exec_SRLI(cpu, instruction); break;
+						case SRAI: exec_SRAI(cpu, instruction); break;
+						default: break;
+					}
+				} break;
 				case ORI: exec_ORI(cpu, instruction); break;
 				case ANDI: exec_ANDI(cpu, instruction); break;
 				default: break;
@@ -122,12 +130,14 @@ void exec_ADDI(CPU* cpu, uint32_t instruction)
 {
 	uint64_t imm = imm_I(instruction);
     cpu->regs[rd(instruction)] = cpu->regs[rs1(instruction)] + (int64_t)imm;
-    printf("[exec_ADDI] 		rd: 0x%x  rs1: 0x%x  rs2: 0x%x\n", rd(instruction), rs1(instruction), rs2(instruction));
+    printf("[exec_ADDI] 		rd: 0x%x  rs1: 0x%x  rs2: 0x%x\n", rd(instruction), rs1(instruction), imm);
 }
 
 void exec_SLLI(CPU* cpu, uint32_t instruction)
 {
-	
+	uint64_t imm = imm_I(instruction);
+	cpu->regs[rd(instruction)] = cpu->regs[rs1(instruction)] << (int64_t)imm;
+	printf("[exec_ADDI] 		rd: 0x%x  rs1: 0x%x  imm: 0x%x\n", rd(instruction), rs1(instruction), imm);
 }
 
 void exec_SLTI(CPU* cpu, uint32_t instruction)
@@ -141,11 +151,6 @@ void exec_SLTIU(CPU* cpu, uint32_t instruction)
 }
 
 void exec_XORI(CPU* cpu, uint32_t instruction)
-{
-	
-}
-
-void exec_SRI(CPU* cpu, uint32_t instruction)
 {
 	
 }
