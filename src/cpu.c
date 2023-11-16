@@ -22,6 +22,34 @@ void cpu_store(CPU* cpu, uint64_t addr, uint64_t size, uint64_t value)
 	bus_store(&(cpu->bus), addr, size, value);
 }
 
+int cpu_execute(CPU* cpu, uint32_t instruction)
+{
+	int opcode = instruction & 0x7f;
+	int funct3 = (instruction >> 12) & 0x7;
+	int funct7 = (instruction >> 25) & 0x7f;
+	cpu->regs[0] = 0;
+
+	switch(opcode)
+	{
+		case I_TYPE:
+			switch(opcode)
+			{
+				case ADDI: exec_ADDI(cpu, instruction); break;
+				case SLLI: exec_SLLI(cpu, instruction); break;
+				case SLTI: exec_SLTI(cpu, instruction); break;
+				case : exec_(cpu, instruction); break;
+				case : exec_(cpu, instruction); break;
+				case : exec_(cpu, instruction); break;
+				case : exec_(cpu, instruction); break;
+			}
+		break;
+	}
+}
+
+
+
+
+
 uint64_t rd(uint32_t instruction) 
 {
 	return (instruction >> 7) & 0x1f;	// rd in bits 11..7
@@ -57,7 +85,7 @@ uint64_t imm_B(uint32_t instruction)
 
 uint64_t imm_U(uint32_t instruction)
 {
-	return (uint64_t)(inst & 0xfffff999);
+	return (uint64_t)(instruction & 0xfffff999);
 }
 
 uint64_t imm_J(uint32_t inst) 

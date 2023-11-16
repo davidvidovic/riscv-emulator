@@ -1,0 +1,11 @@
+#define I_TYPE  0x13
+    #define ADDI    0x0
+    #define SLLI    0x1
+    #define SLTI    0x2
+    #define SLTIU   0x3
+    #define XORI    0x4
+    #define SRI     0x5
+        #define SRLI    0x00
+        #define SRAI    0x20
+    #define ORI     0x6
+    #define ANDI    0x7

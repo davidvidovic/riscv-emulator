@@ -2,6 +2,7 @@
 #include <stdint.h>
 
 #include "bus.h"
+#include "opcodes.h"
 
 typedef struct CPU {
 	uint64_t regs[32];	// 32 general purpose 64-bit registers
