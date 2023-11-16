@@ -1,5 +1,9 @@
 #include "../includes/cpu.h"
 
+// =======================================
+// CPU functions
+// =======================================
+
 void cpu_init(CPU* cpu)
 {
 	cpu->regs[0] = 0x00;			// register x0 is hardwired to 0
@@ -24,31 +28,43 @@ void cpu_store(CPU* cpu, uint64_t addr, uint64_t size, uint64_t value)
 
 int cpu_execute(CPU* cpu, uint32_t instruction)
 {
+	
 	int opcode = instruction & 0x7f;
 	int funct3 = (instruction >> 12) & 0x7;
 	int funct7 = (instruction >> 25) & 0x7f;
 	cpu->regs[0] = 0;
+	
+	printf("[cpu_execute] 		opcode: 0x%x  funct3: 0x%x  funct7: 0x%x\n", opcode, funct3, funct7);
 
 	switch(opcode)
 	{
 		case I_TYPE:
-			switch(opcode)
+			switch(funct3)
 			{
 				case ADDI: exec_ADDI(cpu, instruction); break;
 				case SLLI: exec_SLLI(cpu, instruction); break;
 				case SLTI: exec_SLTI(cpu, instruction); break;
-				case : exec_(cpu, instruction); break;
-				case : exec_(cpu, instruction); break;
-				case : exec_(cpu, instruction); break;
-				case : exec_(cpu, instruction); break;
+				case SLTIU: exec_SLTIU(cpu, instruction); break;
+				case XORI: exec_XORI(cpu, instruction); break;
+				case SRI: exec_SRI(cpu, instruction); break;
+				case ORI: exec_ORI(cpu, instruction); break;
+				case ANDI: exec_ANDI(cpu, instruction); break;
+				default: break;
 			}
 		break;
+		
+		default: 
+			printf("[cpu_execute] ERROR: Not found instruction.\nopcode: 0x%x  funct3: 0x%x  funct7: 0x%x\n", opcode, funct3, funct7);
+			return -1;
+		break;
 	}
+	
+	return 0;
 }
 
-
-
-
+// =======================================
+// Decoding functions
+// =======================================
 
 uint64_t rd(uint32_t instruction) 
 {
@@ -97,3 +113,60 @@ uint32_t shamt(uint32_t inst)
 {
     return (uint32_t) (imm_I(inst) & 0x1f); // TODO: 0x1f / 0x3f ?
 }
+
+// =======================================
+// Executing functions
+// =======================================
+
+void exec_ADDI(CPU* cpu, uint32_t instruction)
+{
+	uint64_t imm = imm_I(instruction);
+    cpu->regs[rd(instruction)] = cpu->regs[rs1(instruction)] + (int64_t)imm;
+    printf("[exec_ADDI] 		rd: 0x%x  rs1: 0x%x  rs2: 0x%x\n", rd(instruction), rs1(instruction), rs2(instruction));
+}
+
+void exec_SLLI(CPU* cpu, uint32_t instruction)
+{
+	
+}
+
+void exec_SLTI(CPU* cpu, uint32_t instruction)
+{
+	
+}
+
+void exec_SLTIU(CPU* cpu, uint32_t instruction)
+{
+	
+}
+
+void exec_XORI(CPU* cpu, uint32_t instruction)
+{
+	
+}
+
+void exec_SRI(CPU* cpu, uint32_t instruction)
+{
+	
+}
+
+void exec_SRLI(CPU* cpu, uint32_t instruction)
+{
+	
+}
+
+void exec_SRAI(CPU* cpu, uint32_t instruction)
+{
+	
+}
+
+void exec_ORI(CPU* cpu, uint32_t instruction)
+{
+	
+}
+
+void exec_ANDI(CPU* cpu, uint32_t instruction)
+{
+	
+}
+
