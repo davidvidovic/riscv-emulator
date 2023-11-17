@@ -9,6 +9,9 @@ void cpu_init(CPU* cpu)
 	cpu->regs[0] = 0x00;			// register x0 is hardwired to 0
 	cpu->regs[2] = DRAM_BASE + DRAM_SIZE;	// stack pointer points to the start of the stack
 	cpu->pc = DRAM_BASE;			// program counter points to the start of DRAM
+	
+	cpu->regs[0] = 0x00;
+	for(int i = 3; i < 32; i++) cpu->regs[i] = (uint64_t)0;
 }
 
 uint32_t cpu_fetch(CPU* cpu)
