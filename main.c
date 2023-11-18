@@ -4,22 +4,39 @@
 
 #include "includes/cpu.h"
 
-int main()
+void read_input_file(CPU* cpu)
+{
+	char file_line[32];
+	int offset = 0;
+	FILE* binary_input;
+	
+	binary_input = fopen("binary_input.txt", "r");
+	if(binary_input == NULL) printf("ERROR opening binary input file!\n");
+	
+	while(fgets(file_line, 34, binary_input))
+	{
+		bus_store(&(cpu->bus), DRAM_BASE+offset, 32, (uint64_t)(strtol(file_line, NULL, 2)));
+		offset += 4;
+	}
+	
+	fclose(binary_input);
+}
+
+int main(int argv, char* argc)
 {
 	struct CPU cpu;
 	cpu_init(&cpu);
+	read_input_file(&cpu);
 	uint32_t instruction;
 	
-	// instruction = 00000000000100100000001000010011; = 1180179 
-	// addi x4, x4, 1
-	instruction = 1180179;
-	cpu_execute(&cpu, instruction);
-	//printf("After execution: 	regs[%d] = 0x%x\n", rd(instruction), (uint32_t)(cpu.regs[rd(instruction)]));
+	while(1)
+	{
+		instruction = cpu_fetch(&cpu);
+		cpu.pc += 4;
 		
-	// slli x4, x4, 1
-	instruction = 2232851;
-	cpu_execute(&cpu, instruction);
-	//printf("After execution: 	regs[%d] = 0x%x\n", rd(instruction), (uint32_t)(cpu.regs[rd(instruction)]));
+		if(cpu_execute(&cpu, instruction) != 0) break;
+		if(cpu.pc == 0) break;	
+	}
 	
 	dump_regs(&cpu);
 	

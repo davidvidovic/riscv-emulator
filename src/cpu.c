@@ -65,7 +65,7 @@ int cpu_execute(CPU* cpu, uint32_t instruction)
 		break;
 		
 		default: 
-			printf("[cpu_execute] ERROR: Not found instruction.\nopcode: 0x%x  funct3: 0x%x  funct7: 0x%x\n", opcode, funct3, funct7);
+			printf("[cpu_execute]		ERROR: Not found instruction.\n### PANIC ### opcode: 0x%x  funct3: 0x%x  funct7: 0x%x\n", opcode, funct3, funct7);
 			return -1;
 		break;
 	}
@@ -132,20 +132,22 @@ uint32_t shamt(uint32_t inst)
 void exec_ADDI(CPU* cpu, uint32_t instruction)
 {
 	uint64_t imm = imm_I(instruction);
-    	cpu->regs[rd(instruction)] = cpu->regs[rs1(instruction)] + (int64_t)imm;
-    	printf("[exec_ADDI] 		rd: 0x%x  rs1: 0x%x  rs2: 0x%x\n", rd(instruction), rs1(instruction), imm);
+    cpu->regs[rd(instruction)] = cpu->regs[rs1(instruction)] + (int64_t)imm;
+    printf("[exec_ADDI] 		rd: 0x%x  rs1: 0x%x  rs2: 0x%x\n", rd(instruction), rs1(instruction), imm);
 }
 
 void exec_SLLI(CPU* cpu, uint32_t instruction)
 {
 	uint64_t imm = imm_I(instruction);
 	cpu->regs[rd(instruction)] = cpu->regs[rs1(instruction)] << (int64_t)imm;
-	printf("[exec_ADDI] 		rd: 0x%x  rs1: 0x%x  imm: 0x%x\n", rd(instruction), rs1(instruction), imm);
+	printf("[exec_SLLI] 		rd: 0x%x  rs1: 0x%x  imm: 0x%x\n", rd(instruction), rs1(instruction), imm);
 }
 
 void exec_SLTI(CPU* cpu, uint32_t instruction)
 {
-	
+	uint64_t imm = imm_I(instruction);
+	cpu->regs[rd(instruction)] = cpu->regs[rs1(instruction)] < imm ? (uint64_t)0x1 : (uint64_t)0x0;
+	printf("[exec_SLTI] 		rd: 0x%x  rs1: 0x%x  imm: 0x%x\n", rd(instruction), rs1(instruction), imm);
 }
 
 void exec_SLTIU(CPU* cpu, uint32_t instruction)
