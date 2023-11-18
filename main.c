@@ -10,7 +10,7 @@ void read_input_file(CPU* cpu)
 	int offset = 0;
 	FILE* binary_input;
 	
-	binary_input = fopen("binary_input.txt", "r");
+	binary_input = fopen("binary_input.bin", "r");
 	if(binary_input == NULL) printf("ERROR opening binary input file!\n");
 	
 	while(fgets(file_line, 34, binary_input))
