@@ -132,8 +132,8 @@ uint32_t shamt(uint32_t inst)
 void exec_ADDI(CPU* cpu, uint32_t instruction)
 {
 	uint64_t imm = imm_I(instruction);
-    cpu->regs[rd(instruction)] = cpu->regs[rs1(instruction)] + (int64_t)imm;
-    //printf("[exec_ADDI] 		rd: 0x%x  rs1: 0x%x  rs2: 0x%x\n", rd(instruction), rs1(instruction), imm);
+	cpu->regs[rd(instruction)] = cpu->regs[rs1(instruction)] + (int64_t)imm;
+	//printf("[exec_ADDI] 		rd: 0x%x  rs1: 0x%x  rs2: 0x%x\n", rd(instruction), rs1(instruction), imm);
 }
 
 void exec_SLLI(CPU* cpu, uint32_t instruction)
@@ -160,7 +160,9 @@ void exec_SLTIU(CPU* cpu, uint32_t instruction)
 
 void exec_XORI(CPU* cpu, uint32_t instruction)
 {
-	
+	int64_t imm = imm_I(instruction);
+	// This is unsigned instruction
+	cpu->regs[rd(instruction)] = (int64_t)cpu->regs[rs1(instruction)] ^ imm;
 }
 
 void exec_SRLI(CPU* cpu, uint32_t instruction)
