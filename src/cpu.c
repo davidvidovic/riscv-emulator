@@ -139,7 +139,7 @@ void exec_ADDI(CPU* cpu, uint32_t instruction)
 void exec_SLLI(CPU* cpu, uint32_t instruction)
 {
 	uint64_t imm = imm_I(instruction);
-	cpu->regs[rd(instruction)] = cpu->regs[rs1(instruction)] << (int64_t)imm;
+	cpu->regs[rd(instruction)] = cpu->regs[rs1(instruction)] << (uint64_t)imm;
 	//printf("[exec_SLLI] 		rd: 0x%x  rs1: 0x%x  imm: 0x%x\n", rd(instruction), rs1(instruction), imm);
 }
 
@@ -167,12 +167,15 @@ void exec_XORI(CPU* cpu, uint32_t instruction)
 
 void exec_SRLI(CPU* cpu, uint32_t instruction)
 {
-	
+	uint64_t imm = imm_I(instruction);
+	cpu->regs[rd(instruction)] = cpu->regs[rs1(instruction)] >> (uint64_t)imm;
 }
 
 void exec_SRAI(CPU* cpu, uint32_t instruction)
 {
-	
+	uint64_t imm = imm_I(instruction);
+	uint64_t msb = cpu->regs[rs1(instruction)] & 0x80000000;
+	cpu->regs[rd(instruction)] = (cpu->regs[rs1(instruction)] >> (uint64_t)imm) | msb;
 }
 
 void exec_ORI(CPU* cpu, uint32_t instruction)
