@@ -5,3 +5,5 @@ sltiu x6, x4, -1
 xori x7, x6, 2
 ori x8, x5, 6
 andi x9, x8, 5
+add x10, x8, x9 
+sub x11, x10, x9

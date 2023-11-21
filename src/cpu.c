@@ -1,8 +1,8 @@
 #include "../includes/cpu.h"
 
-// =======================================
+// ======================================
 // CPU functions
-// =======================================
+// ======================================
 
 void cpu_init(CPU* cpu)
 {
@@ -14,20 +14,24 @@ void cpu_init(CPU* cpu)
 	for(int i = 3; i < 32; i++) cpu->regs[i] = (uint64_t)0;
 }
 
+
 uint32_t cpu_fetch(CPU* cpu)
 {
 	return bus_load(&(cpu->bus), cpu->pc, 32);
 }
+
 
 uint64_t cpu_load(CPU* cpu, uint64_t addr, uint64_t size)
 {
 	return bus_load(&(cpu->bus), addr, size);
 }
 
+
 void cpu_store(CPU* cpu, uint64_t addr, uint64_t size, uint64_t value)
 {
 	bus_store(&(cpu->bus), addr, size, value);
 }
+
 
 int cpu_execute(CPU* cpu, uint32_t instruction)
 {
@@ -44,11 +48,11 @@ int cpu_execute(CPU* cpu, uint32_t instruction)
 		case I_TYPE:
 			switch(funct3)
 			{
-				case ADDI: exec_ADDI(cpu, instruction); break;
-				case SLLI: exec_SLLI(cpu, instruction); break;
-				case SLTI: exec_SLTI(cpu, instruction); break;
+				case ADDI: 	exec_ADDI(cpu, instruction); break;
+				case SLLI: 	exec_SLLI(cpu, instruction); break;
+				case SLTI: 	exec_SLTI(cpu, instruction); break;
 				case SLTIU: exec_SLTIU(cpu, instruction); break;
-				case XORI: exec_XORI(cpu, instruction); break;
+				case XORI: 	exec_XORI(cpu, instruction); break;
 				case SRI: 
 				{
 					switch(funct7)
@@ -58,9 +62,31 @@ int cpu_execute(CPU* cpu, uint32_t instruction)
 						default: break;
 					}
 				} break;
-				case ORI: exec_ORI(cpu, instruction); break;
-				case ANDI: exec_ANDI(cpu, instruction); break;
+				case ORI: 	exec_ORI(cpu, instruction); break;
+				case ANDI: 	exec_ANDI(cpu, instruction); break;
 				default: break;
+			}
+		break;
+		
+		
+		
+		case R_TYPE:
+			switch(funct3)
+			{
+				case ADD_SUB:
+				{
+					switch(funct7)
+					{
+						case ADD: exec_ADD(cpu, instruction); break;
+						case SUB: exec_SUB(cpu, instruction); break;
+						default: break;
+					}
+				} break;
+				case SLT: 	exec_SLT(cpu, instruction); break;
+				case SLTU: 	exec_SLTU(cpu, instruction); break;
+				case XOR: 	exec_XOR(cpu, instruction); break;
+				case OR: 	exec_OR(cpu, instruction); break;
+				case AND: 	exec_AND(cpu, instruction); break;
 			}
 		break;
 		
@@ -73,9 +99,9 @@ int cpu_execute(CPU* cpu, uint32_t instruction)
 	return 0;
 }
 
-// =======================================
+// ======================================
 // Decoding functions
-// =======================================
+// ======================================
 
 uint64_t rd(uint32_t instruction) 
 {
@@ -120,80 +146,16 @@ uint64_t imm_J(uint32_t inst)
 	return (uint64_t)((inst & 0x80000000) >> 11) | (inst & 0xff000) | ((inst >> 9) & 0x800) | ((inst >> 20) & 0x7fe);
 }
 
+/*
 uint32_t shamt(uint32_t inst) 
 {
-    	return (uint32_t) (imm_I(inst) & 0x1f); // TODO: 0x1f / 0x3f ?
+    return (uint32_t) (imm_I(inst) & 0x3f); // TODO: 0x1f / 0x3f ?
 }
+*/
 
-// =======================================
-// Executing functions
-// =======================================
-
-void exec_ADDI(CPU* cpu, uint32_t instruction)
-{
-	uint64_t imm = imm_I(instruction);
-	cpu->regs[rd(instruction)] = cpu->regs[rs1(instruction)] + (int64_t)imm;
-	//printf("[exec_ADDI] 		rd: 0x%x  rs1: 0x%x  rs2: 0x%x\n", rd(instruction), rs1(instruction), imm);
-}
-
-void exec_SLLI(CPU* cpu, uint32_t instruction)
-{
-	uint64_t imm = imm_I(instruction);
-	cpu->regs[rd(instruction)] = cpu->regs[rs1(instruction)] << (uint64_t)imm;
-	//printf("[exec_SLLI] 		rd: 0x%x  rs1: 0x%x  imm: 0x%x\n", rd(instruction), rs1(instruction), imm);
-}
-
-void exec_SLTI(CPU* cpu, uint32_t instruction)
-{
-	int64_t imm = imm_I(instruction);
-	// This is signed instruction
-	cpu->regs[rd(instruction)] = (int64_t)cpu->regs[rs1(instruction)] < imm ? (uint64_t)0x1 : (uint64_t)0x0;
-	//printf("[exec_SLTI] 		rd: 0x%x  rs1: 0x%x  imm: 0x%x\n", rd(instruction), rs1(instruction), imm);
-}
-
-void exec_SLTIU(CPU* cpu, uint32_t instruction)
-{
-	uint64_t imm = imm_I(instruction);
-	// This is unsigned instruction
-	cpu->regs[rd(instruction)] = (uint64_t)cpu->regs[rs1(instruction)] < imm ? (uint64_t)0x1 : (uint64_t)0x0;
-}
-
-void exec_XORI(CPU* cpu, uint32_t instruction)
-{
-	int64_t imm = imm_I(instruction);
-	// This is unsigned instruction
-	cpu->regs[rd(instruction)] = (int64_t)cpu->regs[rs1(instruction)] ^ imm;
-}
-
-void exec_SRLI(CPU* cpu, uint32_t instruction)
-{
-	uint64_t imm = imm_I(instruction);
-	cpu->regs[rd(instruction)] = cpu->regs[rs1(instruction)] >> (uint64_t)imm;
-}
-
-void exec_SRAI(CPU* cpu, uint32_t instruction)
-{
-	uint64_t imm = imm_I(instruction);
-	uint64_t msb = cpu->regs[rs1(instruction)] & 0x80000000;
-	cpu->regs[rd(instruction)] = (cpu->regs[rs1(instruction)] >> (uint64_t)imm) | msb;
-}
-
-void exec_ORI(CPU* cpu, uint32_t instruction)
-{
-	uint64_t imm = imm_I(instruction);
-	cpu->regs[rd(instruction)] = cpu->regs[rs1(instruction)] | (uint64_t)imm;
-}
-
-void exec_ANDI(CPU* cpu, uint32_t instruction)
-{
-	uint64_t imm = imm_I(instruction);
-	cpu->regs[rd(instruction)] = cpu->regs[rs1(instruction)] & (uint64_t)imm;
-}
-
-
-// =======================================
-// Executing functions
-// =======================================
+// ======================================
+// dump_regs
+// ======================================
 
 void dump_regs(CPU* cpu)
 {
