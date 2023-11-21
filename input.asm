@@ -7,3 +7,7 @@ ori x8, x5, 6
 andi x9, x8, 5
 add x10, x8, x9 
 sub x11, x10, x9
+slt x12, x11, x10
+xor x13, x10, x9
+or x14, x10, x9
+and x15, x10, x9
