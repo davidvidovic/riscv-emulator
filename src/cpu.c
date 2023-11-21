@@ -180,12 +180,14 @@ void exec_SRAI(CPU* cpu, uint32_t instruction)
 
 void exec_ORI(CPU* cpu, uint32_t instruction)
 {
-	
+	uint64_t imm = imm_I(instruction);
+	cpu->regs[rd(instruction)] = cpu->regs[rs1(instruction)] | (uint64_t)imm;
 }
 
 void exec_ANDI(CPU* cpu, uint32_t instruction)
 {
-	
+	uint64_t imm = imm_I(instruction);
+	cpu->regs[rd(instruction)] = cpu->regs[rs1(instruction)] & (uint64_t)imm;
 }
 
 
