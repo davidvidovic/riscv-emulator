@@ -5,7 +5,7 @@
 #include "opcodes.h"
 
 typedef struct CPU {
-	uint64_t regs[32];	// 32 general purpose 64-bit registers
+	int64_t regs[32];	// 32 general purpose 64-bit registers
 	uint64_t pc;		// 64-bit program counter
 	struct BUS bus;		// BUS connected to the CPU
 } CPU;
