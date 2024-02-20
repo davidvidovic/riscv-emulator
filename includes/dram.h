@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <cstdint>
 
 #define DRAM_SIZE	1024*1024*1
 #define DRAM_BASE	0x80000000
