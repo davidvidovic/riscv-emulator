@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <cstdint>
 
 #define DRAM_SIZE	1024*1024*1

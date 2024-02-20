@@ -5,7 +5,7 @@ SRCDIR = ./src
 BINDIR = .
 OBJDIR = ./obj
 
-SOURCES := $(wildcard $(SRCDIR)/*.cpp) main.c
+SOURCES := $(wildcard $(SRCDIR)/*.cpp) main.cpp
 OBJECTS := $(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.o, $(SOURCES))
 TARGET = $(BINDIR)/riscv_exe
 
