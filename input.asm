@@ -11,3 +11,18 @@ slt x12, x11, x10
 xor x13, x10, x9
 or x14, x10, x9
 and x15, x10, x9
+addi x20, x20, 20
+addi x21, x20, 10
+addi x22, x21, 10
+sb x7, 0(x20) 
+sh x8, 0(x21)
+sw x9, 0(x22)
+lb x20, 0(x20)
+lh x21, 0(x21)
+lw x22, 0(x22)
+addi x23, x23, -1
+addi x24, x24, 1
+addi x23, x23, -1
+bgeu x23, x24, l1
+addi x23, x23, -1
+l1: addi x24, x24, 1

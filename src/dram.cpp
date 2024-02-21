@@ -31,62 +31,62 @@ uint64_t DRAM::dram_load(uint64_t addr, uint64_t size)
 
 void DRAM::dram_store_8(uint64_t addr, uint64_t value)
 {
-	mem[addr-DRAM_BASE] = (uint8_t)(value & 0xff);
+	mem[addr] = (uint8_t)(value & 0xff);
 }
 
 void DRAM::dram_store_16(uint64_t addr, uint64_t value)
 {
-	mem[addr-DRAM_BASE]   = (uint8_t)(value & 0xff);
-	mem[addr-DRAM_BASE+1] = (uint8_t)((value >> 8) & 0xff);
+	mem[addr]   = (uint8_t)(value & 0xff);
+	mem[addr+1] = (uint8_t)((value >> 8) & 0xff);
 }
 
 void DRAM::dram_store_32(uint64_t addr, uint64_t value)
 {
-	mem[addr-DRAM_BASE]   = (uint8_t)(value & 0xff);
-	mem[addr-DRAM_BASE+1] = (uint8_t)((value >> 8)  & 0xff);
-	mem[addr-DRAM_BASE+2] = (uint8_t)((value >> 16) & 0xff);
-	mem[addr-DRAM_BASE+3] = (uint8_t)((value >> 24) & 0xff);
+	mem[addr]   = (uint8_t)(value & 0xff);
+	mem[addr+1] = (uint8_t)((value >> 8)  & 0xff);
+	mem[addr+2] = (uint8_t)((value >> 16) & 0xff);
+	mem[addr+3] = (uint8_t)((value >> 24) & 0xff);
 }
 
 void DRAM::dram_store_64(uint64_t addr, uint64_t value)
 {
-	mem[addr-DRAM_BASE]   = (uint8_t)(value & 0xff);
-	mem[addr-DRAM_BASE+1] = (uint8_t)((value >> 8)  & 0xff);
-	mem[addr-DRAM_BASE+2] = (uint8_t)((value >> 16) & 0xff);
-	mem[addr-DRAM_BASE+3] = (uint8_t)((value >> 24) & 0xff);
-	mem[addr-DRAM_BASE+4] = (uint8_t)((value >> 32) & 0xff);
-	mem[addr-DRAM_BASE+5] = (uint8_t)((value >> 40) & 0xff);
-	mem[addr-DRAM_BASE+6] = (uint8_t)((value >> 48) & 0xff);
-	mem[addr-DRAM_BASE+7] = (uint8_t)((value >> 56) & 0xff);
+	mem[addr]   = (uint8_t)(value & 0xff);
+	mem[addr+1] = (uint8_t)((value >> 8)  & 0xff);
+	mem[addr+2] = (uint8_t)((value >> 16) & 0xff);
+	mem[addr+3] = (uint8_t)((value >> 24) & 0xff);
+	mem[addr+4] = (uint8_t)((value >> 32) & 0xff);
+	mem[addr+5] = (uint8_t)((value >> 40) & 0xff);
+	mem[addr+6] = (uint8_t)((value >> 48) & 0xff);
+	mem[addr+7] = (uint8_t)((value >> 56) & 0xff);
 }
 
 uint64_t DRAM::dram_load_8(uint64_t addr)
 {
-	return (uint64_t) mem[addr-DRAM_BASE];
+	return (uint64_t) mem[addr];
 }
 
 uint64_t DRAM::dram_load_16(uint64_t addr)
 {
-	return (uint64_t) 	((uint64_t)mem[addr-DRAM_BASE] 			| 
-				((uint64_t)mem[addr-DRAM_BASE+1] << 8));
+	return (uint64_t) 	((uint64_t)mem[addr] 			|
+				((uint64_t)mem[addr+1] << 8));
 }
 
 uint64_t DRAM::dram_load_32(uint64_t addr)
 {
-	return (uint64_t) 	((uint64_t)mem[addr-DRAM_BASE] 			| 
-				((uint64_t)mem[addr-DRAM_BASE+1] << 8) 	|
-				((uint64_t)mem[addr-DRAM_BASE+2] << 16) 	|
-				((uint64_t)mem[addr-DRAM_BASE+3] << 24));
+	return (uint64_t) 	((uint64_t)mem[addr] 			|
+				((uint64_t)mem[addr+1] << 8) 	|
+				((uint64_t)mem[addr+2] << 16) 	|
+				((uint64_t)mem[addr+3] << 24));
 }
 
 uint64_t DRAM::dram_load_64(uint64_t addr)
 {
-	return (uint64_t) 	((uint64_t)mem[addr-DRAM_BASE] 			| 
-				((uint64_t)mem[addr-DRAM_BASE+1] << 8) 	|
-				((uint64_t)mem[addr-DRAM_BASE+2] << 16) 	|
-				((uint64_t)mem[addr-DRAM_BASE+3] << 24) 	|
-				((uint64_t)mem[addr-DRAM_BASE+4] << 32) 	|
-				((uint64_t)mem[addr-DRAM_BASE+5] << 40) 	|
-				((uint64_t)mem[addr-DRAM_BASE+6] << 48) 	|
-				((uint64_t)mem[addr-DRAM_BASE+7] << 56));
+	return (uint64_t) 	((uint64_t)mem[addr] 			|
+				((uint64_t)mem[addr+1] << 8) 	|
+				((uint64_t)mem[addr+2] << 16) 	|
+				((uint64_t)mem[addr+3] << 24) 	|
+				((uint64_t)mem[addr+4] << 32) 	|
+				((uint64_t)mem[addr+5] << 40) 	|
+				((uint64_t)mem[addr+6] << 48) 	|
+				((uint64_t)mem[addr+7] << 56));
 }

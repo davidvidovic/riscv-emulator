@@ -1,0 +1,2 @@
+#define LOAD_ADDRESS_OUT_OF_RANGE       500
+#define STORE_ADDRESS_OUT_OF_RANGE      501

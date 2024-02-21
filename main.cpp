@@ -17,7 +17,7 @@ void read_input_file(CPU &cpu)
         while(input_file)
         {
             std::getline(input_file, line);
-            cpu.cpu_store(DRAM_BASE + offset, 32, (uint64_t)(strtol(line.c_str(), NULL, 2)));
+            cpu.cpu_store(offset, 32, (uint64_t)(strtol(line.c_str(), NULL, 2)));
             offset += 4;
         }
     }
@@ -41,7 +41,6 @@ int main(int argv, char* argc)
         cpu.cpu_increment_pc(4);
 
         if(cpu.cpu_execute(instruction) != 0) break;
-        //if(cpu.pc == 0) break;
     }
 
     cpu.dump_regs();

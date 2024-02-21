@@ -6,8 +6,7 @@
 
 void CPU::exec_ADDI(uint32_t instruction)
 {
-	int64_t imm = imm_I(instruction);
-	regs[rd(instruction)] = regs[rs1(instruction)] + (int64_t)imm;
+	regs[rd(instruction)] = (signed int64_t)((signed int64_t)(regs[rs1(instruction)]) + (signed int64_t)(imm_I(instruction)));
 	//printf("[CPU::exec_ADDI] 		rd: 0x%x  rs1: 0x%x  rs2: 0x%x\n", rd(instruction), rs1(instruction), imm);
 }
 

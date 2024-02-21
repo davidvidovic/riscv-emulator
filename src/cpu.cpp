@@ -9,11 +9,11 @@ CPU::CPU()
 
 void CPU::cpu_init()
 {
-	regs[0] = (uint64_t)0;  		    // register x0 is hardwired to 0
-	regs[2] = DRAM_BASE + DRAM_SIZE;	// stack pointer points to the start of the stack
-	pc = DRAM_BASE;			            // program counter points to the start of DRAM
+	regs[0] = (int64_t)0;  		    // register x0 is hardwired to 0
+	regs[2] = DRAM_SIZE;				// stack pointer points to the start of the stack
+	pc = 0;			            // program counter points to the start of DRAM
 
-	for(int i = 3; i < 32; i++) regs[i] = (uint64_t)0;
+	for(int i = 3; i < 32; i++) regs[i] = (int64_t)0;
 }
 
 uint32_t CPU::cpu_fetch()
@@ -41,13 +41,12 @@ void CPU::cpu_store(uint64_t addr, uint64_t size, uint64_t value)
 
 int CPU::cpu_execute(uint32_t instruction)
 {
-
 	int opcode = instruction & 0x7f;
 	int funct3 = (instruction >> 12) & 0x7;
 	int funct7 = (instruction >> 25) & 0x7f;
-	this->regs[0] = 0;
+	//this->regs[0] = 0; // not necessary?
 
-	std::cout << "[cpu_execute] 		opcode: 0x" << std::hex << opcode << " funct3: 0x" << std::hex << funct3 << " funct7: 0x" << std::hex << funct7 << std::endl;
+	//std::cout << "[cpu_execute] 		opcode: 0x" << std::hex << opcode << " funct3: 0x" << std::hex << funct3 << " funct7: 0x" << std::hex << funct7 << std::endl;
 
 	switch(opcode)
 	{
@@ -74,8 +73,6 @@ int CPU::cpu_execute(uint32_t instruction)
 			}
 		break;
 
-
-
 		case R_TYPE:
 			switch(funct3)
 			{
@@ -95,6 +92,40 @@ int CPU::cpu_execute(uint32_t instruction)
 				case AND: 	exec_AND(instruction); break;
 			}
 		break;
+
+		case LOAD_TYPE:
+			switch(funct3)
+			{
+				case LB:	exec_LB(instruction); break;
+				case LH:	exec_LH(instruction); break;
+				case LW:	exec_LW(instruction); break;
+				case LD:	exec_LD(instruction); break;
+			}
+		break;
+
+		case STORE_TYPE:
+			switch(funct3)
+			{
+				case SB:	exec_SB(instruction); break;
+				case SH:	exec_SH(instruction); break;
+				case SW:	exec_SW(instruction); break;
+				case SD:	exec_SD(instruction); break;
+			}
+		break;
+
+
+		case B_TYPE:
+			switch(funct3)
+			{
+				case BEQ:	exec_BEQ(instruction); break;
+				case BNE:	exec_BNE(instruction); break;
+				case BLT:	exec_BLT(instruction); break;
+				case BGE:	exec_BGE(instruction); break;
+				case BLTU:	exec_BLTU(instruction); break;
+				case BGEU:	exec_BGEU(instruction); break;
+			}
+		break;
+
 
 		default:
 			std::cout << "[cpu_execute]		ERROR: Not found instruction.\n### PANIC ### opcode: 0x" << std::hex << opcode << " funct3: 0x" << std::hex << funct3 << " funct7: 0x" << std::hex << funct7 << std::endl;
@@ -125,22 +156,34 @@ uint64_t CPU::rs2(uint32_t instruction)
 	return (instruction >> 20) & 0x1f;	// rs2 in bits 24..20
 }
 
-uint64_t CPU::imm_I(uint32_t instruction)
+int16_t CPU::imm_I(uint32_t instruction)
 {
 	// I-type imm is in bits 31..20
-	return (uint64_t)((instruction & 0xfff00000) >> 20);
+	// Therfore, we are dealing with a 12 bit long number
+	// Shift it right into a 16 bit number, so that the leading MSB 1 can be recognized as a negativ number
+	// And return value divided by 16, or 2^4 (equal to shifting a 12 bit number 4 times to the left)
+	return (signed int16_t)((signed int16_t)((instruction & 0xfff00000) >> 16)/16);
 }
 
-uint64_t CPU::imm_S(uint32_t instruction)
+int16_t CPU::imm_S(uint32_t instruction)
 {
 	// S-type imm is in bits 31..25 | 11.7
-	return (uint64_t)(((instruction & 0xfe000000) >> 20) | ((instruction >> 7) & 0x1f));
+	int imm = (signed int16_t)(((instruction & 0xfe000000) >> 20) | ((instruction >> 7) & 0x1f));
+	return (signed int16_t)((signed int16_t)(imm << 4)/16);
 }
 
-uint64_t CPU::imm_B(uint32_t instruction)
+int16_t CPU::imm_B(uint32_t instruction)
 {
 	// B-type imm is in bits 31 | 30..25 | 11..8 | 7
-	return (uint64_t)(((instruction & 0x80000000) >> 19) | ((instruction & 0x80 << 4)) | ((instruction >> 20) & 0x7e0) | ((instruction >> 7) & 0x1e));
+	int imm = (int16_t)(((instruction & 0x80000000) >> 19) | ((instruction & 0x80 << 4)) | ((instruction >> 20) & 0x7e0) | ((instruction >> 7) & 0x1e));
+
+	// imm_B returns 16 bit integer, but only 13 LSB bits are important, 3 MSB bits are NOT important as immediate is 13 bits long
+	// Those 3 MSB bits will always be zeros, hence that number is always going to be a positive 16 bit number
+	// By shifting to the left 3 times the 3-bit offset is neutralized, and the number can have a leading 1 indicating negative signed numbers
+	// However, since the number was shifted 3 bits to the left, it is equal to multiplaying that number but 2^3, or to say 8, hence dividing by 8
+	// These kind of issue is not a problem in hardware implementation since wires can be 13 bits long. In software implementation however, it is and issue
+	// Because memeory is byte-addressabile and it is not possilbe to have 13 bit integer as a data type
+	return (signed int16_t)((signed int16_t)(imm << 3)/8);
 }
 
 uint64_t CPU::imm_U(uint32_t instruction)
