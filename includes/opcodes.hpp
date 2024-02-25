@@ -39,3 +39,6 @@
 	#define BGE	0x05
 	#define BLTU	0x06
 	#define BGEU	0x07
+
+#define	JAL		0x6f
+#define	JALR	0x67

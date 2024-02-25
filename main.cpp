@@ -32,7 +32,7 @@ int main(int argv, char* argc)
 {
     CPU cpu;
     read_input_file(cpu);
-    cpu.cpu_init();
+    //cpu.cpu_init();
     uint32_t instruction;
 
     while(true)

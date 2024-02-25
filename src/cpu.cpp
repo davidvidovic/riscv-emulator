@@ -1,7 +1,9 @@
 #include "../includes/cpu.hpp"
 
 CPU::CPU()
-{}
+{
+	this->cpu_init();
+}
 
 // ======================================
 // CPU functions
@@ -126,6 +128,14 @@ int CPU::cpu_execute(uint32_t instruction)
 			}
 		break;
 
+		case JAL:
+			exec_JAL(instruction);
+		break;
+
+		case JALR:
+			exec_JALR(instruction);
+		break;
+
 
 		default:
 			std::cout << "[cpu_execute]		ERROR: Not found instruction.\n### PANIC ### opcode: 0x" << std::hex << opcode << " funct3: 0x" << std::hex << funct3 << " funct7: 0x" << std::hex << funct7 << std::endl;
@@ -141,17 +151,17 @@ int CPU::cpu_execute(uint32_t instruction)
 // Decoding functions
 // ======================================
 
-uint64_t CPU::rd(uint32_t instruction)
+uint16_t CPU::rd(uint32_t instruction)
 {
 	return (instruction >> 7) & 0x1f;	// rd in bits 11..7
 }
 
-uint64_t CPU::rs1(uint32_t instruction)
+uint16_t CPU::rs1(uint32_t instruction)
 {
 	return (instruction >> 15) & 0x1f;	// rs1 in bits 19..15
 }
 
-uint64_t CPU::rs2(uint32_t instruction)
+uint16_t CPU::rs2(uint32_t instruction)
 {
 	return (instruction >> 20) & 0x1f;	// rs2 in bits 24..20
 }
@@ -191,9 +201,9 @@ uint64_t CPU::imm_U(uint32_t instruction)
 	return (uint64_t)(instruction & 0xfffff999);
 }
 
-uint64_t CPU::imm_J(uint32_t instruction)
+uint32_t CPU::imm_J(uint32_t instruction)
 {
-	return (uint64_t)((instruction & 0x80000000) >> 11) | (instruction & 0xff000) | ((instruction >> 9) & 0x800) | ((instruction >> 20) & 0x7fe);
+	return (uint32_t)((instruction & 0x80000000) >> 11) | (instruction & 0xff000) | ((instruction >> 9) & 0x800) | ((instruction >> 20) & 0x7fe);
 }
 
 /*

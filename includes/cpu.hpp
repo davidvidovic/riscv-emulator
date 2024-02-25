@@ -12,14 +12,14 @@ class CPU {
         BUS bus;		      // BUS connected to the CPU
 
         // Decoding functions
-        uint64_t rd(uint32_t);
-        uint64_t rs1(uint32_t);
-        uint64_t rs2(uint32_t);
+        uint16_t rd(uint32_t);
+        uint16_t rs1(uint32_t);
+        uint16_t rs2(uint32_t);
         int16_t imm_I(uint32_t);
         int16_t imm_S(uint32_t);
         int16_t imm_B(uint32_t);
         uint64_t imm_U(uint32_t);
-        uint64_t imm_J(uint32_t);
+        uint32_t imm_J(uint32_t);
 
         // I-type instructions
         void exec_ADDI(uint32_t);
@@ -60,6 +60,10 @@ class CPU {
         void exec_BGE(uint32_t);
         void exec_BLTU(uint32_t);
         void exec_BGEU(uint32_t);
+
+        // J-type instructions
+        void exec_JAL(uint32_t);
+        void exec_JALR(uint32_t);
 
 
 
