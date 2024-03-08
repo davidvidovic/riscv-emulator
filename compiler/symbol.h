@@ -10,7 +10,7 @@ typedef struct
 {
     Coordinate src;
     char *name;
-} IDstruct;
+} ID_struct;
 
 
 #endif

@@ -1,4 +1,4 @@
-int a = 4;
+char* ime_stringa, drugi_string, treci_string = "tekst";
 float b;
 b = 5.6;
 !

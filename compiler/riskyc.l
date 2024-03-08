@@ -16,7 +16,6 @@
 
 %}
 
-
 alpha [a-zA-Z]
 digit [0-9]
 nonZero [1-9]
@@ -29,6 +28,7 @@ nonZero [1-9]
 "void"                      { return TYPE_VOID; }
 "return"                    { return RETURN; }
 "="                         { return EQUAL; }
+"main"                      { return MAIN; }
 
   /* Integers */
 
@@ -43,11 +43,11 @@ nonZero [1-9]
 
   /* Identifiers */
 
-{alpha}({alpha}|{digit})*   {
-    yylval.id.name = malloc(strlen(yytext)+1);
-    yylval.id.src.line = lineno;
-    yylval.id.src.col = col - yyleng;
-    strcpy(yylval.id.name, yytext);
+{alpha}({alpha}|{digit}|_)*   {
+    yylval.id_obj.name = malloc(strlen(yytext)+1);
+    strcpy(yylval.id_obj.name, yytext);
+    yylval.id_obj.src.line = lineno;
+    yylval.id_obj.src.col = col - yyleng;
     return ID;
 }
 
@@ -57,9 +57,21 @@ nonZero [1-9]
 "\'"({alpha}|{digit})"\'"       { yylval.value_char = yytext[1]; return CHARACTER; }
 
 
+  /* Strings */
+
+"\""({alpha}|{digit})+"\""      {
+    yylval.value_string = (char*)malloc(strlen(yytext)+1);
+    strcpy(yylval.value_string, yytext);
+    return STRING;
+}
+
+"*"                         { return STAR; }
+","                         { return COMMA; }
+
 [ \t]*                      { ; }
-[\n]                        { ; }
-[;,:()]                        { return *yytext; }
+[\n]                        { lineno++; }
+";"                         { ;  }
+[:()]                      { return *yytext; }
 .                           { return EOF_TOKEN; }
 
 

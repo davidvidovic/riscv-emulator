@@ -20,9 +20,10 @@ int main()
 {
   yyin = fopen("input.txt", "r");
   int token;
-  while ((token = yylex()) != EOF_TOKEN)
-  {
-    printf("Token: %d: '%s'\n", token, yytext);
-  }
+  yyparse();
+  // while ((token = yylex()) != EOF_TOKEN)
+  // {
+  //   printf("Line %d\tToken: %d: '%s'\n", lineno, token, yytext);
+  // }
   return 0;
 }
