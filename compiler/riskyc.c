@@ -1,7 +1,7 @@
 //File main.c
 #include <stdio.h>
 #include <stdlib.h>
-#include "symbol.h"
+#include "riskyc.h"
 #include "y.tab.h"
 
 // The current line number.
@@ -20,10 +20,10 @@ int main()
 {
   yyin = fopen("input.txt", "r");
   int token;
-  yyparse();
-  // while ((token = yylex()) != EOF_TOKEN)
-  // {
-  //   printf("Line %d\tToken: %d: '%s'\n", lineno, token, yytext);
-  // }
+  //yyparse();
+  while ((token = yylex()) != EOF_TOKEN)
+  {
+    printf("Line %d\tToken: %d: '%s'\n", lineno, token, yytext);
+  }
   return 0;
 }

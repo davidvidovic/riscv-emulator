@@ -1,4 +1,11 @@
-char* ime_stringa, drugi_string, treci_string = "tekst";
-float b;
-b = 5.6;
-!
+int main()
+{ 
+    int a = 4; 
+    float b;
+    b = 6.7;
+
+    char* ime = "david";
+    char slovo = 'g';
+
+    return 0;
+}

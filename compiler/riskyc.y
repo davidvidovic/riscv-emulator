@@ -2,7 +2,8 @@
     #include <stdio.h>
     #include <string.h>
     #include <stdlib.h>
-    #include "symbol.h"
+    #include "riskyc.h"
+    #include "y.tab.h"
 
     char *currentFileName;
     extern int lineno, col;
@@ -20,7 +21,7 @@
     ID_struct id_obj;
 }
 
-%token RETURN EQUAL MAIN STAR COMMA
+%token RETURN EQUAL MAIN STAR COMMA NEWLINE SEMICOLON CURLY_OPEN CURLY_CLOSED BRACKET_OPEN BRACKET_CLOSED
 %token TYPE_INT TYPE_FLOAT TYPE_CHAR TYPE_VOID
 %token <value_int> INT
 %token <value_float> FLOAT
@@ -31,19 +32,34 @@
 
 %type <id_obj> id
 
+%start program
+
 %%
 
 /* Grammar section */
 
-statement: declaration init     {printf("Statement\n");}
+program: datatype MAIN BRACKET_OPEN BRACKET_CLOSED CURLY_OPEN statements return CURLY_CLOSED {printf("Program\n");}
 ;
 
-declaration: declaration COMMA id    {printf("Declaration of IDs, name: %s\n", $3.name);}
-| datatype id    {printf("Declaration of ID, name: %s\n", $2.name);}
+return: RETURN value SEMICOLON         {printf("Return\n");} 
 ;
+
+statements : statements statement
+| statement
+;
+
+statement: declaration init SEMICOLON   {printf("Statement\n");}
+| init SEMICOLON                        {printf("Assign value\n");}
+| declaration SEMICOLON                 {printf("Declaration\n");}
+;
+
+declaration: declaration COMMA id     {printf("Declaration of IDs, name: %s\n", $3.name);}
+| datatype id                         {printf("Declaration of ID, name: %s\n", $2.name);}
+;
+
 
 init: EQUAL value       {printf("Initialized to value\n");}
-| id EQUAL value        {printf("Initialized to value\n");}
+| id EQUAL value        {printf("Assigning to value\n");}
 ;
 
 datatype: TYPE_INT      {printf("Data type: INT\n");}
@@ -60,13 +76,29 @@ value: INT              {printf("Value type: INT, value: %d\n", $1);}
 | STRING                {printf("Value type: STRING, value: %s\n", $1);}
 ;
 
-id: ID                  { printf("ID\n"); }
+id: ID                  { printf("ID, name %s\n", $1.name); }
 ;
 
 
 
-
 %%
+
+extern int lineno;
+extern FILE *yyin;
+extern char *yytext;
+
+int main()
+{
+  yyin = fopen("input.txt", "r");
+  int token;
+  yyparse();
+  /* while ((token = yylex()) != EOF_TOKEN)
+   {
+     printf("Line %d\tToken: %d: '%s'\n", lineno, token, yytext);
+   }
+  */
+  return 0;
+}
 
 /*
 int main() {
