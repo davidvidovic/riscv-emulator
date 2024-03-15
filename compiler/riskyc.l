@@ -19,7 +19,10 @@ nonZero [1-9]
 
 %%
 
-"int"                       { return TYPE_INT; }
+"int"                       { yylval.value_string = (char*)malloc(strlen(yytext)+1);
+                              strcpy(yylval.value_string, yytext); 
+                              return TYPE_INT; 
+                            }
 "float"                     { return TYPE_FLOAT; }
 "char"                      { return TYPE_CHAR; }
 "void"                      { return TYPE_VOID; }

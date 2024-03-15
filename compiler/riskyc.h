@@ -1,5 +1,5 @@
-#ifndef SYMBOL
-#define SYMBOL
+#ifndef MAIN_H
+#define MAIN_H
 
 typedef struct
 {
@@ -9,7 +9,7 @@ typedef struct
 typedef struct
 {
     Coordinate src;
-    char *name;
+    const char *name;
 } ID_struct;
 
 

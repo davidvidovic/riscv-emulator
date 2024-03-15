@@ -4,9 +4,11 @@
     #include <stdlib.h>
     #include "riskyc.h"
     #include "y.tab.h"
+    #include "symboltable.h"
 
     char *currentFileName;
     extern int lineno, col;
+    ht* table;
 
     void yyerror(const char *s);
     int yylex();
@@ -21,8 +23,9 @@
     ID_struct id_obj;
 }
 
-%token RETURN EQUAL MAIN STAR COMMA NEWLINE SEMICOLON CURLY_OPEN CURLY_CLOSED BRACKET_OPEN BRACKET_CLOSED
-%token TYPE_INT TYPE_FLOAT TYPE_CHAR TYPE_VOID
+%token RETURN EQUAL MAIN STAR COMMA NEWLINE SEMICOLON 
+%token CURLY_OPEN CURLY_CLOSED BRACKET_OPEN BRACKET_CLOSED
+%token <value_string> TYPE_INT TYPE_FLOAT TYPE_CHAR TYPE_VOID
 %token <value_int> INT
 %token <value_float> FLOAT
 %token <value_char> CHARACTER
@@ -31,6 +34,7 @@
 %token EOF_TOKEN
 
 %type <id_obj> id
+%type <value_string> datatype
 
 %start program
 
@@ -53,8 +57,25 @@ statement: declaration init SEMICOLON   {printf("Statement\n");}
 | declaration SEMICOLON                 {printf("Declaration\n");}
 ;
 
-declaration: declaration COMMA id     {printf("Declaration of IDs, name: %s\n", $3.name);}
-| datatype id                         {printf("Declaration of ID, name: %s\n", $2.name);}
+declaration: declaration COMMA id     
+  {
+    printf("Declaration of IDs, name: %s\n", $3.name);
+  }
+| datatype id                         
+  {
+    printf("Declaration of ID, name: %s\n", $2.name);
+
+    if(ht_get(table, &($2.name)) != NULL) 
+    {
+      yyerror("ERROR\t\tIdentifier already declared.\n");
+    }
+    else
+    {
+      if(ht_set(table, $2.name, &($1)) == NULL) {
+        exit_nomem();
+      }
+    }
+  }
 ;
 
 
@@ -87,24 +108,60 @@ extern int lineno;
 extern FILE *yyin;
 extern char *yytext;
 
+// Copied from ht.c
+typedef struct {
+    char* key;  // key is NULL if this slot is empty
+    const char* value;
+} ht_entry;
+
+struct ht {
+    ht_entry* entries;  // hash slots
+    size_t capacity;    // size of _entries array
+    size_t length;      // number of items in hash table
+};
+
+typedef struct {
+    char* key;
+    int value;
+} item;
+
+void exit_nomem(void) {
+    fprintf(stderr, "out of memory\n");
+    exit(1);
+}
+
 int main()
 {
+  
+
+  table = ht_create();
+  if (table == NULL) {
+      exit_nomem();
+  }
+
+ 
+
   yyin = fopen("input.txt", "r");
   int token;
   yyparse();
-  /* while ((token = yylex()) != EOF_TOKEN)
+   /* while ((token = yylex()) != EOF_TOKEN)
    {
      printf("Line %d\tToken: %d: '%s'\n", lineno, token, yytext);
-   }
-  */
+   } */
+
+    for (int i = 0; i < table->capacity; i++) {
+      if (table->entries[i].key != NULL) {
+          printf("index %d: key %s, value %d\n",
+              i, table->entries[i].key, *(int*)table->entries[i].value);
+      } else {
+          //printf("index %d: empty\n", i);
+      }
+  }
+  
   return 0;
 }
 
-/*
-int main() {
-    yyparse();
-}
-*/
+
 
 void yyerror(const char* msg) {
     fprintf(stderr, "%s\n", msg);

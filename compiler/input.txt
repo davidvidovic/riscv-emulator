@@ -1,11 +1,7 @@
 int main()
 { 
-    int a = 4; 
-    float b;
-    b = 6.7;
-
-    char* ime = "david";
-    char slovo = 'g';
+    int a = 3; 
+    float b = 6.2;
 
     return 0;
 }
