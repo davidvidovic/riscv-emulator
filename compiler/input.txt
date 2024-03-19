@@ -1,7 +1,8 @@
 int main()
 { 
-    int a = 3; 
-    float b = 6.2;
+    int yrto = 3; 
+    float ggt = 6.1;
+    char gg = 'a';
 
     return 0;
 }

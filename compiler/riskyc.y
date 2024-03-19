@@ -42,62 +42,74 @@
 
 /* Grammar section */
 
-program: datatype MAIN BRACKET_OPEN BRACKET_CLOSED CURLY_OPEN statements return CURLY_CLOSED {printf("Program\n");}
+program: datatype MAIN BRACKET_OPEN BRACKET_CLOSED CURLY_OPEN statements return CURLY_CLOSED {}
 ;
 
-return: RETURN value SEMICOLON         {printf("Return\n");} 
+return: RETURN value SEMICOLON         {}
 ;
 
 statements : statements statement
 | statement
 ;
 
-statement: declaration init SEMICOLON   {printf("Statement\n");}
-| init SEMICOLON                        {printf("Assign value\n");}
-| declaration SEMICOLON                 {printf("Declaration\n");}
+statement: declaration init SEMICOLON   {}
+| init SEMICOLON                        {}
+| declaration SEMICOLON                 {}
 ;
 
-declaration: declaration COMMA id     
-  {
-    printf("Declaration of IDs, name: %s\n", $3.name);
-  }
-| datatype id                         
-  {
-    printf("Declaration of ID, name: %s\n", $2.name);
-
-    if(ht_get(table, &($2.name)) != NULL) 
+declaration: declaration COMMA id       {}
+| datatype id {
+    if(ht_get_key(table, $2.name) != NULL) 
     {
-      yyerror("ERROR\t\tIdentifier already declared.\n");
+      char error[64];
+      strcpy(error, "\033[31mERROR \t\tIdentifier ");
+      strcat(error, $2.name);
+      strcat(error, " already declared.\033[0m");
+      yyerror(error);
+
+      strcpy(error, "Previous declaration at line ");
+      int error_line = ht_get_line(table, $2.name);
+      char temp[10];
+      sprintf(temp, "%d", error_line);
+      strcat(error, temp);
+      yyerror(error);
+
+      exit(1);
     }
     else
     {
-      if(ht_set(table, $2.name, &($1)) == NULL) {
+      if(ht_set(table, $2.name, $1, $2.src.line) == NULL) 
+      {
         exit_nomem();
+      }
+      else
+      {
+        //printf("Added to table %s with value %s\n", ht_get_key(table, $2.name), $1);
       }
     }
   }
 ;
 
 
-init: EQUAL value       {printf("Initialized to value\n");}
-| id EQUAL value        {printf("Assigning to value\n");}
+init: EQUAL value       {}
+| id EQUAL value        {}
 ;
 
-datatype: TYPE_INT      {printf("Data type: INT\n");}
-| TYPE_FLOAT            {printf("Data type: FLOAT\n");}
-| TYPE_CHAR             {printf("Data type: CHAR\n");}
-| TYPE_CHAR STAR        {printf("Data type: STRING\n");}
-| TYPE_VOID             {printf("Data type: VOID\n");}
+datatype: TYPE_INT      {}
+| TYPE_FLOAT            {}
+| TYPE_CHAR             {}
+| TYPE_CHAR STAR        {}
+| TYPE_VOID             {}
 ;
 
-value: INT              {printf("Value type: INT, value: %d\n", $1);}
-| FLOAT                 {printf("Value type: FLOAT, value: %f\n", $1);}
-| CHARACTER             {printf("Value type: CHARACTER, value: %c\n", $1);}
-| ID                    {printf("Value type: ID, name: %s\n", $1.name);}
-| STRING                {printf("Value type: STRING, value: %s\n", $1);}
+value: INT              {}
+| FLOAT                 {}
+| CHARACTER             {}
+| ID                    {}
+| STRING                {}
 ;
 
-id: ID                  { printf("ID, name %s\n", $1.name); }
+id: ID                  {}
 ;
 
 
@@ -112,6 +124,7 @@ extern char *yytext;
 typedef struct {
     char* key;  // key is NULL if this slot is empty
     const char* value;
+    int line;
 } ht_entry;
 
 struct ht {
@@ -122,7 +135,8 @@ struct ht {
 
 typedef struct {
     char* key;
-    int value;
+    const char* value;
+    int line; 
 } item;
 
 void exit_nomem(void) {
@@ -132,14 +146,10 @@ void exit_nomem(void) {
 
 int main()
 {
-  
-
   table = ht_create();
   if (table == NULL) {
       exit_nomem();
   }
-
- 
 
   yyin = fopen("input.txt", "r");
   int token;
@@ -149,18 +159,33 @@ int main()
      printf("Line %d\tToken: %d: '%s'\n", lineno, token, yytext);
    } */
 
-    for (int i = 0; i < table->capacity; i++) {
-      if (table->entries[i].key != NULL) {
-          printf("index %d: key %s, value %d\n",
-              i, table->entries[i].key, *(int*)table->entries[i].value);
-      } else {
-          //printf("index %d: empty\n", i);
+    for(int i = 0; i < table->capacity; i++) {
+      
+      if(table->entries[i].key != NULL) 
+      {
+          printf("index %d:\tkey %s, ", i, table->entries[i].key);
+
+          int* adr = table->entries[i].value;
+          int off = 0;
+          while(*adr != NULL) 
+          {
+            printf("%c", (char)*adr);
+            adr = table->entries[i].value + (++off);
+          }
+
+          printf("\tat line %d", table->entries[i].line);
+          printf("\n");
+      } 
+      else
+      {
+        //printf("Index %d: Empty\n", i);
       }
+
+      
   }
-  
+  ht_destroy(table);
   return 0;
 }
-
 
 
 void yyerror(const char* msg) {

@@ -3,7 +3,7 @@
 
 typedef struct
 {
-    unsigned int line, col, length;
+    int line, col, length;
 } Coordinate;
 
 typedef struct

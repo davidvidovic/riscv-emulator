@@ -7,7 +7,8 @@
 
 typedef struct {
     const char* key;
-    void* value;
+    const char* value;
+    int line;
 } ht_entry;
 
 struct ht {
@@ -73,7 +74,7 @@ static uint64_t hash_key(const char* key)
 
 // Internal function to set an entry (without expanding table).
 static const char* ht_set_entry(ht_entry* entries, size_t capacity,
-        const char* key, void* value, size_t* plength) {
+        const char* key, const char* value, size_t* plength, int line) {
     // AND hash with capacity-1 to ensure it's within entries array.
     uint64_t hash = hash_key(key);
     size_t index = (size_t)(hash & (uint64_t)(capacity - 1));
@@ -83,6 +84,7 @@ static const char* ht_set_entry(ht_entry* entries, size_t capacity,
         if (strcmp(key, entries[index].key) == 0) {
             // Found key (it already exists), update value.
             entries[index].value = value;
+            entries[index].line = line;
             return entries[index].key;
         }
         // Key wasn't in this slot, move to next (linear probing).
@@ -103,11 +105,12 @@ static const char* ht_set_entry(ht_entry* entries, size_t capacity,
     }
     entries[index].key = (char*)key;
     entries[index].value = value;
+    entries[index].line = line;
     return key;
 }
 
 
-const char* ht_get(ht* table, const char* key) 
+const char* ht_get_key(ht* table, const char* key) 
 {
     // AND hash with capacity-1 to ensure it's within entries array
     uint64_t hash = hash_key(key);
@@ -117,7 +120,30 @@ const char* ht_get(ht* table, const char* key)
     while (table->entries[index].key != NULL) {
         if (strcmp(key, table->entries[index].key) == 0) {
             // Found key, return value
-            return table->entries[index].value;
+            return table->entries[index].key;
+        }
+        // Key wasn't in this slot, move to next (linear probing)
+        index++;
+        if (index >= table->capacity) {
+            // At end of entries array, wrap around
+            index = 0;
+        }
+    }
+    return NULL;
+}
+
+
+int ht_get_line(ht* table, const char* key) 
+{
+    // AND hash with capacity-1 to ensure it's within entries array
+    uint64_t hash = hash_key(key);
+    size_t index = (size_t)(hash & (uint64_t)(table->capacity - 1));
+
+    // Loop till we find an empty entry.
+    while (table->entries[index].key != NULL) {
+        if (strcmp(key, table->entries[index].key) == 0) {
+            // Found key, return value
+            return table->entries[index].line;
         }
         // Key wasn't in this slot, move to next (linear probing)
         index++;
@@ -148,7 +174,7 @@ static bool ht_expand(ht* table) {
         ht_entry entry = table->entries[i];
         if (entry.key != NULL) {
             ht_set_entry(new_entries, new_capacity, entry.key,
-                         entry.value, NULL);
+                         entry.value, NULL, entry.line);
         }
     }
 
@@ -160,7 +186,7 @@ static bool ht_expand(ht* table) {
 }
 
 
-const char* ht_set(ht* table, const char* key, void* value) {
+const char* ht_set(ht* table, const char* key, const char* value, int line) {
     assert(value != NULL);
     if (value == NULL) {
         return NULL;
@@ -174,7 +200,7 @@ const char* ht_set(ht* table, const char* key, void* value) {
     }
 
     // Set entry and update length
-    return ht_set_entry(table->entries, table->capacity, key, value, &table->length);
+    return ht_set_entry(table->entries, table->capacity, key, value, &table->length, line);
 }
 
 

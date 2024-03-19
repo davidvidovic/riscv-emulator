@@ -1,5 +1,4 @@
-#ifndef SM_H
-#define SM_H
+
 
 #include <stddef.h>
 #include <stdbool.h>
@@ -22,10 +21,11 @@ ht* ht_create(void);
 void ht_destroy(ht* table);
 
 // Get item with given key (key is a string)
-const char* ht_get(ht* table, const char* key);
+const char* ht_get_key(ht* table, const char* key);
+int ht_get_line(ht* table, const char* key);
 
 // Set item with given key to a value (must not be NULL)
-const char* ht_set(ht* table, const char* key, void* value);
+const char* ht_set(ht* table, const char* key, const char* value, int line);
 
 // Returns number of items in table
 size_t ht_length(ht* table);
@@ -37,6 +37,7 @@ size_t ht_length(ht* table);
 typedef struct {
     const char* key;
     const char* value;
+    int line;
 
     ht* _table;
     size_t _index;
@@ -49,4 +50,3 @@ hti ht_iterator(ht* table);
 // If no more items in table, return false
 bool ht_next(hti* it);
 
-#endif
