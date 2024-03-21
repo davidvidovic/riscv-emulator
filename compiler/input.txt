@@ -1,8 +1,13 @@
 int main()
 { 
     int yrto = 3; 
-    float ggt = 6.1;
-    char gg = 'a';
+    float gg = 6.1;
+    char gr = 'a';
+
+    int broj = 1 + 3;
+    yrto = 4 + broj;
+    broj = broj * 2;
+    int broj2 = broj1 + broj;
 
     return 0;
 }

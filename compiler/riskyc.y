@@ -23,7 +23,8 @@
     ID_struct id_obj;
 }
 
-%token RETURN EQUAL MAIN STAR COMMA NEWLINE SEMICOLON 
+%token RETURN MAIN STAR COMMA NEWLINE SEMICOLON 
+%token EQUAL PLUS MINUS DIVIDE LESS_THAN GREATER_THAN LESS_EQ_THAN GREATER_EQ_THAN EQUAL_TRUTH
 %token CURLY_OPEN CURLY_CLOSED BRACKET_OPEN BRACKET_CLOSED
 %token <value_string> TYPE_INT TYPE_FLOAT TYPE_CHAR TYPE_VOID
 %token <value_int> INT
@@ -61,13 +62,13 @@ declaration: declaration COMMA id       {}
 | datatype id {
     if(ht_get_key(table, $2.name) != NULL) 
     {
-      char error[64];
+      char error[100];
       strcpy(error, "\033[31mERROR \t\tIdentifier ");
       strcat(error, $2.name);
       strcat(error, " already declared.\033[0m");
-      yyerror(error);
+      //yyerror(error);
 
-      strcpy(error, "Previous declaration at line ");
+      strcat(error, "\nPrevious declaration at line ");
       int error_line = ht_get_line(table, $2.name);
       char temp[10];
       sprintf(temp, "%d", error_line);
@@ -90,9 +91,56 @@ declaration: declaration COMMA id       {}
   }
 ;
 
-
 init: EQUAL value       {}
-| id EQUAL value        {}
+| id EQUAL value        {
+    if(ht_get_key(table, $1.name) == NULL) 
+    {
+      char error[100];
+      strcpy(error, "\033[31mERROR \t\tIdentifier ");
+      strcat(error, $1.name);
+      strcat(error, " not declared.\033[0m");
+      //yyerror(error);
+
+      strcat(error, "\nError on line ");
+      char temp[10];
+      sprintf(temp, "%d", lineno);
+      strcat(error, temp);
+      yyerror(error);
+
+      exit(1);
+    }
+  }
+| EQUAL expression      {}
+| id EQUAL expression   {
+  if(ht_get_key(table, $1.name) == NULL) 
+    {
+      char error[100];
+      strcpy(error, "\033[31mERROR \t\tIdentifier ");
+      strcat(error, $1.name);
+      strcat(error, " not declared.\033[0m");
+      //yyerror(error);
+
+      strcat(error, "\nError on line ");
+      char temp[10];
+      sprintf(temp, "%d", lineno);
+      strcat(error, temp);
+      yyerror(error);
+
+      exit(1);
+    }
+}
+;
+
+expression: value arith_operator value  //{ printf("Expression 1\n"); }
+| value arith_operator id               //{ printf("Expression 2\n"); }
+| id arith_operator value               //{ printf("Expression 3\n"); }
+| id arith_operator id                  //{ printf("Expression 4\n"); }
+;
+
+arith_operator:  PLUS
+| MINUS
+| DIVIDE
+| STAR
 ;
 
 datatype: TYPE_INT      {}
@@ -105,7 +153,7 @@ datatype: TYPE_INT      {}
 value: INT              {}
 | FLOAT                 {}
 | CHARACTER             {}
-| ID                    {}
+// | ID                    {}
 | STRING                {}
 ;
 
@@ -163,7 +211,7 @@ int main()
       
       if(table->entries[i].key != NULL) 
       {
-          printf("index %d:\tkey %s, ", i, table->entries[i].key);
+          printf("index %d:\t%s, ", i, table->entries[i].key);
 
           int* adr = table->entries[i].value;
           int off = 0;
