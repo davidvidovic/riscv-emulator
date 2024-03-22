@@ -39,12 +39,24 @@ nonZero [1-9]
 "+"                         { return PLUS; }
 "-"                         { return MINUS; }
 "/"                         { return DIVIDE; }
-"<"                         { return LESS_THAN; }
+"<"                         { printf("nasao <\n"); return LESS_THAN; }
 ">"                         { return GREATER_THAN; }
 "<="                        { return LESS_EQ_THAN; }
 ">="                        { return GREATER_EQ_THAN; }
-"=="                        { return EQUAL_TRUTH; }
+"=="                        { printf("nasao ==\n"); return EQUAL_TRUTH; }
+"&&"                        { return LOGIC_AND; }
+"||"                        { return LOGIC_OR; }
+"!="                        { return NOT_EQUAL; }
+"!"                         { return BITWISE_NOT; }
+"&"                         { return BITWISE_AND; }
+"|"                         { return BITWISE_OR; }
 
+  /* Loops */
+"if"                        { printf("nasao if\n"); return IF; }
+"else"                      { return ELSE; }
+"else if"                   { return ELSE_IF; }
+"for"                       { return FOR; }
+"while"                     { return WHILE; }
 
   /* Integers */
 

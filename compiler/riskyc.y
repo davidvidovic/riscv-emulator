@@ -9,6 +9,7 @@
     char *currentFileName;
     extern int lineno, col;
     ht* table;
+    int main_counter = 0;
 
     void yyerror(const char *s);
     int yylex();
@@ -26,6 +27,8 @@
 %token RETURN MAIN STAR COMMA NEWLINE SEMICOLON 
 %token EQUAL PLUS MINUS DIVIDE LESS_THAN GREATER_THAN LESS_EQ_THAN GREATER_EQ_THAN EQUAL_TRUTH
 %token CURLY_OPEN CURLY_CLOSED BRACKET_OPEN BRACKET_CLOSED
+%token LOGIC_AND LOGIC_OR NOT_EQUAL BITWISE_NOT BITWISE_AND BITWISE_OR
+%token IF ELSE ELSE_IF FOR WHILE
 %token <value_string> TYPE_INT TYPE_FLOAT TYPE_CHAR TYPE_VOID
 %token <value_int> INT
 %token <value_float> FLOAT
@@ -43,22 +46,65 @@
 
 /* Grammar section */
 
-program: datatype MAIN BRACKET_OPEN BRACKET_CLOSED CURLY_OPEN statements return CURLY_CLOSED {}
+
+/* IF STATEMENT */
+
+if_body: if_statement scope_body
 ;
 
-return: RETURN value SEMICOLON         {}
+if_statement: IF BRACKET_OPEN logic_expression BRACKET_CLOSED
 ;
+
+program: program function
+| function
+;
+
+
+function: datatype id params scope_function 
+| datatype MAIN params scope_function {
+  if(main_counter != 0)
+  {
+    yyerror("ERROR\tMore than one main declared.\n");
+    exit(1);
+  }
+  main_counter++;
+}
+;
+
+
+params: BRACKET_OPEN BRACKET_CLOSED
+| BRACKET_OPEN declaration BRACKET_CLOSED
+;
+
+
+scope_function: 
+| CURLY_OPEN statements return CURLY_CLOSED
+| CURLY_OPEN return CURLY_CLOSED
+;
+
+scope_body: CURLY_OPEN statements CURLY_CLOSED
+;
+
+
+return: RETURN value SEMICOLON         // ne mora da bude samo value
+;
+
 
 statements : statements statement
 | statement
+| if_body
 ;
 
-statement: declaration init SEMICOLON   {}
-| init SEMICOLON                        {}
-| declaration SEMICOLON                 {}
+
+statement: declaration assign_value SEMICOLON
+| assign_value SEMICOLON
+| declaration assign_expression SEMICOLON  
+| assign_expression SEMICOLON                
+| declaration SEMICOLON                 
 ;
 
-declaration: declaration COMMA id       {}
+
+declaration: declaration COMMA id      
 | datatype id {
     if(ht_get_key(table, $2.name) != NULL) 
     {
@@ -91,27 +137,9 @@ declaration: declaration COMMA id       {}
   }
 ;
 
-init: EQUAL value       {}
-| id EQUAL value        {
-    if(ht_get_key(table, $1.name) == NULL) 
-    {
-      char error[100];
-      strcpy(error, "\033[31mERROR \t\tIdentifier ");
-      strcat(error, $1.name);
-      strcat(error, " not declared.\033[0m");
-      //yyerror(error);
 
-      strcat(error, "\nError on line ");
-      char temp[10];
-      sprintf(temp, "%d", lineno);
-      strcat(error, temp);
-      yyerror(error);
-
-      exit(1);
-    }
-  }
-| EQUAL expression      {}
-| id EQUAL expression   {
+assign_expression: EQUAL arith_expression     
+| id EQUAL arith_expression   {
   if(ht_get_key(table, $1.name) == NULL) 
     {
       char error[100];
@@ -131,10 +159,54 @@ init: EQUAL value       {}
 }
 ;
 
-expression: value arith_operator value  //{ printf("Expression 1\n"); }
+
+assign_value: EQUAL value       {}
+| id EQUAL value        {
+    if(ht_get_key(table, $1.name) == NULL) 
+    {
+      char error[100];
+      strcpy(error, "\033[31mERROR \t\tIdentifier ");
+      strcat(error, $1.name);
+      strcat(error, " not declared.\033[0m");
+      //yyerror(error);
+
+      strcat(error, "\nError on line ");
+      char temp[10];
+      sprintf(temp, "%d", lineno);
+      strcat(error, temp);
+      yyerror(error);
+
+      exit(1);
+    }
+  }
+;
+
+
+arith_expression: value arith_operator value  //{ printf("Expression 1\n"); }
 | value arith_operator id               //{ printf("Expression 2\n"); }
 | id arith_operator value               //{ printf("Expression 3\n"); }
 | id arith_operator id                  //{ printf("Expression 4\n"); }
+;
+
+
+logic_expression: 
+| logic_statement
+;
+
+
+logic_statement: id logic_operator id {printf("a == b\n");}
+| id logic_operator value
+| value logic_operator id
+| value logic_operator value
+;
+
+
+logic_operator: EQUAL_TRUTH {printf("==\n");}
+| GREATER_THAN
+| LESS_THAN
+| GREATER_EQ_THAN
+| LESS_EQ_THAN
+| NOT_EQUAL
 ;
 
 arith_operator:  PLUS
@@ -159,6 +231,8 @@ value: INT              {}
 
 id: ID                  {}
 ;
+
+
 
 
 
@@ -237,5 +311,5 @@ int main()
 
 
 void yyerror(const char* msg) {
-    fprintf(stderr, "%s\n", msg);
+    fprintf(stderr, "%s at line %d\n", msg, lineno);
 }
