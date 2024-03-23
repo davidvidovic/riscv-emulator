@@ -8,11 +8,31 @@ int main()
     broj = 3 + 4;
     yrto = 4 + broj;
     broj = broj * 2;
+    int broj1;
     int broj2 = broj1 + broj;
 
-    if(2 < 2)
+    if(broj1 < 2)
     {
         broj2 = 3;
+    }
+    else if(broj1 == 2)
+    {
+        broj1 = 6;
+    }
+    else if(broj1 >= 5)
+    {
+        broj2 = 4;
+    }
+   
+
+    for(int i = 0; i < 5; i = i+1)
+    {
+        broj1 = i;
+    }
+
+    while(broj1 < broj2)
+    {
+        broj1 = broj1 + 1;
     }
     
     return 0;

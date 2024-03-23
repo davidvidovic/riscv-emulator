@@ -25,7 +25,7 @@
 }
 
 %token RETURN MAIN STAR COMMA NEWLINE SEMICOLON 
-%token EQUAL PLUS MINUS DIVIDE LESS_THAN GREATER_THAN LESS_EQ_THAN GREATER_EQ_THAN EQUAL_TRUTH
+%token EQUAL PLUS MINUS DIVIDE LESS_THAN GREATER_THAN LESS_EQ_THAN GREATER_EQ_THAN EQUAL_TRUTH MOD
 %token CURLY_OPEN CURLY_CLOSED BRACKET_OPEN BRACKET_CLOSED
 %token LOGIC_AND LOGIC_OR NOT_EQUAL BITWISE_NOT BITWISE_AND BITWISE_OR
 %token IF ELSE ELSE_IF FOR WHILE
@@ -49,19 +49,43 @@
 
 /* IF STATEMENT */
 
-if_body: if_statement scope_body
+if_body: if_body else_statement
+| if_statement scope
+;
+
+else_statement: ELSE scope
+| ELSE if_statement scope
 ;
 
 if_statement: IF BRACKET_OPEN logic_expression BRACKET_CLOSED
 ;
+
+/* FOR LOOP */
+
+for_body: FOR for_statement scope
+;
+
+for_statement: BRACKET_OPEN statement SEMICOLON logic_expression SEMICOLON statement BRACKET_CLOSED
+;
+
+/* WHILE LOOP */
+
+while_body: while_statement scope
+;
+
+while_statement: WHILE BRACKET_OPEN logic_expression BRACKET_CLOSED
+;
+
+
+/* PROGRAM */
 
 program: program function
 | function
 ;
 
 
-function: datatype id params scope_function 
-| datatype MAIN params scope_function {
+function: datatype id params scope 
+| datatype MAIN params scope {
   if(main_counter != 0)
   {
     yyerror("ERROR\tMore than one main declared.\n");
@@ -77,12 +101,12 @@ params: BRACKET_OPEN BRACKET_CLOSED
 ;
 
 
-scope_function: 
-| CURLY_OPEN statements return CURLY_CLOSED
-| CURLY_OPEN return CURLY_CLOSED
+scope: CURLY_OPEN scope_body CURLY_CLOSED
 ;
 
-scope_body: CURLY_OPEN statements CURLY_CLOSED
+scope_body: scope_body return
+| return
+| statements
 ;
 
 
@@ -90,17 +114,24 @@ return: RETURN value SEMICOLON         // ne mora da bude samo value
 ;
 
 
-statements : statements statement
-| statement
+statements : statements full_statement
+| statements if_body
+| statements for_body
+| statements while_body
+| full_statement
 | if_body
+| for_body
+| while_body
 ;
 
+full_statement: statement SEMICOLON
+;
 
-statement: declaration assign_value SEMICOLON
-| assign_value SEMICOLON
-| declaration assign_expression SEMICOLON  
-| assign_expression SEMICOLON                
-| declaration SEMICOLON                 
+statement: declaration assign_value 
+| assign_value 
+| declaration assign_expression   
+| assign_expression                 
+| declaration                
 ;
 
 
@@ -112,13 +143,13 @@ declaration: declaration COMMA id
       strcpy(error, "\033[31mERROR \t\tIdentifier ");
       strcat(error, $2.name);
       strcat(error, " already declared.\033[0m");
-      //yyerror(error);
 
       strcat(error, "\nPrevious declaration at line ");
       int error_line = ht_get_line(table, $2.name);
       char temp[10];
       sprintf(temp, "%d", error_line);
       strcat(error, temp);
+      strcat(error, "\nError");
       yyerror(error);
 
       exit(1);
@@ -139,24 +170,10 @@ declaration: declaration COMMA id
 
 
 assign_expression: EQUAL arith_expression     
-| id EQUAL arith_expression   {
-  if(ht_get_key(table, $1.name) == NULL) 
-    {
-      char error[100];
-      strcpy(error, "\033[31mERROR \t\tIdentifier ");
-      strcat(error, $1.name);
-      strcat(error, " not declared.\033[0m");
-      //yyerror(error);
-
-      strcat(error, "\nError on line ");
-      char temp[10];
-      sprintf(temp, "%d", lineno);
-      strcat(error, temp);
-      yyerror(error);
-
-      exit(1);
-    }
-}
+| id EQUAL arith_expression   
+  {
+    check_declaration($1.name);
+  }
 ;
 
 
@@ -168,12 +185,29 @@ assign_value: EQUAL value       {}
       strcpy(error, "\033[31mERROR \t\tIdentifier ");
       strcat(error, $1.name);
       strcat(error, " not declared.\033[0m");
-      //yyerror(error);
+      yyerror(error);
 
-      strcat(error, "\nError on line ");
-      char temp[10];
-      sprintf(temp, "%d", lineno);
-      strcat(error, temp);
+      exit(1);
+    }
+  }
+| id EQUAL id       
+  {
+    if(ht_get_key(table, $1.name) == NULL) 
+    {
+      char error[100];
+      strcpy(error, "\033[31mERROR \t\tIdentifier ");
+      strcat(error, $1.name);
+      strcat(error, " not declared.\033[0m");
+      yyerror(error);
+
+      exit(1);
+    }
+    if(ht_get_key(table, $3.name) == NULL) 
+    {
+      char error[100];
+      strcpy(error, "\033[31mERROR \t\tIdentifier ");
+      strcat(error, $3.name);
+      strcat(error, " not declared.\033[0m");
       yyerror(error);
 
       exit(1);
@@ -182,26 +216,46 @@ assign_value: EQUAL value       {}
 ;
 
 
-arith_expression: value arith_operator value  //{ printf("Expression 1\n"); }
-| value arith_operator id               //{ printf("Expression 2\n"); }
-| id arith_operator value               //{ printf("Expression 3\n"); }
-| id arith_operator id                  //{ printf("Expression 4\n"); }
+arith_expression: value arith_operator value  
+| value arith_operator id               
+  {
+    check_declaration($3.name);
+  }
+| id arith_operator value               
+  {
+    check_declaration($1.name);
+  }
+| id arith_operator id                  
+  {
+    check_declaration($1.name);
+    check_declaration($3.name);
+  }
 ;
 
 
-logic_expression: 
+logic_expression: logic_operator logic_expression
 | logic_statement
 ;
 
 
-logic_statement: id logic_operator id {printf("a == b\n");}
+logic_statement: id logic_operator id 
+ {
+    check_declaration($1.name);
+    check_declaration($3.name);
+  }
 | id logic_operator value
+  {
+    check_declaration($1.name);
+  }
 | value logic_operator id
+  {
+    check_declaration($3.name);
+  }
 | value logic_operator value
 ;
 
 
-logic_operator: EQUAL_TRUTH {printf("==\n");}
+logic_operator: EQUAL_TRUTH 
 | GREATER_THAN
 | LESS_THAN
 | GREATER_EQ_THAN
@@ -215,21 +269,20 @@ arith_operator:  PLUS
 | STAR
 ;
 
-datatype: TYPE_INT      {}
-| TYPE_FLOAT            {}
-| TYPE_CHAR             {}
-| TYPE_CHAR STAR        {}
-| TYPE_VOID             {}
+datatype: TYPE_INT      
+| TYPE_FLOAT            
+| TYPE_CHAR             
+| TYPE_CHAR STAR        
+| TYPE_VOID             
 ;
 
-value: INT              {}
-| FLOAT                 {}
-| CHARACTER             {}
-// | ID                    {}
-| STRING                {}
+value: INT              
+| FLOAT                 
+| CHARACTER             
+| STRING                
 ;
 
-id: ID                  {}
+id: ID                  
 ;
 
 
@@ -264,6 +317,21 @@ typedef struct {
 void exit_nomem(void) {
     fprintf(stderr, "out of memory\n");
     exit(1);
+}
+
+void check_declaration(const char* name)
+{
+  if(ht_get_key(table, name) == NULL) 
+  {
+    char error[100];
+    strcpy(error, "\033[31mERROR \t\tIdentifier ");
+    strcat(error, name);
+    strcat(error, " not declared.\033[0m");
+    strcat(error, "\nError");
+    yyerror(error);
+
+    exit(1);
+  }
 }
 
 int main()

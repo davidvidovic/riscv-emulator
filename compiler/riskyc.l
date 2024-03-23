@@ -39,11 +39,12 @@ nonZero [1-9]
 "+"                         { return PLUS; }
 "-"                         { return MINUS; }
 "/"                         { return DIVIDE; }
-"<"                         { printf("nasao <\n"); return LESS_THAN; }
+"%"                         { return MOD; }
+"<"                         { return LESS_THAN; }
 ">"                         { return GREATER_THAN; }
 "<="                        { return LESS_EQ_THAN; }
 ">="                        { return GREATER_EQ_THAN; }
-"=="                        { printf("nasao ==\n"); return EQUAL_TRUTH; }
+"=="                        { return EQUAL_TRUTH; }
 "&&"                        { return LOGIC_AND; }
 "||"                        { return LOGIC_OR; }
 "!="                        { return NOT_EQUAL; }
@@ -52,9 +53,9 @@ nonZero [1-9]
 "|"                         { return BITWISE_OR; }
 
   /* Loops */
-"if"                        { printf("nasao if\n"); return IF; }
+
+"if"                        { return IF; }
 "else"                      { return ELSE; }
-"else if"                   { return ELSE_IF; }
 "for"                       { return FOR; }
 "while"                     { return WHILE; }
 
