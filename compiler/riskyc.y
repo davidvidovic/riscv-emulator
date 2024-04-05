@@ -5,6 +5,7 @@
     #include "riskyc.h"
     #include "y.tab.h"
     #include "symboltable.h"
+    #include "ast.h"
 
     char *currentFileName;
     extern int lineno, col;
@@ -39,6 +40,8 @@
 
 %type <id_obj> id
 %type <value_string> datatype
+%type <value_char> arith_operator
+
 
 %start program
 
@@ -215,8 +218,16 @@ assign_value: EQUAL value       {}
   }
 ;
 
+arith_expression: arith_operator arith_expression
+| arith_statement
+;
 
-arith_expression: value arith_operator value  
+arith_statement: arith_statement arith_operator value {printf("%c\n", $2);}
+| value arith_operator value 
+  {
+    //mkASTnode($2, mkASTnode(NULL, NULL, NULL, $1), mkASTnode(NULL, NULL, NULL, $3), NULL);
+    printf("%c\n", $2);
+  } 
 | value arith_operator id               
   {
     check_declaration($3.name);
@@ -239,7 +250,7 @@ logic_expression: logic_operator logic_expression
 
 
 logic_statement: id logic_operator id 
- {
+  {
     check_declaration($1.name);
     check_declaration($3.name);
   }
@@ -263,10 +274,10 @@ logic_operator: EQUAL_TRUTH
 | NOT_EQUAL
 ;
 
-arith_operator:  PLUS
-| MINUS
-| DIVIDE
-| STAR
+arith_operator:  PLUS {$$ = '+';}
+| MINUS {$$ = '-';}
+| DIVIDE  {$$ = '/';}
+| STAR  {$$ = '*';}
 ;
 
 datatype: TYPE_INT      
@@ -353,18 +364,18 @@ int main()
       
       if(table->entries[i].key != NULL) 
       {
-          printf("index %d:\t%s, ", i, table->entries[i].key);
+          //printf("index %d:\t%s, ", i, table->entries[i].key);
 
           int* adr = table->entries[i].value;
           int off = 0;
           while(*adr != NULL) 
           {
-            printf("%c", (char)*adr);
+            //printf("%c", (char)*adr);
             adr = table->entries[i].value + (++off);
           }
 
-          printf("\tat line %d", table->entries[i].line);
-          printf("\n");
+          //printf("\tat line %d", table->entries[i].line);
+          //printf("\n");
       } 
       else
       {

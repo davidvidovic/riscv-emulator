@@ -1,44 +1,5 @@
 int main()
 { 
-    int yrto = 3; 
-    float gg = 6.1;
-    char gr = 'a';
-
-    int broj = 1 + 3;
-    broj = 3 + 4;
-    yrto = 4 + broj;
-    broj = broj * 2;
-    int broj1;
-    int broj2 = broj1 + broj;
-
-    if(broj1 < 2)
-    {
-        broj2 = 3;
-    }
-    else if(broj1 == 2)
-    {
-        broj1 = 6;
-    }
-    else if(broj1 >= 5)
-    {
-        broj2 = 4;
-    }
-   
-
-    for(int i = 0; i < 5; i = i+1)
-    {
-        broj1 = i;
-    }
-
-    while(broj1 < broj2)
-    {
-        broj1 = broj1 + 1;
-    }
-    
-    return 0;
-}
-
-int func() 
-{ 
-    return 1;
+    int a;
+    a = 1 + 2 + 6 + 9;
 }
