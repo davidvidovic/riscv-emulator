@@ -1,6 +1,8 @@
 #ifndef MAIN_H
 #define MAIN_H
 
+#include "ast.h"
+
 typedef struct
 {
     int line, col, length;
@@ -12,5 +14,6 @@ typedef struct
     const char *name;
 } ID_struct;
 
+//ASTnode *root = NULL;
 
 #endif

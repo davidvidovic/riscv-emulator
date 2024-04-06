@@ -7,9 +7,8 @@
     #include "symboltable.h"
     #include "ast.h"
 
-    char *currentFileName;
-    extern int lineno, col;
-    ht* table;
+    extern int lineno;
+    extern ASTnode *root;
     int main_counter = 0;
 
     void yyerror(const char *s);
@@ -41,6 +40,8 @@
 %type <id_obj> id
 %type <value_string> datatype
 %type <value_char> arith_operator
+%type <value_string> declaration
+%type <value_int> value
 
 
 %start program
@@ -88,14 +89,15 @@ program: program function
 
 
 function: datatype id params scope 
-| datatype MAIN params scope {
-  if(main_counter != 0)
+| datatype MAIN params scope 
   {
-    yyerror("ERROR\tMore than one main declared.\n");
-    exit(1);
+    if(main_counter != 0)
+    {
+      yyerror("ERROR\tMore than one main declared.\n");
+      exit(1);
+    }
+    main_counter++;
   }
-  main_counter++;
-}
 ;
 
 
@@ -138,36 +140,14 @@ statement: declaration assign_value
 ;
 
 
-declaration: declaration COMMA id      
-| datatype id {
-    if(ht_get_key(table, $2.name) != NULL) 
-    {
-      char error[100];
-      strcpy(error, "\033[31mERROR \t\tIdentifier ");
-      strcat(error, $2.name);
-      strcat(error, " already declared.\033[0m");
-
-      strcat(error, "\nPrevious declaration at line ");
-      int error_line = ht_get_line(table, $2.name);
-      char temp[10];
-      sprintf(temp, "%d", error_line);
-      strcat(error, temp);
-      strcat(error, "\nError");
-      yyerror(error);
-
-      exit(1);
-    }
-    else
-    {
-      if(ht_set(table, $2.name, $1, $2.src.line) == NULL) 
-      {
-        exit_nomem();
-      }
-      else
-      {
-        //printf("Added to table %s with value %s\n", ht_get_key(table, $2.name), $1);
-      }
-    }
+declaration: declaration COMMA id    
+  {
+    declare($3.name, $1, $3.src.line);
+  }  
+| datatype id 
+  {
+    if(declare($2.name, $1, $2.src.line))
+      $$ = $1;
   }
 ;
 
@@ -180,41 +160,15 @@ assign_expression: EQUAL arith_expression
 ;
 
 
-assign_value: EQUAL value       {}
-| id EQUAL value        {
-    if(ht_get_key(table, $1.name) == NULL) 
-    {
-      char error[100];
-      strcpy(error, "\033[31mERROR \t\tIdentifier ");
-      strcat(error, $1.name);
-      strcat(error, " not declared.\033[0m");
-      yyerror(error);
-
-      exit(1);
-    }
+assign_value: EQUAL value      
+| id EQUAL value        
+  {
+    check_declaration($1.name);
   }
 | id EQUAL id       
   {
-    if(ht_get_key(table, $1.name) == NULL) 
-    {
-      char error[100];
-      strcpy(error, "\033[31mERROR \t\tIdentifier ");
-      strcat(error, $1.name);
-      strcat(error, " not declared.\033[0m");
-      yyerror(error);
-
-      exit(1);
-    }
-    if(ht_get_key(table, $3.name) == NULL) 
-    {
-      char error[100];
-      strcpy(error, "\033[31mERROR \t\tIdentifier ");
-      strcat(error, $3.name);
-      strcat(error, " not declared.\033[0m");
-      yyerror(error);
-
-      exit(1);
-    }
+    check_declaration($1.name);
+    check_declaration($3.name);
   }
 ;
 
@@ -222,11 +176,21 @@ arith_expression: arith_operator arith_expression
 | arith_statement
 ;
 
-arith_statement: arith_statement arith_operator value {printf("%c\n", $2);}
+arith_statement: arith_statement arith_operator value
+  {
+    //printf("%c %d\n", $2, $3);
+    //ASTnode *temp = root;
+    ASTnode *n = mkASTnode($2, mkASTnode(NULL, NULL, NULL, $3), root, NULL);
+    root = n;
+  }
+| arith_statement arith_operator id
+  {
+    check_declaration($3.name);
+  }
 | value arith_operator value 
   {
-    //mkASTnode($2, mkASTnode(NULL, NULL, NULL, $1), mkASTnode(NULL, NULL, NULL, $3), NULL);
-    printf("%c\n", $2);
+    root->left = mkASTnode($2, mkASTnode(NULL, NULL, NULL, $1), mkASTnode(NULL, NULL, NULL, $3), NULL);
+    //printf("%d %c %d\n", $1, $2, $3);
   } 
 | value arith_operator id               
   {
@@ -287,7 +251,7 @@ datatype: TYPE_INT
 | TYPE_VOID             
 ;
 
-value: INT              
+value: INT   { $$ = $1;}           
 | FLOAT                 
 | CHARACTER             
 | STRING                
@@ -302,91 +266,7 @@ id: ID
 
 %%
 
-extern int lineno;
-extern FILE *yyin;
-extern char *yytext;
 
-// Copied from ht.c
-typedef struct {
-    char* key;  // key is NULL if this slot is empty
-    const char* value;
-    int line;
-} ht_entry;
-
-struct ht {
-    ht_entry* entries;  // hash slots
-    size_t capacity;    // size of _entries array
-    size_t length;      // number of items in hash table
-};
-
-typedef struct {
-    char* key;
-    const char* value;
-    int line; 
-} item;
-
-void exit_nomem(void) {
-    fprintf(stderr, "out of memory\n");
-    exit(1);
-}
-
-void check_declaration(const char* name)
-{
-  if(ht_get_key(table, name) == NULL) 
-  {
-    char error[100];
-    strcpy(error, "\033[31mERROR \t\tIdentifier ");
-    strcat(error, name);
-    strcat(error, " not declared.\033[0m");
-    strcat(error, "\nError");
-    yyerror(error);
-
-    exit(1);
-  }
-}
-
-int main()
-{
-  table = ht_create();
-  if (table == NULL) {
-      exit_nomem();
-  }
-
-  yyin = fopen("input.txt", "r");
-  int token;
-  yyparse();
-   /* while ((token = yylex()) != EOF_TOKEN)
-   {
-     printf("Line %d\tToken: %d: '%s'\n", lineno, token, yytext);
-   } */
-
-    for(int i = 0; i < table->capacity; i++) {
-      
-      if(table->entries[i].key != NULL) 
-      {
-          //printf("index %d:\t%s, ", i, table->entries[i].key);
-
-          int* adr = table->entries[i].value;
-          int off = 0;
-          while(*adr != NULL) 
-          {
-            //printf("%c", (char)*adr);
-            adr = table->entries[i].value + (++off);
-          }
-
-          //printf("\tat line %d", table->entries[i].line);
-          //printf("\n");
-      } 
-      else
-      {
-        //printf("Index %d: Empty\n", i);
-      }
-
-      
-  }
-  ht_destroy(table);
-  return 0;
-}
 
 
 void yyerror(const char* msg) {
