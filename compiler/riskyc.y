@@ -22,6 +22,10 @@
     char value_char;
     char* value_string;
     ID_struct id_obj;
+
+    // AST stuff
+    ASTnode* ast;
+    operation_type op;
 }
 
 %token RETURN MAIN STAR COMMA NEWLINE SEMICOLON 
@@ -39,9 +43,9 @@
 
 %type <id_obj> id
 %type <value_string> datatype
-%type <value_char> arith_operator
-%type <value_string> declaration
-%type <value_int> value
+%type <op> arith_operator
+%type <ast> declaration
+%type <ast> value arith_statement
 
 
 %start program
@@ -176,12 +180,20 @@ arith_expression: arith_operator arith_expression
 | arith_statement
 ;
 
+
+
 arith_statement: arith_statement arith_operator value
   {
-    //printf("%c %d\n", $2, $3);
-    //ASTnode *temp = root;
-    ASTnode *n = mkASTnode($2, mkASTnode(NULL, NULL, NULL, $3), root, NULL);
-    root = n;
+    if($2 == MUL_OP)
+    {
+      $$ = new_ASTnode_ARITH_OPERATION($2, $3, root->right);
+      root->right = $$;
+    }
+    else
+    {
+      $$ = new_ASTnode_ARITH_OPERATION($2, $3, $1);
+      root = $$;
+    }
   }
 | arith_statement arith_operator id
   {
@@ -189,8 +201,8 @@ arith_statement: arith_statement arith_operator value
   }
 | value arith_operator value 
   {
-    root->left = mkASTnode($2, mkASTnode(NULL, NULL, NULL, $1), mkASTnode(NULL, NULL, NULL, $3), NULL);
-    //printf("%d %c %d\n", $1, $2, $3);
+    $$ = new_ASTnode_ARITH_OPERATION($2, $1, $3);   
+    if($2 == ADD_OP) root = $$;
   } 
 | value arith_operator id               
   {
@@ -205,7 +217,7 @@ arith_statement: arith_statement arith_operator value
     check_declaration($1.name);
     check_declaration($3.name);
   }
-;
+; 
 
 
 logic_expression: logic_operator logic_expression
@@ -238,10 +250,10 @@ logic_operator: EQUAL_TRUTH
 | NOT_EQUAL
 ;
 
-arith_operator:  PLUS {$$ = '+';}
-| MINUS {$$ = '-';}
-| DIVIDE  {$$ = '/';}
-| STAR  {$$ = '*';}
+arith_operator:  PLUS { $$ = ADD_OP; }
+| MINUS               { $$ = SUB_OP; }
+| DIVIDE              { $$ = DIV_OP; }
+| STAR                { $$ = MUL_OP; }
 ;
 
 datatype: TYPE_INT      
@@ -251,22 +263,17 @@ datatype: TYPE_INT
 | TYPE_VOID             
 ;
 
-value: INT   { $$ = $1;}           
-| FLOAT                 
-| CHARACTER             
-| STRING                
+value: INT   { $$ = new_ASTnode_VALUE($1); }           
+| FLOAT      { $$ = new_ASTnode_VALUE($1); }              
+| CHARACTER    { $$ = new_ASTnode_VALUE($1); }            
+| STRING          { $$ = new_ASTnode_VALUE($1); }         
 ;
 
 id: ID                  
 ;
 
 
-
-
-
 %%
-
-
 
 
 void yyerror(const char* msg) {

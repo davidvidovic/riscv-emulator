@@ -86,16 +86,45 @@ void check_declaration(const char* name)
   }
 }
 
+char* print_operation(operation_type op)
+{
+  switch(op)
+  {
+    case ADD_OP:
+      return "ADD_OP";
+
+    case SUB_OP:
+      return "SUB_OP";
+
+    case MUL_OP:
+      return "MUL_OP";
+
+    case DIV_OP:
+      return "DIV_OP";
+
+    default:
+      return "NOT VALID OPERATION";
+  }
+}
 
 int walkAST(ASTnode *root)
 {
-    if(root->operation != NULL) printf("%c\n", root->operation);
-    if(root->value != NULL) printf("%d\n", root->value);
+  if(root->operation != NULL) printf("%s\n", print_operation(root->operation));
+  if(root->value != NULL) printf("%d\n", root->value);
 
-    if(root->left != NULL) walkAST(root->left);
-    if(root->right != NULL) walkAST(root->right);
+  if(root->left != NULL) walkAST(root->left);
+  if(root->right != NULL) walkAST(root->right);
 
-    return 0;
+  return 0;
+}
+
+
+void freeAST(ASTnode *root)
+{
+  if(root->left != NULL) freeAST(root->left);
+  if(root->right != NULL) freeAST(root->right);
+
+  free(root);
 }
 
 
@@ -107,7 +136,7 @@ int main()
         exit_nomem();
     }
 
-    root = mkASTnode(NULL, NULL, NULL, NULL);
+    root = mkASTnode(NULL, NULL);
 
     yyin = fopen("input.txt", "r");
     int token;
@@ -141,5 +170,6 @@ int main()
     walkAST(root);
 
     ht_destroy(table);
+    freeAST(root);
     return 0;
 }
