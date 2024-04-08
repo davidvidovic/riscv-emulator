@@ -28,249 +28,438 @@
     operation_type op;
 }
 
-%token RETURN MAIN STAR COMMA NEWLINE SEMICOLON 
-%token EQUAL PLUS MINUS DIVIDE LESS_THAN GREATER_THAN LESS_EQ_THAN GREATER_EQ_THAN EQUAL_TRUTH MOD
-%token CURLY_OPEN CURLY_CLOSED BRACKET_OPEN BRACKET_CLOSED
-%token LOGIC_AND LOGIC_OR NOT_EQUAL BITWISE_NOT BITWISE_AND BITWISE_OR
-%token IF ELSE ELSE_IF FOR WHILE
-%token <value_string> TYPE_INT TYPE_FLOAT TYPE_CHAR TYPE_VOID
-%token <value_int> INT
-%token <value_float> FLOAT
-%token <value_char> CHARACTER
-%token <id_obj> ID
-%token <value_string> STRING
-%token EOF_TOKEN
+%token <id_obj> IDENTIFIER 
+%token <value_int> HEX_CONSTANT OCT_CONSTANT DEC_CONSTANT
+%token <value_float> SCI_CONSTANT FLT_CONSTANT
+%token <value_char> CHR_CONSTANT
+%token <value_string> STRING_LITERAL
+%token SIZEOF
+%token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
+%token AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
+%token SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN
+%token XOR_ASSIGN OR_ASSIGN TYPE_NAME
 
-%type <id_obj> id
-%type <value_string> datatype
-%type <op> arith_operator
-%type <ast> declaration
-%type <ast> value arith_statement
+%token TYPEDEF EXTERN STATIC AUTO REGISTER
+%token CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE CONST VOLATILE VOID
+%token STRUCT UNION ENUM ELLIPSIS
 
+%token CASE DEFAULT IF ELSE SWITCH WHILE DO FOR GOTO CONTINUE BREAK RETURN
 
-%start program
+%start translation_unit
+
+// Declaration non-terminals used to pass ID's name through hierarchy in order to declare/check declaration in system table 
+%type <id_obj> direct_declarator declarator 
+
+// AST
+%type <ast> primary_expression
 
 %%
 
-/* Grammar section */
+primary_expression
+	: IDENTIFIER {check_declaration($1.name);}
+	| HEX_CONSTANT 
+  | OCT_CONSTANT
+  | DEC_CONSTANT {$$ = new_ASTnode_VALUE($1);}
+  | CHR_CONSTANT
+  | SCI_CONSTANT
+  | FLT_CONSTANT 
+	| STRING_LITERAL
+	| '(' expression ')'
+	;
+
+postfix_expression
+	: primary_expression
+	| postfix_expression '[' expression ']'
+	| postfix_expression '(' ')'
+	| postfix_expression '(' argument_expression_list ')'
+	| postfix_expression '.' IDENTIFIER
+	| postfix_expression PTR_OP IDENTIFIER
+	| postfix_expression INC_OP
+	| postfix_expression DEC_OP
+	;
+
+argument_expression_list
+	: assignment_expression
+	| argument_expression_list ',' assignment_expression
+	;
+
+unary_expression
+	: postfix_expression
+	| INC_OP unary_expression
+	| DEC_OP unary_expression
+	| unary_operator cast_expression
+	| SIZEOF unary_expression
+	| SIZEOF '(' type_name ')'
+	;
+
+unary_operator
+	: '&'
+	| '*'
+	| '+'
+	| '-'
+	| '~'
+	| '!'
+	;
+
+cast_expression
+	: unary_expression
+	| '(' type_name ')' cast_expression
+	;
+
+multiplicative_expression
+	: cast_expression
+	| multiplicative_expression '*' cast_expression
+	| multiplicative_expression '/' cast_expression
+	| multiplicative_expression '%' cast_expression
+	;
+
+additive_expression
+	: multiplicative_expression
+	| additive_expression '+' multiplicative_expression
+	| additive_expression '-' multiplicative_expression
+	;
+
+shift_expression
+	: additive_expression
+	| shift_expression LEFT_OP additive_expression
+	| shift_expression RIGHT_OP additive_expression
+	;
+
+relational_expression
+	: shift_expression
+	| relational_expression '<' shift_expression
+	| relational_expression '>' shift_expression
+	| relational_expression LE_OP shift_expression
+	| relational_expression GE_OP shift_expression
+	;
+
+equality_expression
+	: relational_expression
+	| equality_expression EQ_OP relational_expression
+	| equality_expression NE_OP relational_expression
+	;
+
+and_expression
+	: equality_expression
+	| and_expression '&' equality_expression
+	;
+
+exclusive_or_expression
+	: and_expression
+	| exclusive_or_expression '^' and_expression
+	;
+
+inclusive_or_expression
+	: exclusive_or_expression
+	| inclusive_or_expression '|' exclusive_or_expression
+	;
+
+logical_and_expression
+	: inclusive_or_expression
+	| logical_and_expression AND_OP inclusive_or_expression
+	;
+
+logical_or_expression
+	: logical_and_expression
+	| logical_or_expression OR_OP logical_and_expression
+	;
+
+conditional_expression
+	: logical_or_expression
+	| logical_or_expression '?' expression ':' conditional_expression
+	;
+
+assignment_expression
+	: conditional_expression
+	| unary_expression assignment_operator assignment_expression
+	;
+
+assignment_operator
+	: '='
+	| MUL_ASSIGN
+	| DIV_ASSIGN
+	| MOD_ASSIGN
+	| ADD_ASSIGN
+	| SUB_ASSIGN
+	| LEFT_ASSIGN
+	| RIGHT_ASSIGN
+	| AND_ASSIGN
+	| XOR_ASSIGN
+	| OR_ASSIGN
+	;
+
+expression
+	: assignment_expression 
+	| expression ',' assignment_expression
+	;
+
+constant_expression
+	: conditional_expression
+	;
+
+declaration
+	: declaration_specifiers ';' 
+	| declaration_specifiers init_declarator_list ';' 
+	;
+
+declaration_specifiers
+	: storage_class_specifier
+	| storage_class_specifier declaration_specifiers
+	| type_specifier 
+	| type_specifier declaration_specifiers 
+	| type_qualifier
+	| type_qualifier declaration_specifiers
+	;
+
+init_declarator_list
+	: init_declarator
+	| init_declarator_list ',' init_declarator
+	;
+
+init_declarator
+	: declarator {declare($1.name, "NULL", lineno);}
+	| declarator '=' initializer  {declare($1.name, "NULL", lineno);}
+	;
+
+storage_class_specifier
+	: TYPEDEF
+	| EXTERN
+	| STATIC
+	| AUTO
+	| REGISTER
+	;
+
+type_specifier
+	: VOID
+	| CHAR
+	| SHORT
+	| INT
+	| LONG
+	| FLOAT
+	| DOUBLE
+	| SIGNED
+	| UNSIGNED
+	| struct_or_union_specifier
+	| enum_specifier
+	| TYPE_NAME
+	;
+
+struct_or_union_specifier
+	: struct_or_union IDENTIFIER '{' struct_declaration_list '}'
+	| struct_or_union '{' struct_declaration_list '}'
+	| struct_or_union IDENTIFIER
+	;
+
+struct_or_union
+	: STRUCT
+	| UNION
+	;
+
+struct_declaration_list
+	: struct_declaration
+	| struct_declaration_list struct_declaration
+	;
+
+struct_declaration
+	: specifier_qualifier_list struct_declarator_list ';'
+	;
+
+specifier_qualifier_list
+	: type_specifier specifier_qualifier_list
+	| type_specifier
+	| type_qualifier specifier_qualifier_list
+	| type_qualifier
+	;
+
+struct_declarator_list
+	: struct_declarator
+	| struct_declarator_list ',' struct_declarator
+	;
+
+struct_declarator
+	: declarator
+	| ':' constant_expression
+	| declarator ':' constant_expression
+	;
+
+enum_specifier
+	: ENUM '{' enumerator_list '}'
+	| ENUM IDENTIFIER '{' enumerator_list '}'
+	| ENUM IDENTIFIER
+	;
+
+enumerator_list
+	: enumerator
+	| enumerator_list ',' enumerator
+	;
+
+enumerator
+	: IDENTIFIER
+	| IDENTIFIER '=' constant_expression
+	;
+
+type_qualifier
+	: CONST
+	| VOLATILE
+	;
+
+declarator
+	: pointer direct_declarator {$$ = $2;};
+	| direct_declarator {$$ = $1;}
+	;
+
+direct_declarator
+	: IDENTIFIER {$$ = $1;}
+	| '(' declarator ')' {$$ = $2;}
+	| direct_declarator '[' constant_expression ']'
+	| direct_declarator '[' ']'
+	| direct_declarator '(' parameter_type_list ')'
+	| direct_declarator '(' identifier_list ')'
+	| direct_declarator '(' ')'
+	;
+
+pointer
+	: '*'
+	| '*' type_qualifier_list
+	| '*' pointer
+	| '*' type_qualifier_list pointer
+	;
+
+type_qualifier_list
+	: type_qualifier
+	| type_qualifier_list type_qualifier
+	;
 
 
-/* IF STATEMENT */
+parameter_type_list
+	: parameter_list
+	| parameter_list ',' ELLIPSIS
+	;
 
-if_body: if_body else_statement
-| if_statement scope
-;
+parameter_list
+	: parameter_declaration
+	| parameter_list ',' parameter_declaration
+	;
 
-else_statement: ELSE scope
-| ELSE if_statement scope
-;
+parameter_declaration
+	: declaration_specifiers declarator
+	| declaration_specifiers abstract_declarator
+	| declaration_specifiers
+	;
 
-if_statement: IF BRACKET_OPEN logic_expression BRACKET_CLOSED
-;
+identifier_list
+	: IDENTIFIER
+	| identifier_list ',' IDENTIFIER
+	;
 
-/* FOR LOOP */
+type_name
+	: specifier_qualifier_list
+	| specifier_qualifier_list abstract_declarator
+	;
 
-for_body: FOR for_statement scope
-;
+abstract_declarator
+	: pointer
+	| direct_abstract_declarator
+	| pointer direct_abstract_declarator
+	;
 
-for_statement: BRACKET_OPEN statement SEMICOLON logic_expression SEMICOLON statement BRACKET_CLOSED
-;
+direct_abstract_declarator
+	: '(' abstract_declarator ')'
+	| '[' ']'
+	| '[' constant_expression ']'
+	| direct_abstract_declarator '[' ']'
+	| direct_abstract_declarator '[' constant_expression ']'
+	| '(' ')'
+	| '(' parameter_type_list ')'
+	| direct_abstract_declarator '(' ')'
+	| direct_abstract_declarator '(' parameter_type_list ')'
+	;
 
-/* WHILE LOOP */
+initializer
+	: assignment_expression
+	| '{' initializer_list '}'
+	| '{' initializer_list ',' '}'
+	;
 
-while_body: while_statement scope
-;
+initializer_list
+	: initializer
+	| initializer_list ',' initializer
+	;
 
-while_statement: WHILE BRACKET_OPEN logic_expression BRACKET_CLOSED
-;
+statement
+	: labeled_statement
+	| compound_statement
+	| expression_statement
+	| selection_statement
+	| iteration_statement
+	| jump_statement
+	;
 
+labeled_statement
+	: IDENTIFIER ':' statement
+	| CASE constant_expression ':' statement
+	| DEFAULT ':' statement
+	;
 
-/* PROGRAM */
+compound_statement
+	: '{' '}'
+	| '{' statement_list '}' 
+	| '{' declaration_list '}'
+	| '{' declaration_list statement_list '}' 
+	;
 
-program: program function
-| function
-;
+declaration_list
+	: declaration
+	| declaration_list declaration
+	;
 
+statement_list
+	: statement
+	| statement_list statement
+	;
 
-function: datatype id params scope 
-| datatype MAIN params scope 
-  {
-    if(main_counter != 0)
-    {
-      yyerror("ERROR\tMore than one main declared.\n");
-      exit(1);
-    }
-    main_counter++;
-  }
-;
+expression_statement
+	: ';'
+	| expression ';' 
+	;
 
+selection_statement
+	: IF '(' expression ')' statement
+	| IF '(' expression ')' statement ELSE statement
+	| SWITCH '(' expression ')' statement
+	;
 
-params: BRACKET_OPEN BRACKET_CLOSED
-| BRACKET_OPEN declaration BRACKET_CLOSED
-;
+iteration_statement
+	: WHILE '(' expression ')' statement
+	| DO statement WHILE '(' expression ')' ';'
+	| FOR '(' expression_statement expression_statement ')' statement
+	| FOR '(' expression_statement expression_statement expression ')' statement
+	;
 
+jump_statement
+	: GOTO IDENTIFIER ';'
+	| CONTINUE ';'
+	| BREAK ';'
+	| RETURN ';'
+	| RETURN expression ';'
+	;
 
-scope: CURLY_OPEN scope_body CURLY_CLOSED
-;
+translation_unit
+	: external_declaration
+	| translation_unit external_declaration
+	;
 
-scope_body: scope_body return
-| return
-| statements
-;
+external_declaration
+	: function_definition
+	| declaration
+	;
 
-
-return: RETURN value SEMICOLON         // ne mora da bude samo value
-;
-
-
-statements : statements full_statement
-| statements if_body
-| statements for_body
-| statements while_body
-| full_statement
-| if_body
-| for_body
-| while_body
-;
-
-full_statement: statement SEMICOLON
-;
-
-statement: declaration assign_value 
-| assign_value 
-| declaration assign_expression   
-| assign_expression                 
-| declaration                
-;
-
-
-declaration: declaration COMMA id    
-  {
-    declare($3.name, $1, $3.src.line);
-  }  
-| datatype id 
-  {
-    if(declare($2.name, $1, $2.src.line))
-      $$ = $1;
-  }
-;
-
-
-assign_expression: EQUAL arith_expression     
-| id EQUAL arith_expression   
-  {
-    check_declaration($1.name);
-  }
-;
-
-
-assign_value: EQUAL value      
-| id EQUAL value        
-  {
-    check_declaration($1.name);
-  }
-| id EQUAL id       
-  {
-    check_declaration($1.name);
-    check_declaration($3.name);
-  }
-;
-
-arith_expression: arith_operator arith_expression
-| arith_statement
-;
-
-
-
-arith_statement: arith_statement arith_operator value
-  {
-    if($2 == MUL_OP)
-    {
-      $$ = new_ASTnode_ARITH_OPERATION($2, $3, root->right);
-      root->right = $$;
-    }
-    else
-    {
-      $$ = new_ASTnode_ARITH_OPERATION($2, $3, $1);
-      root = $$;
-    }
-  }
-| arith_statement arith_operator id
-  {
-    check_declaration($3.name);
-  }
-| value arith_operator value 
-  {
-    $$ = new_ASTnode_ARITH_OPERATION($2, $1, $3);   
-    if($2 == ADD_OP) root = $$;
-  } 
-| value arith_operator id               
-  {
-    check_declaration($3.name);
-  }
-| id arith_operator value               
-  {
-    check_declaration($1.name);
-  }
-| id arith_operator id                  
-  {
-    check_declaration($1.name);
-    check_declaration($3.name);
-  }
-; 
-
-
-logic_expression: logic_operator logic_expression
-| logic_statement
-;
-
-
-logic_statement: id logic_operator id 
-  {
-    check_declaration($1.name);
-    check_declaration($3.name);
-  }
-| id logic_operator value
-  {
-    check_declaration($1.name);
-  }
-| value logic_operator id
-  {
-    check_declaration($3.name);
-  }
-| value logic_operator value
-;
-
-
-logic_operator: EQUAL_TRUTH 
-| GREATER_THAN
-| LESS_THAN
-| GREATER_EQ_THAN
-| LESS_EQ_THAN
-| NOT_EQUAL
-;
-
-arith_operator:  PLUS { $$ = ADD_OP; }
-| MINUS               { $$ = SUB_OP; }
-| DIVIDE              { $$ = DIV_OP; }
-| STAR                { $$ = MUL_OP; }
-;
-
-datatype: TYPE_INT      
-| TYPE_FLOAT            
-| TYPE_CHAR             
-| TYPE_CHAR STAR        
-| TYPE_VOID             
-;
-
-value: INT   { $$ = new_ASTnode_VALUE($1); }           
-| FLOAT      { $$ = new_ASTnode_VALUE($1); }              
-| CHARACTER    { $$ = new_ASTnode_VALUE($1); }            
-| STRING          { $$ = new_ASTnode_VALUE($1); }         
-;
-
-id: ID                  
-;
+function_definition
+	: declaration_specifiers declarator declaration_list compound_statement 
+	| declaration_specifiers declarator compound_statement
+	| declarator declaration_list compound_statement
+	| declarator compound_statement
+	;
 
 
 %%

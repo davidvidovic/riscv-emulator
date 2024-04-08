@@ -11,10 +11,15 @@ ASTnode* mkASTnode(ASTnode *left, ASTnode *right)
     return (n);
 }
 
+ASTnode* new_AST_leaf()
+{
+    return mkASTnode(NULL, NULL); 
+}
+
 
 ASTnode* new_ASTnode_VALUE(int value)
 {
-    ASTnode *n = mkASTnode(NULL, NULL); // leaf
+    ASTnode *n = new_AST_leaf();
     n->value = value;
     return (n);
 }
@@ -22,7 +27,7 @@ ASTnode* new_ASTnode_VALUE(int value)
 
 ASTnode* new_ASTnode_ARITH_OPERATION(operation_type operation, ASTnode *left, ASTnode *right)
 {
-    ASTnode *n = mkASTnode(left, right); 
+    ASTnode *n = new_AST_leaf();
     n->operation = operation;
     return (n);
 }

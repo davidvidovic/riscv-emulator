@@ -18,6 +18,7 @@ typedef struct ASTnode {
 
 
 ASTnode* mkASTnode(ASTnode *left, ASTnode *right);
+ASTnode* new_AST_leaf();
 ASTnode* new_ASTnode_VALUE(int value);
 ASTnode* new_ASTnode_ARITH_OPERATION(operation_type operation, ASTnode *left, ASTnode *right);
 

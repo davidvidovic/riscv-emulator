@@ -12,6 +12,7 @@ typedef struct
 {
     Coordinate src;
     const char *name;
+    const char *datatype;
 } ID_struct;
 
 //ASTnode *root = NULL;
