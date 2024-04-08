@@ -102,6 +102,9 @@ char* print_operation(operation_type op)
     case DIV_OP:
       return "DIV_OP";
 
+    case EQU_OP:
+      return "EQ_OP";
+
     default:
       return "NOT VALID OPERATION";
   }
@@ -111,6 +114,7 @@ int walkAST(ASTnode *root)
 {
   if(root->operation != NULL) printf("%s\n", print_operation(root->operation));
   if(root->value != NULL) printf("%d\n", root->value);
+  if(root->name != NULL) printf("%s\n", root->name);
 
   if(root->left != NULL) walkAST(root->left);
   if(root->right != NULL) walkAST(root->right);

@@ -26,6 +26,7 @@
     // AST stuff
     ASTnode* ast;
     operation_type op;
+	id_type ty;
 }
 
 %token <id_obj> IDENTIFIER 
@@ -48,27 +49,58 @@
 %start translation_unit
 
 // Declaration non-terminals used to pass ID's name through hierarchy in order to declare/check declaration in system table 
-%type <id_obj> direct_declarator declarator 
+%type <id_obj> direct_declarator 
+%type <id_obj> declarator 
 
 // AST
-%type <ast> primary_expression
+%type <ast> primary_expression 
+%type <ast> postfix_expression 
+%type <ast> unary_expression
+%type <ast> cast_expression
+%type <ast> multiplicative_expression
+%type <ast> additive_expression
+%type <ast> shift_expression
+%type <ast> relational_expression
+%type <ast> equality_expression
+%type <ast> and_expression
+%type <ast> exclusive_or_expression
+%type <ast> inclusive_or_expression
+%type <ast> logical_and_expression
+%type <ast> logical_or_expression
+%type <ast> conditional_expression
+%type <ast> assignment_expression
+%type <ast> expression
+%type <ast> statement
+%type <ast> compound_statement
+%type <ast> statement_list
+%type <ast> expression_statement
+%type <ast> external_declaration
+%type <ast> function_definition
+%type <ast> translation_unit
+%type <ast> declaration_list
+%type <ast> declaration
+%type <ast> init_declarator
+%type <ast> init_declarator_list
+%type <ast> initializer
+%type <ast> initializer_list
+
 
 %%
 
 primary_expression
-	: IDENTIFIER {check_declaration($1.name);}
-	| HEX_CONSTANT 
-  | OCT_CONSTANT
-  | DEC_CONSTANT {$$ = new_ASTnode_VALUE($1);}
-  | CHR_CONSTANT
-  | SCI_CONSTANT
-  | FLT_CONSTANT 
-	| STRING_LITERAL
-	| '(' expression ')'
+	: IDENTIFIER {check_declaration($1.name); $$ = find_ID($1.name, root); } // root here not defined you idiot
+	| HEX_CONSTANT {$$ = new_ASTnode_INT($1);}
+  	| OCT_CONSTANT {$$ = new_ASTnode_INT($1);}
+  	| DEC_CONSTANT {$$ = new_ASTnode_INT($1);}
+  	| CHR_CONSTANT {$$ = new_ASTnode_INT($1);}
+  	| SCI_CONSTANT {$$ = new_ASTnode_INT($1);}
+  	| FLT_CONSTANT {$$ = new_ASTnode_INT($1);}
+	| STRING_LITERAL {$$ = new_ASTnode_INT($1);}
+	| '(' expression ')' {}
 	;
 
 postfix_expression
-	: primary_expression
+	: primary_expression {$$ = $1;}
 	| postfix_expression '[' expression ']'
 	| postfix_expression '(' ')'
 	| postfix_expression '(' argument_expression_list ')'
@@ -83,50 +115,50 @@ argument_expression_list
 	| argument_expression_list ',' assignment_expression
 	;
 
-unary_expression
-	: postfix_expression
-	| INC_OP unary_expression
-	| DEC_OP unary_expression
-	| unary_operator cast_expression
-	| SIZEOF unary_expression
-	| SIZEOF '(' type_name ')'
+unary_expression 
+	: postfix_expression {$$ = $1;}
+	| INC_OP unary_expression {}
+	| DEC_OP unary_expression {}
+	| unary_operator cast_expression {}
+	| SIZEOF unary_expression {}
+	| SIZEOF '(' type_name ')' {}
 	;
 
 unary_operator
-	: '&'
-	| '*'
-	| '+'
-	| '-'
-	| '~'
-	| '!'
+	: '&' 
+	| '*' 
+	| '+' 
+	| '-' 
+	| '~' 
+	| '!' 
 	;
 
 cast_expression
-	: unary_expression
-	| '(' type_name ')' cast_expression
+	: unary_expression {$$ = $1;}
+	| '(' type_name ')' cast_expression {}
 	;
 
 multiplicative_expression
-	: cast_expression
-	| multiplicative_expression '*' cast_expression
-	| multiplicative_expression '/' cast_expression
-	| multiplicative_expression '%' cast_expression
+	: cast_expression {$$ = $1;}
+	| multiplicative_expression '*' cast_expression {$$ = new_ASTnode_ARITH_OPERATION(MUL_OP, $1, $3);}
+	| multiplicative_expression '/' cast_expression {$$ = new_ASTnode_ARITH_OPERATION(DIV_OP, $1, $3);}
+	| multiplicative_expression '%' cast_expression {$$ = new_ASTnode_ARITH_OPERATION(MOD_OP, $1, $3);}
 	;
 
 additive_expression
-	: multiplicative_expression
-	| additive_expression '+' multiplicative_expression
-	| additive_expression '-' multiplicative_expression
+	: multiplicative_expression {$$ = $1;}
+	| additive_expression '+' multiplicative_expression {$$ = new_ASTnode_ARITH_OPERATION(ADD_OP, $1, $3); }
+	| additive_expression '-' multiplicative_expression {$$ = new_ASTnode_ARITH_OPERATION(SUB_OP, $1, $3);}
 	;
 
 shift_expression
-	: additive_expression
+	: additive_expression {$$ = $1;}
 	| shift_expression LEFT_OP additive_expression
 	| shift_expression RIGHT_OP additive_expression
 	;
 
 relational_expression
-	: shift_expression
+	: shift_expression {$$ = $1;}
 	| relational_expression '<' shift_expression
 	| relational_expression '>' shift_expression
 	| relational_expression LE_OP shift_expression
@@ -134,48 +166,51 @@ relational_expression
 	;
 
 equality_expression
-	: relational_expression
-	| equality_expression EQ_OP relational_expression
+	: relational_expression {$$ = $1;}
+	| equality_expression EQ_OP relational_expression {$$ = new_ASTnode_ARITH_OPERATION(EQU_OP, $1, $3);}
 	| equality_expression NE_OP relational_expression
 	;
 
 and_expression
-	: equality_expression
+	: equality_expression {$$ = $1;}
 	| and_expression '&' equality_expression
 	;
 
 exclusive_or_expression
-	: and_expression
+	: and_expression {$$ = $1;}
 	| exclusive_or_expression '^' and_expression
 	;
 
 inclusive_or_expression
-	: exclusive_or_expression
+	: exclusive_or_expression {$$ = $1;}
 	| inclusive_or_expression '|' exclusive_or_expression
 	;
 
 logical_and_expression
-	: inclusive_or_expression
+	: inclusive_or_expression {$$ = $1;}
 	| logical_and_expression AND_OP inclusive_or_expression
 	;
 
 logical_or_expression
-	: logical_and_expression
+	: logical_and_expression {$$ = $1;}
 	| logical_or_expression OR_OP logical_and_expression
 	;
 
 conditional_expression
-	: logical_or_expression
+	: logical_or_expression {$$ = $1;}
 	| logical_or_expression '?' expression ':' conditional_expression
 	;
 
 assignment_expression
-	: conditional_expression
-	| unary_expression assignment_operator assignment_expression
+	: conditional_expression {$$ = $1;}
+	| unary_expression assignment_operator assignment_expression {
+		//$$ = $3; 
+		$$ = new_ASTnode_ARITH_OPERATION(EQU_OP, $1, $3);
+	}
 	;
 
 assignment_operator
-	: '='
+	: '=' 
 	| MUL_ASSIGN
 	| DIV_ASSIGN
 	| MOD_ASSIGN
@@ -189,17 +224,17 @@ assignment_operator
 	;
 
 expression
-	: assignment_expression 
+	: assignment_expression {$$ = $1;}
 	| expression ',' assignment_expression
 	;
 
 constant_expression
-	: conditional_expression
+	: conditional_expression 
 	;
 
 declaration
-	: declaration_specifiers ';' 
-	| declaration_specifiers init_declarator_list ';' 
+	: declaration_specifiers ';'  {}
+	| declaration_specifiers init_declarator_list ';' {$$ = $2;}
 	;
 
 declaration_specifiers
@@ -212,13 +247,19 @@ declaration_specifiers
 	;
 
 init_declarator_list
-	: init_declarator
-	| init_declarator_list ',' init_declarator
+	: init_declarator {$$ = $1;}
+	| init_declarator_list ',' init_declarator {}
 	;
 
 init_declarator
-	: declarator {declare($1.name, "NULL", lineno);}
-	| declarator '=' initializer  {declare($1.name, "NULL", lineno);}
+	: declarator {
+		declare($1.name, "NULL", lineno);
+		$$ = new_ASTnode_ID($1.name, TYPE_INT, NULL, NULL);
+	}
+	| declarator '=' initializer  {
+		declare($1.name, "NULL", lineno); 
+		$$ = new_ASTnode_ARITH_OPERATION(EQU_OP, new_ASTnode_ID($1.name, TYPE_INT, NULL, NULL), $3); 
+	}
 	;
 
 storage_class_specifier
@@ -376,23 +417,23 @@ direct_abstract_declarator
 	;
 
 initializer
-	: assignment_expression
-	| '{' initializer_list '}'
-	| '{' initializer_list ',' '}'
+	: assignment_expression {$$ = $1;}
+	| '{' initializer_list '}' {}
+	| '{' initializer_list ',' '}' {}
 	;
 
 initializer_list
-	: initializer
+	: initializer {$$ = $1;}
 	| initializer_list ',' initializer
 	;
 
 statement
-	: labeled_statement
-	| compound_statement
-	| expression_statement
-	| selection_statement
-	| iteration_statement
-	| jump_statement
+	: labeled_statement {}
+	| compound_statement {}
+	| expression_statement {$$ = $1;}
+	| selection_statement {}
+	| iteration_statement {}
+	| jump_statement {}
 	;
 
 labeled_statement
@@ -402,25 +443,25 @@ labeled_statement
 	;
 
 compound_statement
-	: '{' '}'
-	| '{' statement_list '}' 
-	| '{' declaration_list '}'
-	| '{' declaration_list statement_list '}' 
+	: '{' '}' {}
+	| '{' statement_list '}' {$$ = $2;} 
+	| '{' declaration_list '}' {$$ = $2;} 
+	| '{' declaration_list statement_list '}' {$$ = $3;}
 	;
 
 declaration_list
-	: declaration
-	| declaration_list declaration
+	: declaration {$$ = $1; } // odradice se samo jednom za main, sve ostalo ispod?
+	| declaration_list declaration {$$ = $2;}
 	;
 
 statement_list
-	: statement
-	| statement_list statement
+	: statement {$$ = $1;}
+	| statement_list statement {}
 	;
 
 expression_statement
-	: ';'
-	| expression ';' 
+	: ';' {}
+	| expression ';' {$$ = $1;}
 	;
 
 selection_statement
@@ -445,25 +486,24 @@ jump_statement
 	;
 
 translation_unit
-	: external_declaration
-	| translation_unit external_declaration
+	: external_declaration {$$ = $1; root = $$;}
+	| translation_unit external_declaration {}
 	;
 
 external_declaration
-	: function_definition
-	| declaration
+	: function_definition {$$ = $1;}
+	| declaration {$$ = $1;}
 	;
 
 function_definition
-	: declaration_specifiers declarator declaration_list compound_statement 
-	| declaration_specifiers declarator compound_statement
-	| declarator declaration_list compound_statement
-	| declarator compound_statement
+	: declaration_specifiers declarator declaration_list compound_statement {$$ = $4;}
+	| declaration_specifiers declarator compound_statement {$$ = $3;}
+	| declarator declaration_list compound_statement {$$ = $3;}
+	| declarator compound_statement {$$ = $2;}
 	;
 
 
 %%
-
 
 void yyerror(const char* msg) {
     fprintf(stderr, "%s at line %d\n", msg, lineno);

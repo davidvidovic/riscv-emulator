@@ -1,5 +1,5 @@
-#ifndef MAIN_H
-#define MAIN_H
+#ifndef RISKYC
+#define RISKYC
 
 #include "ast.h"
 
@@ -16,5 +16,6 @@ typedef struct
 } ID_struct;
 
 //ASTnode *root = NULL;
+char* print_operation(operation_type op);
 
 #endif
