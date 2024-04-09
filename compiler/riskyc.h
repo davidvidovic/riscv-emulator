@@ -17,5 +17,7 @@ typedef struct
 
 //ASTnode *root = NULL;
 char* print_operation(operation_type op);
+int declare(const char* name, const char* datatype, int line, ASTnode* node);
+ASTnode* check_declaration(const char* name);
 
 #endif

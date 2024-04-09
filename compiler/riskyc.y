@@ -88,7 +88,7 @@
 %%
 
 primary_expression
-	: IDENTIFIER {check_declaration($1.name); $$ = find_ID($1.name, root); } // root here not defined you idiot
+	: IDENTIFIER {$$ = check_declaration($1.name);} 
 	| HEX_CONSTANT {$$ = new_ASTnode_INT($1);}
   	| OCT_CONSTANT {$$ = new_ASTnode_INT($1);}
   	| DEC_CONSTANT {$$ = new_ASTnode_INT($1);}
@@ -204,7 +204,7 @@ conditional_expression
 assignment_expression
 	: conditional_expression {$$ = $1;}
 	| unary_expression assignment_operator assignment_expression {
-		//$$ = $3; 
+		printf("tu sam %s\n", $1->name);
 		$$ = new_ASTnode_ARITH_OPERATION(EQU_OP, $1, $3);
 	}
 	;
@@ -253,12 +253,14 @@ init_declarator_list
 
 init_declarator
 	: declarator {
-		declare($1.name, "NULL", lineno);
 		$$ = new_ASTnode_ID($1.name, TYPE_INT, NULL, NULL);
+		declare($1.name, "NULL", lineno, $$);
 	}
 	| declarator '=' initializer  {
-		declare($1.name, "NULL", lineno); 
-		$$ = new_ASTnode_ARITH_OPERATION(EQU_OP, new_ASTnode_ID($1.name, TYPE_INT, NULL, NULL), $3); 
+		ASTnode* n = new_ASTnode_ID($1.name, TYPE_INT, NULL, NULL);
+		$$ = new_ASTnode_ARITH_OPERATION(EQU_OP, n, $3); 
+		declare($1.name, "NULL", lineno, n); 
+		free(n);
 	}
 	;
 

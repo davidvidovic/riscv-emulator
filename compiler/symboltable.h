@@ -2,6 +2,7 @@
 
 #include <stddef.h>
 #include <stdbool.h>
+#include "ast.h"
 
 /*
 *   Symbol table structure is to be implemented as a hash table
@@ -23,9 +24,10 @@ void ht_destroy(ht* table);
 // Get item with given key (key is a string)
 const char* ht_get_key(ht* table, const char* key);
 int ht_get_line(ht* table, const char* key);
+ASTnode* ht_get_ASTnode(ht* table, const char* key);
 
 // Set item with given key to a value (must not be NULL)
-const char* ht_set(ht* table, const char* key, const char* value, int line);
+const char* ht_set(ht* table, const char* key, const char* value, int line, ASTnode* node);
 
 // Returns number of items in table
 size_t ht_length(ht* table);
@@ -38,6 +40,7 @@ typedef struct {
     const char* key;
     const char* value;
     int line;
+    ASTnode* node;
 
     ht* _table;
     size_t _index;

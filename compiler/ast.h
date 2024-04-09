@@ -10,14 +10,15 @@ typedef struct ASTnode {
     struct ASTnode *left;
     struct ASTnode *right;
 
-    operation_type operation;
-    
     // ID
     id_type type;
     char* name;
 
     // Constants
     int value; // add float, char...
+
+    // Expressions
+    operation_type operation;
 
 } ASTnode;
 

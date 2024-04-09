@@ -16,6 +16,7 @@ typedef struct {
     char* key;  // key is NULL if this slot is empty
     const char* value;
     int line;
+    ASTnode* node;
 } ht_entry;
 
 struct ht {
@@ -28,6 +29,7 @@ typedef struct {
     char* key;
     const char* value;
     int line; 
+    ASTnode* node;
 } item;
 
 void exit_nomem(void) {
@@ -36,7 +38,7 @@ void exit_nomem(void) {
 }
 
 
-int declare(const char* name, const char* datatype, int line)
+int declare(const char* name, const char* datatype, int line, ASTnode* node)
 {
   if(ht_get_key(table, name) != NULL) 
   {
@@ -57,7 +59,7 @@ int declare(const char* name, const char* datatype, int line)
   }
   else
   {
-    if(ht_set(table, name, datatype, line) == NULL) 
+    if(ht_set(table, name, datatype, line, node) == NULL) 
     {
       exit_nomem();
     }
@@ -71,7 +73,7 @@ int declare(const char* name, const char* datatype, int line)
   return 0;
 }
 
-void check_declaration(const char* name)
+ASTnode* check_declaration(const char* name)
 {
   if(ht_get_key(table, name) == NULL) 
   {
@@ -84,6 +86,8 @@ void check_declaration(const char* name)
 
     exit(1);
   }
+
+  return ht_get_ASTnode(table, name);
 }
 
 char* print_operation(operation_type op)
