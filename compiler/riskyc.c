@@ -90,35 +90,11 @@ ASTnode* check_declaration(const char* name)
   return ht_get_ASTnode(table, name);
 }
 
-char* print_operation(operation_type op)
-{
-  switch(op)
-  {
-    case ADD_OP:
-      return "ADD_OP";
 
-    case SUB_OP:
-      return "SUB_OP";
-
-    case MUL_OP:
-      return "MUL_OP";
-
-    case DIV_OP:
-      return "DIV_OP";
-
-    case EQU_OP:
-      return "EQ_OP";
-
-    default:
-      return "NOT VALID OPERATION";
-  }
-}
 
 int walkAST(ASTnode *root)
 {
-  if(root->operation != NULL) printf("%s\n", print_operation(root->operation));
-  if(root->value != NULL) printf("%d\n", root->value);
-  if(root->name != NULL) printf("%s\n", root->name);
+  print_value(root);
 
   if(root->left != NULL) walkAST(root->left);
   if(root->right != NULL) walkAST(root->right);

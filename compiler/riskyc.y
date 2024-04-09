@@ -84,6 +84,8 @@
 %type <ast> initializer
 %type <ast> initializer_list
 
+%type <op> assignment_operator
+
 
 %%
 
@@ -93,8 +95,8 @@ primary_expression
   	| OCT_CONSTANT {$$ = new_ASTnode_INT($1);}
   	| DEC_CONSTANT {$$ = new_ASTnode_INT($1);}
   	| CHR_CONSTANT {$$ = new_ASTnode_INT($1);}
-  	| SCI_CONSTANT {$$ = new_ASTnode_INT($1);}
-  	| FLT_CONSTANT {$$ = new_ASTnode_INT($1);}
+  	| SCI_CONSTANT {$$ = new_ASTnode_FLOAT($1);} // Should get looked at
+  	| FLT_CONSTANT {$$ = new_ASTnode_FLOAT($1);}
 	| STRING_LITERAL {$$ = new_ASTnode_INT($1);}
 	| '(' expression ')' {}
 	;
@@ -140,15 +142,15 @@ cast_expression
 
 multiplicative_expression
 	: cast_expression {$$ = $1;}
-	| multiplicative_expression '*' cast_expression {$$ = new_ASTnode_ARITH_OPERATION(MUL_OP, $1, $3);}
-	| multiplicative_expression '/' cast_expression {$$ = new_ASTnode_ARITH_OPERATION(DIV_OP, $1, $3);}
-	| multiplicative_expression '%' cast_expression {$$ = new_ASTnode_ARITH_OPERATION(MOD_OP, $1, $3);}
+	| multiplicative_expression '*' cast_expression {$$ = new_ASTnode_ARITH_OPERATION(MUL_OP, $3, $1);}
+	| multiplicative_expression '/' cast_expression {$$ = new_ASTnode_ARITH_OPERATION(DIV_OP, $3, $1);}
+	| multiplicative_expression '%' cast_expression {$$ = new_ASTnode_ARITH_OPERATION(MOD_OP, $3, $1);}
 	;
 
 additive_expression
 	: multiplicative_expression {$$ = $1;}
-	| additive_expression '+' multiplicative_expression {$$ = new_ASTnode_ARITH_OPERATION(ADD_OP, $1, $3); }
-	| additive_expression '-' multiplicative_expression {$$ = new_ASTnode_ARITH_OPERATION(SUB_OP, $1, $3);}
+	| additive_expression '+' multiplicative_expression {$$ = new_ASTnode_ARITH_OPERATION(ADD_OP, $3, $1); }
+	| additive_expression '-' multiplicative_expression {$$ = new_ASTnode_ARITH_OPERATION(SUB_OP, $3, $1);}
 	;
 
 shift_expression
@@ -167,7 +169,7 @@ relational_expression
 
 equality_expression
 	: relational_expression {$$ = $1;}
-	| equality_expression EQ_OP relational_expression {$$ = new_ASTnode_ARITH_OPERATION(EQU_OP, $1, $3);}
+	| equality_expression EQ_OP relational_expression {$$ = new_ASTnode_ARITH_OPERATION(EQU_OP, $3, $1);}
 	| equality_expression NE_OP relational_expression
 	;
 
@@ -204,27 +206,28 @@ conditional_expression
 assignment_expression
 	: conditional_expression {$$ = $1;}
 	| unary_expression assignment_operator assignment_expression {
-		printf("tu sam %s\n", $1->name);
-		$$ = new_ASTnode_ARITH_OPERATION(EQU_OP, $1, $3);
+		$$ = new_ASTnode_ARITH_OPERATION($2, $1, $3); // maybe 3,1?
 	}
 	;
 
 assignment_operator
-	: '=' 
-	| MUL_ASSIGN
-	| DIV_ASSIGN
-	| MOD_ASSIGN
-	| ADD_ASSIGN
-	| SUB_ASSIGN
-	| LEFT_ASSIGN
-	| RIGHT_ASSIGN
-	| AND_ASSIGN
-	| XOR_ASSIGN
-	| OR_ASSIGN
+	: '='	{$$ = EQU_OP;}
+	| MUL_ASSIGN	{$$ = MUL_ASSIGN_OP;}
+	| DIV_ASSIGN	{$$ = DIV_ASSIGN_OP;}
+	| MOD_ASSIGN	{$$ = MOD_ASSIGN_OP;}
+	| ADD_ASSIGN	{$$ = ADD_ASSIGN_OP;}
+	| SUB_ASSIGN	{$$ = SUB_ASSIGN_OP;}
+	| LEFT_ASSIGN	{$$ = LEFT_ASSIGN_OP;}
+	| RIGHT_ASSIGN	{$$ = RIGHT_ASSIGN_OP;}
+	| AND_ASSIGN	{$$ = AND_ASSIGN_OP;}
+	| XOR_ASSIGN	{$$ = XOR_ASSIGN_OP;}
+	| OR_ASSIGN		{$$ = OR_ASSIGN_OP;}
 	;
 
 expression
-	: assignment_expression {$$ = $1;}
+	: assignment_expression {
+		$$ = new_ASTnode_EXPRESSION($1, NULL);
+	}
 	| expression ',' assignment_expression
 	;
 
@@ -458,7 +461,7 @@ declaration_list
 
 statement_list
 	: statement {$$ = $1;}
-	| statement_list statement {}
+	| statement_list statement { $2->right = $1; $$ = $2; }
 	;
 
 expression_statement
