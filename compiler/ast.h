@@ -8,7 +8,8 @@ typedef enum node_type {
     ID_NODE,
     CONSTANT_NODE,
     OPERATION_NODE,
-    EXPRESSION_NODE
+    EXPRESSION_NODE,
+    FUNCTION_NODE
 } node_type;
 
 typedef enum operation_type {
@@ -39,7 +40,10 @@ typedef enum id_type {
     TYPE_SHORT, 
     TYPE_CHAR, 
     TYPE_STRING, 
-    TYPE_VOID
+    TYPE_VOID,
+    TYPE_LONG,
+    TYPE_SIGNED,
+    TYPE_UNSIGNED
 } id_type;
 
 
@@ -57,19 +61,27 @@ typedef struct ASTnode {
         int value_INT;
         float value_FLOAT;
         double value_DOUBLE;
+        char value_CHAR;
     } value;
 
     // Expressions
     operation_type operation;
 } ASTnode;
 
+
 ASTnode* mkASTnode(ASTnode *left, ASTnode *right);
 ASTnode* new_AST_leaf();
+
+
 ASTnode* new_ASTnode_ID(const char* name, id_type type, ASTnode *left, ASTnode *right);
 ASTnode* new_ASTnode_INT(int value);
 ASTnode* new_ASTnode_FLOAT(float value);
+ASTnode* new_ASTnode_CHAR(char value);
+
+
 ASTnode* new_ASTnode_ARITH_OPERATION(operation_type operation, ASTnode *left, ASTnode *right);
 ASTnode* new_ASTnode_EXPRESSION(ASTnode* left, ASTnode* right);
+ASTnode* new_ASTnode_FUNCTION(ASTnode* left, ASTnode* right);
 
 // Helper functions
 void print_value(ASTnode* n);

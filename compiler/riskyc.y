@@ -48,10 +48,6 @@
 
 %start translation_unit
 
-// Declaration non-terminals used to pass ID's name through hierarchy in order to declare/check declaration in system table 
-%type <id_obj> direct_declarator 
-%type <id_obj> declarator 
-
 // AST
 %type <ast> primary_expression 
 %type <ast> postfix_expression 
@@ -77,6 +73,8 @@
 %type <ast> external_declaration
 %type <ast> function_definition
 %type <ast> translation_unit
+%type <ast> direct_declarator 
+%type <ast> declarator 
 %type <ast> declaration_list
 %type <ast> declaration
 %type <ast> init_declarator
@@ -85,6 +83,8 @@
 %type <ast> initializer_list
 
 %type <op> assignment_operator
+%type <ty> declaration_specifiers 
+%type <ty> type_specifier
 
 
 %%
@@ -94,7 +94,7 @@ primary_expression
 	| HEX_CONSTANT {$$ = new_ASTnode_INT($1);}
   	| OCT_CONSTANT {$$ = new_ASTnode_INT($1);}
   	| DEC_CONSTANT {$$ = new_ASTnode_INT($1);}
-  	| CHR_CONSTANT {$$ = new_ASTnode_INT($1);}
+  	| CHR_CONSTANT {$$ = new_ASTnode_CHAR($1);}
   	| SCI_CONSTANT {$$ = new_ASTnode_FLOAT($1);} // Should get looked at
   	| FLT_CONSTANT {$$ = new_ASTnode_FLOAT($1);}
 	| STRING_LITERAL {$$ = new_ASTnode_INT($1);}
@@ -237,15 +237,15 @@ constant_expression
 
 declaration
 	: declaration_specifiers ';'  {}
-	| declaration_specifiers init_declarator_list ';' {$$ = $2;}
+	| declaration_specifiers init_declarator_list ';' {$$ = $2; $$->type = $1;}
 	;
 
 declaration_specifiers
 	: storage_class_specifier
 	| storage_class_specifier declaration_specifiers
-	| type_specifier 
-	| type_specifier declaration_specifiers 
-	| type_qualifier
+	| type_specifier {$$ = $1;}
+	| type_specifier declaration_specifiers {$$ = $1;}
+	| type_qualifier 
 	| type_qualifier declaration_specifiers
 	;
 
@@ -255,16 +255,8 @@ init_declarator_list
 	;
 
 init_declarator
-	: declarator {
-		$$ = new_ASTnode_ID($1.name, TYPE_INT, NULL, NULL);
-		declare($1.name, "NULL", lineno, $$);
-	}
-	| declarator '=' initializer  {
-		ASTnode* n = new_ASTnode_ID($1.name, TYPE_INT, NULL, NULL);
-		$$ = new_ASTnode_ARITH_OPERATION(EQU_OP, n, $3); 
-		declare($1.name, "NULL", lineno, n); 
-		free(n);
-	}
+	: declarator {$$ = $1;}
+	| declarator '=' initializer {$$ = new_ASTnode_ARITH_OPERATION(EQU_OP, $1, $3); }
 	;
 
 storage_class_specifier
@@ -276,15 +268,15 @@ storage_class_specifier
 	;
 
 type_specifier
-	: VOID
-	| CHAR
-	| SHORT
-	| INT
-	| LONG
-	| FLOAT
-	| DOUBLE
-	| SIGNED
-	| UNSIGNED
+	: VOID	{$$ = TYPE_VOID;}
+	| CHAR	{$$ = TYPE_CHAR;}
+	| SHORT	{$$ = TYPE_SHORT;}
+	| INT	{$$ = TYPE_INT;}
+	| LONG	{$$ = TYPE_LONG;}
+	| FLOAT	{$$ = TYPE_FLOAT;}
+	| DOUBLE	{$$ = TYPE_DOUBLE;}
+	| SIGNED	{$$ = TYPE_SIGNED;}
+	| UNSIGNED	{$$ = TYPE_UNSIGNED;}
 	| struct_or_union_specifier
 	| enum_specifier
 	| TYPE_NAME
@@ -355,13 +347,16 @@ declarator
 	;
 
 direct_declarator
-	: IDENTIFIER {$$ = $1;}
+	: IDENTIFIER {
+		$$ = new_ASTnode_ID($1.name, NO_TYPE, NULL, NULL);
+		declare($1.name, "NULL", lineno, $$);
+	}
 	| '(' declarator ')' {$$ = $2;}
 	| direct_declarator '[' constant_expression ']'
 	| direct_declarator '[' ']'
-	| direct_declarator '(' parameter_type_list ')'
+	| direct_declarator '(' parameter_type_list ')' 
 	| direct_declarator '(' identifier_list ')'
-	| direct_declarator '(' ')'
+	| direct_declarator '(' ')' {$$ = $1;}
 	;
 
 pointer
@@ -502,7 +497,7 @@ external_declaration
 
 function_definition
 	: declaration_specifiers declarator declaration_list compound_statement {$$ = $4;}
-	| declaration_specifiers declarator compound_statement {$$ = $3;}
+	| declaration_specifiers declarator compound_statement {$2->type = $1; $$ = new_ASTnode_FUNCTION($2, $3); $$->type = $1;}
 	| declarator declaration_list compound_statement {$$ = $3;}
 	| declarator compound_statement {$$ = $2;}
 	;

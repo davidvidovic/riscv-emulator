@@ -105,9 +105,18 @@ int walkAST(ASTnode *root)
 
 void freeAST(ASTnode *root)
 {
-  if(root->left != NULL) freeAST(root->left);
-  if(root->right != NULL) freeAST(root->right);
+  if(root == NULL) return;
 
+  freeAST(root->left);
+  freeAST(root->right);
+
+  // printf("Freeing: ");
+  // print_value(root);
+
+  // The problem here was with ID nodes in AST, it gets deallocated as soon as it is found in the tree
+  // Any further access to this node results in seg fault because that data is already deallocated
+  // Setting that pointer (memory space allocated for it) to NULL before free() seems to be a work around and a hot-fix for this issue
+  root = NULL;
   free(root);
 }
 
@@ -155,5 +164,6 @@ int main()
 
     ht_destroy(table);
     freeAST(root);
+
     return 0;
 }

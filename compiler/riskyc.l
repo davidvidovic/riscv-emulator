@@ -70,10 +70,10 @@ IS			(u|U|l|L)*
   yylval.value_int = atoi(temp); 
   free(temp);
   return(HEX_CONSTANT); 
-  }
+}
 0{D}+{IS}?		{ count(); yylval.value_int = atoi(yytext); return(OCT_CONSTANT); }
 {D}+{IS}?		{ count(); yylval.value_int = atoi(yytext); return(DEC_CONSTANT); }
-L?'(\\.|[^\\'])+'	{ count(); return(CHR_CONSTANT); }
+L?'(\\.|[^\\'])+'	{ count(); yylval.value_char = yytext[strlen(yytext)-2]; return(CHR_CONSTANT); }
 
 {D}+{E}{FS}?		{ count(); return(SCI_CONSTANT); }
   /* {D}*"."{D}+({E})?{FS}?	{ count(); return(FLT_CONSTANT); } Weird rule that allows ".123" to be parse as constant */

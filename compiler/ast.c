@@ -45,6 +45,15 @@ ASTnode* new_ASTnode_FLOAT(float value)
     return (n);
 }
 
+ASTnode* new_ASTnode_CHAR(char value)
+{
+    ASTnode *n = new_AST_leaf();
+    n->nodetype = CONSTANT_NODE;
+    n->type = TYPE_CHAR;
+    n->value.value_CHAR = value;
+    return (n);
+}
+
 ASTnode* new_ASTnode_ARITH_OPERATION(operation_type operation, ASTnode *left, ASTnode *right)
 {
     ASTnode *n = mkASTnode(left, right);
@@ -69,6 +78,15 @@ ASTnode* new_ASTnode_EXPRESSION(ASTnode* left, ASTnode* right)
     return (n);
 }
 
+ASTnode* new_ASTnode_FUNCTION(ASTnode* left, ASTnode* right)
+{
+    ASTnode *n = mkASTnode(left, right);
+    n->nodetype = FUNCTION_NODE;
+    n->name = left->name;
+
+    return (n);
+}
+
 
 void print_value(ASTnode* n)
 {
@@ -77,36 +95,44 @@ void print_value(ASTnode* n)
     case ID_NODE:
         if(n->name != NULL) 
         {
-            if(n->name != NULL) printf("Node ID:\t name = %s \ttype = %s\n", n->name, print_type(n->type));
+            if(n->name != NULL) printf("Node ID(%s, %s)\n", n->name, print_type(n->type));
         }
         break;
 
     case CONSTANT_NODE:
         if(n->type != NO_TYPE)
         {
-            printf("Node CONST:\t type = %s \tvalue = ", print_type(n->type));
+            printf("Node CONST:(%s, ", print_type(n->type));
             switch(n->type)
             {
                 case NO_TYPE:
                     break;
 
                 case TYPE_INT:
-                    printf("%d\n", n->value.value_INT);
+                    printf("%d)\n", n->value.value_INT);
                     break;
 
                 case TYPE_FLOAT:
-                    printf("%f\n", n->value.value_FLOAT);
+                    printf("%f)\n", n->value.value_FLOAT);
                     break;
+
+                case TYPE_CHAR:
+                    printf("%c)\n", n->value.value_CHAR);
+                break;
             }
         }
         break;
 
     case OPERATION_NODE:
-        printf("Node OP:\t type = %s\n", print_operation(n->operation));
+        printf("Node OP(%s)\n", print_operation(n->operation));
         break;
 
     case EXPRESSION_NODE:
-        printf("Node EXP:\t name = %s\n", n->name);
+        printf("Node EXP(%s)\n", n->name);
+        break;
+
+    case FUNCTION_NODE:
+        printf("Node FUNC(%s)\n", n->name);
         break;
     }
 }

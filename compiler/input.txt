@@ -2,8 +2,8 @@ int main()
 { 
     int a;
     int b;
-    a = 3 + 2 * 4 + 1 * b + 7.4;
-    b = 4 + 5;
-    a = b + a;
+    char g;
+    a = 2 * 4.5 + 1 * b;
+    g = 'x';
 }
 
