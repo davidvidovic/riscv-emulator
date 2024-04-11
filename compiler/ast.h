@@ -9,10 +9,13 @@ typedef enum node_type {
     CONSTANT_NODE,
     OPERATION_NODE,
     EXPRESSION_NODE,
+    SCOPE_NODE,
+    IF_NODE,
     FUNCTION_NODE
 } node_type;
 
 typedef enum operation_type {
+    // Arithmetic
     ADD_OP = 1, 
     SUB_OP, 
     MUL_OP, 
@@ -29,7 +32,17 @@ typedef enum operation_type {
     RIGHT_ASSIGN_OP, 
     AND_ASSIGN_OP, 
     XOR_ASSIGN_OP, 
-    OR_ASSIGN_OP
+    OR_ASSIGN_OP,
+    // Logic
+    LOGIC_EQU_OP,
+    LOGIC_NEQU_OP,
+    LOGIC_OR_OP,
+    LOGIC_AND_OP,
+    LOGIC_NOT_OP,
+    LOGIC_LT_OP,
+    LOGIC_GT_OP,
+    LOGIC_LET_OP,
+    LOGIC_GET_OP
 } operation_type;
 
 typedef enum id_type {
@@ -79,9 +92,12 @@ ASTnode* new_ASTnode_FLOAT(float value);
 ASTnode* new_ASTnode_CHAR(char value);
 
 
-ASTnode* new_ASTnode_ARITH_OPERATION(operation_type operation, ASTnode *left, ASTnode *right);
+ASTnode* new_ASTnode_OPERATION(operation_type operation, ASTnode *left, ASTnode *right);
 ASTnode* new_ASTnode_EXPRESSION(ASTnode* left, ASTnode* right);
+ASTnode* new_ASTnode_SCOPE(ASTnode* left, ASTnode* right);
+ASTnode* new_ASTnode_IF(ASTnode* left, ASTnode* right);
 ASTnode* new_ASTnode_FUNCTION(ASTnode* left, ASTnode* right);
+
 
 // Helper functions
 void print_value(ASTnode* n);

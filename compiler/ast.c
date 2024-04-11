@@ -54,13 +54,14 @@ ASTnode* new_ASTnode_CHAR(char value)
     return (n);
 }
 
-ASTnode* new_ASTnode_ARITH_OPERATION(operation_type operation, ASTnode *left, ASTnode *right)
+ASTnode* new_ASTnode_OPERATION(operation_type operation, ASTnode *left, ASTnode *right)
 {
     ASTnode *n = mkASTnode(left, right);
     n->nodetype = OPERATION_NODE;
     n->operation = operation;
     return (n);
 }
+
 
 int expression_counter = 0;
 
@@ -75,6 +76,28 @@ ASTnode* new_ASTnode_EXPRESSION(ASTnode* left, ASTnode* right)
     n->name = malloc(10 * sizeof(char));
     snprintf((n->name), 10, "exp%d", expression_counter++);    
 
+    return (n);
+}
+
+
+int scope_counter = 0;
+
+ASTnode* new_ASTnode_SCOPE(ASTnode* left, ASTnode* right)
+{
+    ASTnode *n = mkASTnode(left, right);
+    n->nodetype = SCOPE_NODE;
+
+    n->name = malloc(12 * sizeof(char));
+    snprintf((n->name), 10, "scope%d", scope_counter++);    
+
+    return (n);
+}
+
+
+ASTnode* new_ASTnode_IF(ASTnode* left, ASTnode* right)
+{
+    ASTnode *n = mkASTnode(left, right);
+    n->nodetype = IF_NODE;
     return (n);
 }
 
@@ -129,6 +152,14 @@ void print_value(ASTnode* n)
 
     case EXPRESSION_NODE:
         printf("Node EXP(%s)\n", n->name);
+        break;
+
+    case SCOPE_NODE:
+        printf("Node SCOPE(%s)\n", n->name);
+        break;
+
+    case IF_NODE:
+        printf("Node IF\n");
         break;
 
     case FUNCTION_NODE:

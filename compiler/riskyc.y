@@ -142,15 +142,15 @@ cast_expression
 
 multiplicative_expression
 	: cast_expression {$$ = $1;}
-	| multiplicative_expression '*' cast_expression {$$ = new_ASTnode_ARITH_OPERATION(MUL_OP, $3, $1);}
-	| multiplicative_expression '/' cast_expression {$$ = new_ASTnode_ARITH_OPERATION(DIV_OP, $3, $1);}
-	| multiplicative_expression '%' cast_expression {$$ = new_ASTnode_ARITH_OPERATION(MOD_OP, $3, $1);}
+	| multiplicative_expression '*' cast_expression {$$ = new_ASTnode_OPERATION(MUL_OP, $3, $1);}
+	| multiplicative_expression '/' cast_expression {$$ = new_ASTnode_OPERATION(DIV_OP, $3, $1);}
+	| multiplicative_expression '%' cast_expression {$$ = new_ASTnode_OPERATION(MOD_OP, $3, $1);}
 	;
 
 additive_expression
 	: multiplicative_expression {$$ = $1;}
-	| additive_expression '+' multiplicative_expression {$$ = new_ASTnode_ARITH_OPERATION(ADD_OP, $3, $1); }
-	| additive_expression '-' multiplicative_expression {$$ = new_ASTnode_ARITH_OPERATION(SUB_OP, $3, $1);}
+	| additive_expression '+' multiplicative_expression {$$ = new_ASTnode_OPERATION(ADD_OP, $3, $1); }
+	| additive_expression '-' multiplicative_expression {$$ = new_ASTnode_OPERATION(SUB_OP, $3, $1);}
 	;
 
 shift_expression
@@ -161,16 +161,16 @@ shift_expression
 
 relational_expression
 	: shift_expression {$$ = $1;}
-	| relational_expression '<' shift_expression
-	| relational_expression '>' shift_expression
-	| relational_expression LE_OP shift_expression
-	| relational_expression GE_OP shift_expression
+	| relational_expression '<' shift_expression {$$ = new_ASTnode_OPERATION(LOGIC_LT_OP, $3, $1);}
+	| relational_expression '>' shift_expression {$$ = new_ASTnode_OPERATION(LOGIC_GT_OP, $3, $1);}
+	| relational_expression LE_OP shift_expression {$$ = new_ASTnode_OPERATION(LOGIC_LET_OP, $3, $1);}
+	| relational_expression GE_OP shift_expression {$$ = new_ASTnode_OPERATION(LOGIC_GET_OP, $3, $1);}
 	;
 
 equality_expression
 	: relational_expression {$$ = $1;}
-	| equality_expression EQ_OP relational_expression {$$ = new_ASTnode_ARITH_OPERATION(EQU_OP, $3, $1);}
-	| equality_expression NE_OP relational_expression
+	| equality_expression EQ_OP relational_expression {$$ = new_ASTnode_OPERATION(LOGIC_EQU_OP, $3, $1);}
+	| equality_expression NE_OP relational_expression {$$ = new_ASTnode_OPERATION(LOGIC_NEQU_OP, $3, $1);}
 	;
 
 and_expression
@@ -190,12 +190,12 @@ inclusive_or_expression
 
 logical_and_expression
 	: inclusive_or_expression {$$ = $1;}
-	| logical_and_expression AND_OP inclusive_or_expression
+	| logical_and_expression AND_OP inclusive_or_expression {$$ = new_ASTnode_OPERATION(LOGIC_AND_OP, $3, $1);}
 	;
 
 logical_or_expression
 	: logical_and_expression {$$ = $1;}
-	| logical_or_expression OR_OP logical_and_expression
+	| logical_or_expression OR_OP logical_and_expression {$$ = new_ASTnode_OPERATION(LOGIC_OR_OP, $3, $1);}
 	;
 
 conditional_expression
@@ -206,7 +206,7 @@ conditional_expression
 assignment_expression
 	: conditional_expression {$$ = $1;}
 	| unary_expression assignment_operator assignment_expression {
-		$$ = new_ASTnode_ARITH_OPERATION($2, $1, $3); // maybe 3,1?
+		$$ = new_ASTnode_OPERATION($2, $1, $3); // maybe 3,1?
 	}
 	;
 
@@ -256,7 +256,7 @@ init_declarator_list
 
 init_declarator
 	: declarator {$$ = $1;}
-	| declarator '=' initializer {$$ = new_ASTnode_ARITH_OPERATION(EQU_OP, $1, $3); }
+	| declarator '=' initializer {$$ = new_ASTnode_OPERATION(EQU_OP, $1, $3); }
 	;
 
 storage_class_specifier
@@ -444,9 +444,9 @@ labeled_statement
 
 compound_statement
 	: '{' '}' {}
-	| '{' statement_list '}' {$$ = $2;} 
+	| '{' statement_list '}' {$$ = new_ASTnode_SCOPE(NULL, $2);} 
 	| '{' declaration_list '}' {$$ = $2;} 
-	| '{' declaration_list statement_list '}' {$$ = $3;}
+	| '{' declaration_list statement_list '}' {$$ = new_ASTnode_SCOPE(NULL, $3);}
 	;
 
 declaration_list
@@ -456,7 +456,7 @@ declaration_list
 
 statement_list
 	: statement {$$ = $1;}
-	| statement_list statement { $2->right = $1; $$ = $2; }
+	| statement_list statement {$2->right = $1; $$ = $2;}
 	;
 
 expression_statement
@@ -465,7 +465,7 @@ expression_statement
 	;
 
 selection_statement
-	: IF '(' expression ')' statement
+	: IF '(' expression ')' statement 
 	| IF '(' expression ')' statement ELSE statement
 	| SWITCH '(' expression ')' statement
 	;
