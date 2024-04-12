@@ -81,11 +81,11 @@
 %type <ast> init_declarator_list
 %type <ast> initializer
 %type <ast> initializer_list
+%type <ast> selection_statement
 
 %type <op> assignment_operator
 %type <ty> declaration_specifiers 
 %type <ty> type_specifier
-
 
 %%
 
@@ -241,12 +241,12 @@ declaration
 	;
 
 declaration_specifiers
-	: storage_class_specifier
-	| storage_class_specifier declaration_specifiers
+	: storage_class_specifier {}
+	| storage_class_specifier declaration_specifiers {}
 	| type_specifier {$$ = $1;}
 	| type_specifier declaration_specifiers {$$ = $1;}
-	| type_qualifier 
-	| type_qualifier declaration_specifiers
+	| type_qualifier {}
+	| type_qualifier declaration_specifiers {}
 	;
 
 init_declarator_list
@@ -277,9 +277,9 @@ type_specifier
 	| DOUBLE	{$$ = TYPE_DOUBLE;}
 	| SIGNED	{$$ = TYPE_SIGNED;}
 	| UNSIGNED	{$$ = TYPE_UNSIGNED;}
-	| struct_or_union_specifier
-	| enum_specifier
-	| TYPE_NAME
+	| struct_or_union_specifier {}
+	| enum_specifier {}
+	| TYPE_NAME {}
 	;
 
 struct_or_union_specifier
@@ -429,9 +429,9 @@ initializer_list
 
 statement
 	: labeled_statement {}
-	| compound_statement {}
+	| compound_statement {$$ = $1;}
 	| expression_statement {$$ = $1;}
-	| selection_statement {}
+	| selection_statement {$$ = $1;}
 	| iteration_statement {}
 	| jump_statement {}
 	;
@@ -444,9 +444,9 @@ labeled_statement
 
 compound_statement
 	: '{' '}' {}
-	| '{' statement_list '}' {$$ = new_ASTnode_SCOPE(NULL, $2);} 
+	| '{' statement_list '}' {$$ = new_ASTnode_SCOPE($2, NULL);} 
 	| '{' declaration_list '}' {$$ = $2;} 
-	| '{' declaration_list statement_list '}' {$$ = new_ASTnode_SCOPE(NULL, $3);}
+	| '{' declaration_list statement_list '}' {$$ = new_ASTnode_SCOPE($3, NULL);}
 	;
 
 declaration_list
@@ -456,7 +456,13 @@ declaration_list
 
 statement_list
 	: statement {$$ = $1;}
-	| statement_list statement {$2->right = $1; $$ = $2;}
+	| statement_list statement {
+		$$ = $2; 
+		if($$->nodetype == IF_NODE)
+			$$->right->right = $1;
+		else
+			$$->right = $1;
+	}
 	;
 
 expression_statement
@@ -465,9 +471,11 @@ expression_statement
 	;
 
 selection_statement
-	: IF '(' expression ')' statement 
-	| IF '(' expression ')' statement ELSE statement
-	| SWITCH '(' expression ')' statement
+	: IF '(' expression ')' statement {
+		$$ = new_ASTnode_IF($3, $5);
+	}
+	| IF '(' expression ')' statement ELSE statement {}
+	| SWITCH '(' expression ')' statement {}
 	;
 
 iteration_statement

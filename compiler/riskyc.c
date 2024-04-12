@@ -90,14 +90,23 @@ ASTnode* check_declaration(const char* name)
   return ht_get_ASTnode(table, name);
 }
 
+int depth = 0;
 
-
-int walkAST(ASTnode *root)
+int walkAST(ASTnode *root, int depth)
 {
+  depth += 3;
+
+  if(root->right != NULL) {
+    walkAST(root->right, depth);
+  }
+
+  for(int i = 3; i < depth; i++) printf(" ");
   print_value(root);
 
-  if(root->left != NULL) walkAST(root->left);
-  if(root->right != NULL) walkAST(root->right);
+  if(root->left != NULL) {
+    walkAST(root->left, depth);
+  }
+  
 
   return 0;
 }
@@ -160,7 +169,7 @@ int main()
 
     
     // Walk the AST
-    walkAST(root);
+    walkAST(root, depth);
 
     ht_destroy(table);
     freeAST(root);
