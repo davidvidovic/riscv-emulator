@@ -460,6 +460,8 @@ statement_list
 		$$ = $2; 
 		if($$->nodetype == IF_NODE)
 			$$->right->right = $1;
+		else if($$->nodetype == ELSE_NODE)
+			$$->right->right->right = $1;
 		else
 			$$->right = $1;
 	}
@@ -474,7 +476,10 @@ selection_statement
 	: IF '(' expression ')' statement {
 		$$ = new_ASTnode_IF($3, $5);
 	}
-	| IF '(' expression ')' statement ELSE statement {}
+	| IF '(' expression ')' statement ELSE statement {
+		ASTnode* temp = new_ASTnode_IF($3, $5);
+		$$ = new_ASTnode_ELSE($7, temp);
+	}
 	| SWITCH '(' expression ')' statement {}
 	;
 
@@ -505,7 +510,11 @@ external_declaration
 
 function_definition
 	: declaration_specifiers declarator declaration_list compound_statement {$$ = $4;}
-	| declaration_specifiers declarator compound_statement {$2->type = $1; $$ = new_ASTnode_FUNCTION($2, $3); $$->type = $1;}
+	| declaration_specifiers declarator compound_statement {
+		$2->type = $1; 
+		$$ = new_ASTnode_FUNCTION($2, $3); 
+		$$->type = $1;
+	}
 	| declarator declaration_list compound_statement {$$ = $3;}
 	| declarator compound_statement {$$ = $2;}
 	;

@@ -101,6 +101,15 @@ ASTnode* new_ASTnode_IF(ASTnode* left, ASTnode* right)
     return (n);
 }
 
+
+ASTnode* new_ASTnode_ELSE(ASTnode* left, ASTnode* right)
+{
+    ASTnode *n = mkASTnode(left, right);
+    n->nodetype = ELSE_NODE;
+    return (n);
+}
+
+
 ASTnode* new_ASTnode_FUNCTION(ASTnode* left, ASTnode* right)
 {
     ASTnode *n = mkASTnode(left, right);
@@ -160,6 +169,10 @@ void print_value(ASTnode* n)
 
     case IF_NODE:
         printf("Node IF\n");
+        break;
+
+    case ELSE_NODE:
+        printf("Node ELSE\n");
         break;
 
     case FUNCTION_NODE:

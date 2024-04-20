@@ -11,6 +11,7 @@ typedef enum node_type {
     EXPRESSION_NODE,
     SCOPE_NODE,
     IF_NODE,
+    ELSE_NODE,
     FUNCTION_NODE
 } node_type;
 
@@ -96,6 +97,7 @@ ASTnode* new_ASTnode_OPERATION(operation_type operation, ASTnode *left, ASTnode 
 ASTnode* new_ASTnode_EXPRESSION(ASTnode* left, ASTnode* right);
 ASTnode* new_ASTnode_SCOPE(ASTnode* left, ASTnode* right);
 ASTnode* new_ASTnode_IF(ASTnode* left, ASTnode* right);
+ASTnode* new_ASTnode_ELSE(ASTnode* left, ASTnode* right);
 ASTnode* new_ASTnode_FUNCTION(ASTnode* left, ASTnode* right);
 
 
