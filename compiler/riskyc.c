@@ -174,9 +174,9 @@ int main()
 
     //printf("\n\n ASM:\n\n");
 
-    FILE *asm_file = fopen("output.asm", "w");
-    create_IR(root, asm_file);
-    fclose(asm_file);
+    //FILE *asm_file = fopen("output.asm", "w");
+    IR_node *head = create_IR(root);
+    //fclose(asm_file);
 
     ht_destroy(table);
     freeAST(root);
