@@ -4,6 +4,7 @@
 #include "riskyc.h"
 #include "y.tab.h"
 #include "symboltable.h"
+#include "ir.h"
 
 extern int lineno;
 extern FILE *yyin;
@@ -107,7 +108,6 @@ int walkAST(ASTnode *root, int depth)
     walkAST(root->left, depth);
   }
   
-
   return 0;
 }
 
@@ -166,10 +166,17 @@ int main()
             //printf("Index %d: Empty\n", i);
         } 
     }
+    fclose(yyin);
 
     
     // Walk the AST
     walkAST(root, depth);
+
+    //printf("\n\n ASM:\n\n");
+
+    FILE *asm_file = fopen("output.asm", "w");
+    create_IR(root, asm_file);
+    fclose(asm_file);
 
     ht_destroy(table);
     freeAST(root);

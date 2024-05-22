@@ -3,16 +3,7 @@ int main()
     int a;
     int b;
     char g;
-    a = 2 * 4.5 + 1 * b;
-    if(a == 5)
-    {
-        b = 1;
-        a = b + 2;
-    }
-    else
-    {
-        g = 'e';
-    }
     b = 4+1;
+    a = 2+b;
 }
 
