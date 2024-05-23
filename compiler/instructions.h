@@ -9,8 +9,10 @@ typedef enum IR_instruction_type {
     IR_ADD,
     IR_SUB
 } IR_instruction_type;
-/*
+
 typedef enum instruction_type {
+    HEAD = 0,
+    LABEL,
     LUI,
     AUIPC,
     JAL,
@@ -54,9 +56,6 @@ typedef enum instruction_type {
     LWU,
     LD,
     SD,
-    SLLI,
-    SRLI,
-    SRAI,
     ADDIW,
     SLLIW,
     SRLIW,
@@ -67,5 +66,5 @@ typedef enum instruction_type {
     SRLW,
     SRAW
 } instruction_type;
-*/
+
 #endif

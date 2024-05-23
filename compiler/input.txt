@@ -2,8 +2,7 @@ int main()
 { 
     int a;
     int b;
-    char g;
-    b = 4+1;
-    a = 2;
+    
+    a = 2 + 1 + b;
 }
 

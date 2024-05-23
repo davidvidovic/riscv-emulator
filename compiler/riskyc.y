@@ -474,10 +474,10 @@ expression_statement
 
 selection_statement
 	: IF '(' expression ')' statement {
-		$$ = new_ASTnode_IF($3, $5);
+		$$ = new_ASTnode_IF($5, $3);
 	}
 	| IF '(' expression ')' statement ELSE statement {
-		ASTnode* temp = new_ASTnode_IF($3, $5);
+		ASTnode* temp = new_ASTnode_IF($5, $3);
 		$$ = new_ASTnode_ELSE($7, temp);
 	}
 	| SWITCH '(' expression ')' statement {}

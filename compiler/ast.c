@@ -21,6 +21,9 @@ ASTnode* new_ASTnode_ID(const char* name, id_type type, ASTnode *left, ASTnode *
 {
     ASTnode *n = new_AST_leaf();
     n->nodetype = ID_NODE;
+
+    //int len = strlen(name);
+    //n->name = malloc(len * sizeof(char));
     n->name = name;
     n->type = type;
     return (n);
@@ -203,6 +206,69 @@ char* print_operation(operation_type op)
     case EQU_OP:
         return "EQ_OP";
 
+    case MOD_OP:
+        return "MOD_OP";
+
+    case NEQU_OP:
+        return "NEQU_OP";
+
+    case MUL_ASSIGN_OP:
+        return "MUL_ASSIGN_OP";
+
+    case DIV_ASSIGN_OP:
+        return "DIV_ASSIGN_OP";
+
+    case MOD_ASSIGN_OP:
+        return "MOD_ASSIGN_OP";
+
+    case ADD_ASSIGN_OP:
+        return "ADD_ASSIGN_OP";
+
+    case SUB_ASSIGN_OP:
+        return "SUB_ASSIGN_OP";
+
+    case LEFT_ASSIGN_OP:
+        return "LEFT_ASSIGN_OP";
+
+    case RIGHT_ASSIGN_OP:
+        return "RIGHT_ASSIGN_OP";
+
+    case AND_ASSIGN_OP:
+        return "AND_ASSIGN_OP";
+
+    case XOR_ASSIGN_OP:
+        return "XOR_ASSIGN_OP";
+
+    case OR_ASSIGN_OP:
+        return "OR_ASSIGN_OP";
+
+    case LOGIC_EQU_OP:
+        return "LOGIC_EQU_OP";
+
+    case LOGIC_NEQU_OP:
+        return "LOGIC_NEQU_OP";
+
+    case LOGIC_OR_OP:
+        return "LOGIC_OR_OP";
+
+    case LOGIC_AND_OP:
+        return "LOGIC_AND_OP";
+
+    case LOGIC_NOT_OP:
+        return "LOGIC_NOT_OP";
+
+    case LOGIC_LT_OP:
+        return "LOGIC_LT_OP";
+
+    case LOGIC_GT_OP:
+        return "LOGIC_GT_OP";
+
+    case LOGIC_LET_OP:
+        return "LOGIC_LET_OP";
+
+    case LOGIC_GET_OP:
+        return "LOGIC_GET_OP";
+    
     default:
         return "NOT VALID OPERATION";
     }

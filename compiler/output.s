@@ -1,0 +1,7 @@
+.main
+LUI R0,2
+LUI R1,1
+ADD R2,R1,R0
+LW R3,b
+ADD R4,R3,R2
+SW a,R4

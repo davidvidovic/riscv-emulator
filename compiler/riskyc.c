@@ -172,11 +172,46 @@ int main()
     // Walk the AST
     walkAST(root, depth);
 
-    //printf("\n\n ASM:\n\n");
+    FILE *asm_file = fopen("output.s", "w");
+    IR_node *IR_head = create_IR();
+    populate_IR(root, IR_head);
 
-    //FILE *asm_file = fopen("output.asm", "w");
-    IR_node *head = create_IR(root);
-    //fclose(asm_file);
+    printf("\n\nASM:\n\n");
+
+    while(IR_head->prev != NULL)
+    {
+      IR_head = IR_head->prev;
+
+      switch(IR_head->ir_type)
+      {
+        case LUI:
+          printf("LUI R%d,%d\n", IR_head->rd.reg, IR_head->rs1.int_constant);
+          fprintf(asm_file, "LUI R%d,%d\n", IR_head->rd.reg, IR_head->rs1.int_constant);
+        break;
+
+        case LW:
+          printf("LW R%d,%s\n", IR_head->rd.reg, IR_head->rs1.name);
+          fprintf(asm_file, "LW R%d,%s\n", IR_head->rd.reg, IR_head->rs1.name);
+        break;
+
+        case ADD:
+          printf("ADD R%d,R%d,R%d\n", IR_head->rd.reg, IR_head->rs1.reg, IR_head->rs2.reg);
+          fprintf(asm_file, "ADD R%d,R%d,R%d\n", IR_head->rd.reg, IR_head->rs1.reg, IR_head->rs2.reg);
+        break;
+
+        case SW:
+          printf("SW %s,R%d\n", IR_head->rd.name, IR_head->rs1.reg);
+          fprintf(asm_file, "SW %s,R%d\n", IR_head->rd.name, IR_head->rs1.reg);
+        break;
+
+        case LABEL:
+          printf(".%s\n", IR_head->rd.label);
+          fprintf(asm_file, ".%s\n", IR_head->rd.label);
+        break;
+      }
+    }
+
+    fclose(asm_file);
 
     ht_destroy(table);
     freeAST(root);
