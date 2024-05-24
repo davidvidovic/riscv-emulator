@@ -19,6 +19,7 @@ typedef union IR_value
 typedef struct IR_node
 {
     instruction_type ir_type;
+    char* instruction;
     
     struct IR_node *prev;
     struct IR_node *next;

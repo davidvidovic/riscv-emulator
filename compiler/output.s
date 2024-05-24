@@ -1,28 +1,39 @@
-	LUI R0,0
-	SW a,R0
-	LUI R4,3
-	SW b,R4
-	LW R8,b
-	LUI R9,3
-	BNE R9,R8,.L1
-	LUI R12,0
-	SW a,R12
+.main:
+	lui R0,0
+	sw a,R0
+	lui R4,3
+	sw b,R4
+	lw R8,b
+	lui R9,3
+	bge R9,R8,.L2
+	lui R12,2
+	sw a,R12
+	lw R16,b
+	lui R17,19
+	blt R17,R16,.L1
+	lui R20,1
+	sw a,R20
 .L1:
-	LUI R18,19
-	SW b,R18
-	LW R22,b
-	LUI R23,19
-	BGE R23,R22,.L3
-	LUI R26,1
-	SW a,R26
-	LW R30,b
-	LUI R31,10
-	BNE R31,R30,.L2
-	LUI R34,10
-	SW c,R34
+	lui R26,44
+	lui R27,1
+	add R28,R27,R26
+	sw c,R28
 .L2:
-	LUI R40,19
-	SW b,R40
+	lui R34,19
+	sw b,R34
+	lw R38,b
+	lui R39,19
+	blt R39,R38,.L4
+	lw R42,a
+	lui R43,3
+	bne R43,R42,.L3
+	lui R46,1
+	sw a,R46
 .L3:
-	LUI R46,99
-	SW b,R46
+	lui R52,55
+	lui R53,11
+	sub R54,R53,R52
+	sw c,R54
+.L4:
+	lui R60,0
+	sw a,R60

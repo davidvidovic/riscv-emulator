@@ -53,13 +53,16 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack)
     node->prev = NULL;
     node->next = head;
     head->prev = node;
-
+    
+    node->instruction = (char*)malloc(3*sizeof(char));
     node->reg = register_counter++;
+    node->ir_type = IR_NO_TYPE;
 
     switch(root->nodetype)
     {
         case CONSTANT_NODE:
             node->ir_type = LUI;
+            node->instruction = "lui";
             node->rd.reg = node->reg;
 
             switch(root->type)
@@ -84,6 +87,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack)
 
         case ID_NODE:
             node->ir_type = LW;
+            node->instruction = "lw";
             node->rs1.name = root->name;
             node->rd.reg = node->reg;      
 
@@ -94,6 +98,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack)
             {
                 case EQU_OP:
                     node->ir_type = SW;
+                    node->instruction = "sw";
                     node->rd.name = node->next->rs1.name;
                     
                     // Delete LW node created by visiting right ID node from list, it is not needed
@@ -105,6 +110,15 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack)
 
                 case ADD_OP:
                     node->ir_type = ADD;
+                    node->instruction = "add";
+                    node->rd.reg = node->reg;
+                    node->rs1.reg = node->next->rd.reg;
+                    node->rs2.reg = (node->next)->next->rd.reg;
+                break;
+
+                case SUB_OP:
+                    node->ir_type = SUB;
+                    node->instruction = "sub";
                     node->rd.reg = node->reg;
                     node->rs1.reg = node->next->rd.reg;
                     node->rs2.reg = (node->next)->next->rd.reg;
@@ -120,6 +134,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack)
 
                 case LOGIC_EQU_OP:
                     node->ir_type = BNE;
+                    node->instruction = "bne";
                     node->rs1.reg = node->next->reg;
                     node->rs2.reg = node->next->next->reg;    
                     push(stack, node);       
@@ -130,17 +145,33 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack)
                 break;
 
                 case LOGIC_GT_OP:
-                    
+                /*
+                * BLE - branch if less or equal => is BGE when operand are reversed
+                */
+                    node->ir_type = BLE;
+                    node->instruction = "bge";
+                    node->rs2.reg = node->next->next->reg; 
+                    node->rs1.reg = node->next->reg; 
+                    push(stack, node); 
                 break;
 
                 case LOGIC_LET_OP:
-
+                /*
+                * BGT - branch if greater than => is BLT when operand are reversed
+                */
+                    node->ir_type = BGT;
+                    node->instruction = "blt";
+                    node->rs2.reg = node->next->next->reg; 
+                    node->rs1.reg = node->next->reg; 
+                    push(stack, node); 
                 break;
 
                 case LOGIC_LT_OP:
+                    // godbolt does optimization by reducing constant operand by one... and using diff instr
                     node->ir_type = BGE;
-                    node->rs1.reg = node->next->reg;
-                    node->rs2.reg = node->next->next->reg; 
+                    node->instruction = "bge";
+                    node->rs1.reg = node->next->next->reg; 
+                    node->rs2.reg = node->next->reg; 
                     push(stack, node);  
                 break;
 
@@ -162,7 +193,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack)
             node->ir_type = LABEL;
             char *tmp = malloc(5 * sizeof(char));
             sprintf(tmp, "L%d", root->value.label_count);
-            node->rd.label = tmp;
+            node->instruction = tmp;
         break;
 
         case EXPRESSION_NODE:
@@ -172,8 +203,8 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack)
                 {
                     //node->ir_type = LABEL;
                     char *tmp = malloc(5 * sizeof(char));
-                    sprintf(tmp, "L%d", root->value.label_count);
-                    node->rd.label = tmp;                    
+                    sprintf(tmp, "L%d", root->right->value.label_count);
+                    node->instruction = tmp;                    
 
                     // IR_node *help = node;
                     // while(help->next->ir_type != BNE)
@@ -187,9 +218,25 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack)
             }
         break;
 
+        case SCOPE_NODE:
+            if(root->left != NULL)
+            {
+                if(root->left->nodetype == IF_NODE)
+                {
+                    //node->ir_type = LABEL;
+                    char *tmp = malloc(5 * sizeof(char));
+                    sprintf(tmp, "L%d", root->left->value.label_count);
+                    node->instruction = tmp;     
+
+                    IR_node *help = pop(stack);
+                    help->rd.label = tmp;
+                }
+            }
+        break;
+
         case FUNCTION_NODE:
             node->ir_type = LABEL;
-            node->rd.label = root->left->name;
+            node->instruction = root->left->name;
 
             // Remove ugly ID of function from list (LW Rx,main)
             node->next = (node->next)->next;

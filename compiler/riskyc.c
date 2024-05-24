@@ -183,42 +183,48 @@ int main()
     while(IR_head->prev != IR_tail)
     {
       IR_head = IR_head->prev;
-
       switch(IR_head->ir_type)
       {
-        case LUI:
-          printf("\tLUI R%d,%d\n", IR_head->rd.reg, IR_head->rs1.int_constant);
-          fprintf(asm_file, "\tLUI R%d,%d\n", IR_head->rd.reg, IR_head->rs1.int_constant);
+        case LABEL:
+          printf(".%s:\n", IR_head->instruction);
+          fprintf(asm_file, ".%s:\n", IR_head->instruction);
+        break;
+        
+        case SW:
+          printf("\t%s %s,R%d\n", IR_head->instruction, IR_head->rd.name, IR_head->rs1.reg);
+          fprintf(asm_file, "\t%s %s,R%d\n", IR_head->instruction, IR_head->rd.name, IR_head->rs1.reg);
         break;
 
         case LW:
-          printf("\tLW R%d,%s\n", IR_head->rd.reg, IR_head->rs1.name);
-          fprintf(asm_file, "\tLW R%d,%s\n", IR_head->rd.reg, IR_head->rs1.name);
+          printf("\t%s R%d,%s\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.name);
+          fprintf(asm_file, "\t%s R%d,%s\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.name);
         break;
+
+        case LUI:
+          printf("\t%s R%d,%d\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.int_constant);
+          fprintf(asm_file, "\t%s R%d,%d\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.int_constant);
+        break;        
 
         case ADD:
-          printf("\tADD R%d,R%d,R%d\n", IR_head->rd.reg, IR_head->rs1.reg, IR_head->rs2.reg);
-          fprintf(asm_file, "\tADD R%d,R%d,R%d\n", IR_head->rd.reg, IR_head->rs1.reg, IR_head->rs2.reg);
+        case SUB:
+          printf("\t%s R%d,R%d,R%d\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.reg, IR_head->rs2.reg);
+          fprintf(asm_file, "\t%s R%d,R%d,R%d\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.reg, IR_head->rs2.reg);
         break;
 
-        case SW:
-          printf("\tSW %s,R%d\n", IR_head->rd.name, IR_head->rs1.reg);
-          fprintf(asm_file, "\tSW %s,R%d\n", IR_head->rd.name, IR_head->rs1.reg);
-        break;
-
-        case LABEL:
-          printf(".%s:\n", IR_head->rd.label);
-          fprintf(asm_file, ".%s:\n", IR_head->rd.label);
-        break;
-
+        case BEQ:
         case BNE:
-          printf("\tBNE R%d,R%d,.%s\n", IR_head->rs1.reg, IR_head->rs2.reg, IR_head->rd.label);
-          fprintf(asm_file, "\tBNE R%d,R%d,.%s\n", IR_head->rs1.reg, IR_head->rs2.reg, IR_head->rd.label);
+        case BLT:
+        case BGE:
+        case BLTU:
+        case BGEU:
+        case BGT:
+        case BLE:
+          printf("\t%s R%d,R%d,.%s\n", IR_head->instruction, IR_head->rs1.reg, IR_head->rs2.reg, IR_head->rd.label);
+          fprintf(asm_file, "\t%s R%d,R%d,.%s\n", IR_head->instruction, IR_head->rs1.reg, IR_head->rs2.reg, IR_head->rd.label);
         break;
 
-        case BGE:
-          printf("\tBGE R%d,R%d,.%s\n", IR_head->rs1.reg, IR_head->rs2.reg, IR_head->rd.label);
-          fprintf(asm_file, "\tBGE R%d,R%d,.%s\n", IR_head->rs1.reg, IR_head->rs2.reg, IR_head->rd.label);
+        case IR_NO_TYPE:
+        case HEAD:
         break;
       }
     }

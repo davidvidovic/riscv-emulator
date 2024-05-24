@@ -12,6 +12,7 @@ typedef enum IR_instruction_type {
 
 typedef enum instruction_type {
     HEAD = 0,
+    IR_NO_TYPE,
     LABEL,
     LUI,
     AUIPC,
@@ -23,6 +24,10 @@ typedef enum instruction_type {
     BGE,
     BLTU,
     BGEU,
+    // Additional BRANCH instructions not supported by ISA
+    BGT,
+    BLE,
+    // End to additional BRANCH instructions
     LB,
     LH,
     LW,
