@@ -140,7 +140,7 @@ int main()
 
     root = mkASTnode(NULL, NULL);
 
-    yyin = fopen("input.txt", "r");
+    yyin = fopen("input.c", "r");
     int token;
     yyparse();
 
@@ -176,11 +176,11 @@ int main()
     IR_node *IR_head = create_IR();
     Stack stack;
     init_stack(&stack);
-    populate_IR(root, IR_head, &stack);
+    IR_node *IR_tail = populate_IR(root, IR_head, &stack);
 
     printf("\n\nASM:\n\n");
 
-    while(IR_head->prev != NULL)
+    while(IR_head->prev != IR_tail)
     {
       IR_head = IR_head->prev;
 

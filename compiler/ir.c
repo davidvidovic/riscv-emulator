@@ -46,7 +46,6 @@ IR_node* create_IR()
 /*
 * Create base IR node
 */
-int c= 1;
 IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack)
 { 
     IR_node *node = (IR_node *)malloc(sizeof(IR_node));
