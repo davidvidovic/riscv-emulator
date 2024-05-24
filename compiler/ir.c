@@ -6,27 +6,27 @@
 
 int register_counter = 0;
 
-IR_node* populate_IR(ASTnode *root, IR_node *head)
+IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack)
 {
     IR_node *this_node = NULL;
 
     if(root->right != NULL) 
     {
-        this_node = populate_IR(root->right, head);
+        this_node = populate_IR(root->right, head, stack);
     }
 
     if(root->left != NULL) 
     {
         if(this_node == NULL)
-            this_node = populate_IR(root->left, head);
+            this_node = populate_IR(root->left, head, stack);
         else
-            this_node = populate_IR(root->left, this_node);
+            this_node = populate_IR(root->left, this_node, stack);
     }
 
     if(this_node != NULL)
-        head = this_node;
+        head = this_node; 
 
-    return insert_IR(root, head);
+    return insert_IR(root, head, stack);
 }
 
 /*
@@ -46,9 +46,9 @@ IR_node* create_IR()
 /*
 * Create base IR node
 */
-
-IR_node* insert_IR(ASTnode *root, IR_node *head)
-{
+int c= 1;
+IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack)
+{ 
     IR_node *node = (IR_node *)malloc(sizeof(IR_node));
     
     node->prev = NULL;
@@ -86,7 +86,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head)
         case ID_NODE:
             node->ir_type = LW;
             node->rs1.name = root->name;
-            node->rd.reg = node->reg;
+            node->rd.reg = node->reg;      
 
         break;
 
@@ -97,7 +97,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head)
                     node->ir_type = SW;
                     node->rd.name = node->next->rs1.name;
                     
-                    // Delete LW node from list, it is not needed
+                    // Delete LW node created by visiting right ID node from list, it is not needed
                     node->next = (node->next)->next;
                     (node->next)->prev = node;
 
@@ -120,7 +120,10 @@ IR_node* insert_IR(ASTnode *root, IR_node *head)
                 break;
 
                 case LOGIC_EQU_OP:
-                    node->ir_type = BEQ;
+                    node->ir_type = BNE;
+                    node->rs1.reg = node->next->reg;
+                    node->rs2.reg = node->next->next->reg;    
+                    push(stack, node);       
                 break;
 
                 case LOGIC_GET_OP:
@@ -136,7 +139,10 @@ IR_node* insert_IR(ASTnode *root, IR_node *head)
                 break;
 
                 case LOGIC_LT_OP:
-
+                    node->ir_type = BGE;
+                    node->rs1.reg = node->next->reg;
+                    node->rs2.reg = node->next->next->reg; 
+                    push(stack, node);  
                 break;
 
                 case LOGIC_NEQU_OP:
@@ -153,11 +159,40 @@ IR_node* insert_IR(ASTnode *root, IR_node *head)
             }
         break;
 
+        case IF_NODE:
+            node->ir_type = LABEL;
+            char *tmp = malloc(5 * sizeof(char));
+            sprintf(tmp, "L%d", root->value.label_count);
+            node->rd.label = tmp;
+        break;
+
+        case EXPRESSION_NODE:
+            if(root->right != NULL)
+            {
+                if(root->right->nodetype == IF_NODE)
+                {
+                    //node->ir_type = LABEL;
+                    char *tmp = malloc(5 * sizeof(char));
+                    sprintf(tmp, "L%d", root->value.label_count);
+                    node->rd.label = tmp;                    
+
+                    // IR_node *help = node;
+                    // while(help->next->ir_type != BNE)
+                    // {
+                    //     help = help->next;
+                    // }
+                    // help->next->rd.label = tmp;
+                    IR_node *help = pop(stack);
+                    help->rd.label = tmp;
+                }
+            }
+        break;
+
         case FUNCTION_NODE:
             node->ir_type = LABEL;
             node->rd.label = root->left->name;
 
-            // Remove ugly ID of function from list
+            // Remove ugly ID of function from list (LW Rx,main)
             node->next = (node->next)->next;
             node->next->prev = node;
 
@@ -169,6 +204,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head)
             // This node between tail and its next node...
             // So I am going to do the stupidest thing ever and loop the entire list until I find tail
             IR_node *temp = node;
+
             while(temp->next->ir_type != HEAD)
             {
                 temp = temp->next;
@@ -178,10 +214,63 @@ IR_node* insert_IR(ASTnode *root, IR_node *head)
 
             temp->next = node;
             node->prev = temp;
-
             return rtn;
         break;
     }
 
     return node;
+}
+
+
+/*
+* Create LIFO node for LIFO queue for labels
+*/
+
+void init_stack(Stack* stack)
+{
+    stack->top = NULL;
+}
+
+LIFO_node* create_LIFO_node(IR_node *node)
+{
+    LIFO_node* item = (LIFO_node*)malloc(sizeof(LIFO_node));
+    item->ptr = node;
+    item->next = NULL;
+    return item;
+}
+
+void push(Stack *stack, IR_node *node)
+{
+    LIFO_node* item = create_LIFO_node(node);
+
+    if(stack->top == NULL)
+    {
+        stack->top = item;
+    }
+    else
+    {
+        item->next = stack->top;
+        stack->top = item;
+    }
+}
+
+IR_node* pop(Stack *stack)
+{
+    if(stack->top == NULL)
+    {
+        printf("Stack empty\n");
+        return NULL;
+    }
+    
+    LIFO_node *temp = stack->top;
+    IR_node *ptr = temp->ptr;
+    if(temp->next == NULL)
+    {
+        stack->top = NULL;
+    }
+    else
+    {
+        stack->top = temp->next;
+    }
+    return ptr;
 }

@@ -464,6 +464,15 @@ statement_list
 			$$->right->right->right = $1;
 		else
 			$$->right = $1;
+
+		if($$->right != NULL)
+		{
+			if($$->right->nodetype == IF_NODE)
+			{
+				$$->value.label_count = $$->right->value.label_count;
+				$$->right->right->value.label_count = $$->right->value.label_count;
+			}
+		}
 	}
 	;
 

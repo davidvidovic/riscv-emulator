@@ -1,7 +1,21 @@
-.main
-LUI R0,2
-LUI R1,1
-ADD R2,R1,R0
-LW R3,b
-ADD R4,R3,R2
-SW a,R4
+.main:
+	LUI R0,0
+	SW a,R0
+	LUI R4,3
+	SW b,R4
+	LW R8,b
+	LUI R9,3
+	BNE R9,R8,.L1
+	LUI R12,1
+	SW a,R12
+.L1:
+	LUI R18,19
+	SW b,R18
+	LW R22,b
+	LUI R23,19
+	BGE R23,R22,.L2
+	LUI R26,2
+	SW a,R26
+.L2:
+	LUI R32,99
+	SW b,R32

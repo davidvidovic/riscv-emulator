@@ -76,6 +76,7 @@ typedef struct ASTnode {
         float value_FLOAT;
         double value_DOUBLE;
         char value_CHAR;
+        int label_count;
     } value;
 
     // Expressions
@@ -86,12 +87,10 @@ typedef struct ASTnode {
 ASTnode* mkASTnode(ASTnode *left, ASTnode *right);
 ASTnode* new_AST_leaf();
 
-
 ASTnode* new_ASTnode_ID(const char* name, id_type type, ASTnode *left, ASTnode *right);
 ASTnode* new_ASTnode_INT(int value);
 ASTnode* new_ASTnode_FLOAT(float value);
 ASTnode* new_ASTnode_CHAR(char value);
-
 
 ASTnode* new_ASTnode_OPERATION(operation_type operation, ASTnode *left, ASTnode *right);
 ASTnode* new_ASTnode_EXPRESSION(ASTnode* left, ASTnode* right);
@@ -99,7 +98,6 @@ ASTnode* new_ASTnode_SCOPE(ASTnode* left, ASTnode* right);
 ASTnode* new_ASTnode_IF(ASTnode* left, ASTnode* right);
 ASTnode* new_ASTnode_ELSE(ASTnode* left, ASTnode* right);
 ASTnode* new_ASTnode_FUNCTION(ASTnode* left, ASTnode* right);
-
 
 // Helper functions
 void print_value(ASTnode* n);

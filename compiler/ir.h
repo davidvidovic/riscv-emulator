@@ -2,6 +2,7 @@
 #define IR
 
 #include <stdio.h>
+#include <string.h>
 #include "ast.h"
 #include "instructions.h"
 
@@ -28,8 +29,24 @@ typedef struct IR_node
     IR_value rd;
 } IR_node;
 
+// LIFO queue (stack) for labels
+typedef struct LIFO_node {
+    IR_node *ptr;
+    struct LIFO_node *next;
+} LIFO_node;
+
+typedef struct Stack {
+    LIFO_node* top;
+} Stack;
+
 IR_node* create_IR();
-IR_node* insert_IR(ASTnode *root, IR_node *head);
-IR_node* populate_IR(ASTnode *root, IR_node *head);
+IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack);
+IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack);
+
+void init_stack(Stack* stack);
+LIFO_node* create_LIFO_node(IR_node *node);
+void push(Stack* stack, IR_node *node);
+IR_node* pop(Stack *stack);
+
 
 #endif
