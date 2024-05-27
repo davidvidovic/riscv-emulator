@@ -128,10 +128,6 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack)
                 * If it is logical expression it should be followed by branch or jump instructions
                 * No matter if it is expression evaluating if statement or value assigment to variable
                 */
-                case LOGIC_AND_OP:
-
-                break;
-
                 case LOGIC_EQU_OP:
                     node->ir_type = BNE;
                     node->instruction = "bne";
@@ -141,7 +137,11 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack)
                 break;
 
                 case LOGIC_GET_OP:
-
+                    node->ir_type = BLT;
+                    node->instruction = "blt";
+                    node->rs1.reg = node->next->next->reg; 
+                    node->rs2.reg = node->next->reg; 
+                    push(stack, node); 
                 break;
 
                 case LOGIC_GT_OP:
@@ -176,12 +176,51 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack)
                 break;
 
                 case LOGIC_NEQU_OP:
-
+                    node->ir_type = BEQ;
+                    node->instruction = "beq";
+                    node->rs1.reg = node->next->next->reg; 
+                    node->rs2.reg = node->next->reg; 
+                    push(stack, node); 
                 break;
 
                 case LOGIC_NOT_OP:
-
+                /* Not yet supporeted by AST? */
+                    // node->ir_type = BNE;
+                    // node->instruction = "bne";
+                    // node->rs1.reg = node->next->next->reg; 
+                    // node->rs2.reg = node->next->reg; 
+                    // push(stack, node); 
                 break;
+
+                case LOGIC_AND_OP:
+                    IR_node *temp_node = (IR_node *)malloc(sizeof(IR_node));
+
+                    temp_node->next = head->next;
+                    head->next->prev = temp_node;       
+                    head->next = temp_node;
+                    temp_node->prev = head;
+                    
+                    temp_node->instruction = (char*)malloc(3*sizeof(char));
+                    temp_node->reg = register_counter++;
+                    temp_node->ir_type = BEQ;
+                    temp_node->instruction = "beq";
+                    temp_node->rs1.reg = temp_node->next->reg; 
+                    temp_node->rs2.reg = 0; 
+
+                    //push(stack, temp_node);
+
+                    node->next = head;
+                    node->prev = NULL;
+                    head->prev = node;
+
+                    node->ir_type = BEQ;
+                    node->instruction = "beq";
+                    node->rs1.reg = node->next->reg; 
+                    node->rs2.reg = 0; 
+                    temp_node->rd = node->rd; // does not work
+
+                    push(stack, node); 
+                    break;
 
                 case LOGIC_OR_OP:
 
