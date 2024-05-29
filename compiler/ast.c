@@ -96,13 +96,13 @@ ASTnode* new_ASTnode_SCOPE(ASTnode* left, ASTnode* right)
     return (n);
 }
 
-int label_counter = 1;
+
 
 ASTnode* new_ASTnode_IF(ASTnode* left, ASTnode* right)
 {
     ASTnode *n = mkASTnode(left, right);
     n->nodetype = IF_NODE;
-    n->value.label_count = label_counter++;
+    //n->value.label_count = label_counter++;
     return (n);
 }
 

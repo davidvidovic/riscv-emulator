@@ -5,6 +5,7 @@
 */
 
 int register_counter = 0;
+int label_counter = 1;
 
 IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack)
 {
@@ -14,6 +15,14 @@ IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack)
     {
         this_node = populate_IR(root->right, head, stack);
     }
+
+
+
+    if(root->nodetype == IF_NODE)
+    {
+        this_node = insert_IR(root, this_node, stack);
+    }
+
 
     if(root->left != NULL) 
     {
@@ -46,6 +55,7 @@ IR_node* create_IR()
 /*
 * Create base IR node
 */
+
 IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack)
 { 
     IR_node *node = (IR_node *)malloc(sizeof(IR_node));
@@ -54,7 +64,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack)
     node->next = head;
     head->prev = node;
     
-    node->instruction = (char*)malloc(3*sizeof(char));
+    //node->instruction = (char*)malloc(3*sizeof(char));
     node->reg = register_counter++;
     node->ir_type = IR_NO_TYPE;
 
@@ -193,21 +203,23 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack)
                 break;
 
                 case LOGIC_AND_OP:
-                    IR_node *temp_node = (IR_node *)malloc(sizeof(IR_node));
+                    if(root->right->nodetype != OPERATION_NODE)
+                    {
+                        IR_node *temp_node = (IR_node *)malloc(sizeof(IR_node));
 
-                    temp_node->next = head->next;
-                    head->next->prev = temp_node;       
-                    head->next = temp_node;
-                    temp_node->prev = head;
-                    
-                    temp_node->instruction = (char*)malloc(3*sizeof(char));
-                    temp_node->reg = register_counter++;
-                    temp_node->ir_type = BEQ;
-                    temp_node->instruction = "beq";
-                    temp_node->rs1.reg = temp_node->next->reg; 
-                    temp_node->rs2.reg = 0; 
+                        temp_node->next = head->next;
+                        head->next->prev = temp_node;       
+                        head->next = temp_node;
+                        temp_node->prev = head;
+                        
+                        temp_node->reg = register_counter++;
+                        temp_node->ir_type = BEQ;
+                        temp_node->instruction = "beq";
+                        temp_node->rs1.reg = temp_node->next->reg; 
+                        temp_node->rs2.reg = 0; 
 
-                    //push(stack, temp_node);
+                        push(stack, temp_node);
+                    }
 
                     node->next = head;
                     node->prev = NULL;
@@ -217,18 +229,67 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack)
                     node->instruction = "beq";
                     node->rs1.reg = node->next->reg; 
                     node->rs2.reg = 0; 
-                    temp_node->rd = node->rd; // does not work
 
                     push(stack, node); 
                     break;
 
-                case LOGIC_OR_OP:
 
+                case LOGIC_OR_OP:
+                    /* Checking if this is the root of logical sub-tree (boolean exp for if is deeper than 2 operands) */
+                    if(root->right->nodetype != OPERATION_NODE) 
+                    {
+                        IR_node *temp_node = (IR_node *)malloc(sizeof(IR_node));
+
+                        temp_node->next = head->next;
+                        head->next->prev = temp_node;       
+                        head->next = temp_node;
+                        temp_node->prev = head;
+                        
+                        temp_node->reg = register_counter++;
+                        temp_node->ir_type = BNE;
+                        temp_node->instruction = "bne";
+                        temp_node->rs1.reg = temp_node->next->reg; 
+                        temp_node->rs2.reg = 0; 
+
+                        push(stack, temp_node); // but I dont need label of exp after if, I need if's scope label
+
+                        node->next = head;
+                        node->prev = NULL;
+                        head->prev = node;
+
+                        node->ir_type = BEQ;
+                        node->instruction = "beq";
+                        node->rs1.reg = node->next->reg; 
+                        node->rs2.reg = 0; 
+
+                        push(stack, node);
+                    }
+                    else if(root->right->operation == LOGIC_OR_OP)
+                    {
+                        head->next->ir_type = BNE;
+                        head->next->instruction = "bne";
+
+                        node->next = head;
+                        node->prev = NULL;
+                        head->prev = node;
+
+                        node->ir_type = BEQ;
+                        node->instruction = "beq";
+                        node->rs1.reg = node->next->reg; 
+                        node->rs2.reg = 0; 
+
+                        push(stack, node); // but I dont need label of exp after if, I need if's scope label
+                    }
+                    else
+                    {
+                         
+                    }
                 break;
             }
         break;
 
         case IF_NODE:
+            root->value.label_count = label_counter++;
             node->ir_type = LABEL;
             char *tmp = malloc(5 * sizeof(char));
             sprintf(tmp, "L%d", root->value.label_count);
@@ -241,18 +302,32 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack)
                 if(root->right->nodetype == IF_NODE)
                 {
                     //node->ir_type = LABEL;
+                    root->value.label_count = root->right->value.label_count;
+                    //root->value.label_count = label_counter++;
                     char *tmp = malloc(5 * sizeof(char));
-                    sprintf(tmp, "L%d", root->right->value.label_count);
+                    sprintf(tmp, "L%d", root->value.label_count);
                     node->instruction = tmp;                    
 
-                    // IR_node *help = node;
-                    // while(help->next->ir_type != BNE)
-                    // {
-                    //     help = help->next;
-                    // }
-                    // help->next->rd.label = tmp;
                     IR_node *help = pop(stack);
                     help->rd.label = tmp;
+
+                    ASTnode *tail = root->right->right;
+                    tail->right = NULL;
+
+                    /* 
+                    * When there are multiple subexpressions or operands in logical expressions, for each branching
+                    * there will be and instruction node created and it will be pushed to stack, so I make a temporary sub-tree
+                    * and cut sub-tree from the rest of AST by inserting NULL pointer to its tail, so I traverse only subtree from current above-IF node
+                    * down to boolean expression of if node and count how many times I need to pop nodes off the stack 
+                    */
+
+                    int num = walk_LOGIC_OP_subtree(tail);
+
+                    for(int i = 0; i < num; i++)
+                    {
+                        help = pop(stack);
+                        help->rd.label = tmp;
+                    }
                 }
             }
         break;
@@ -260,7 +335,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack)
         case SCOPE_NODE:
             if(root->left != NULL)
             {
-                if(root->left->nodetype == IF_NODE)
+                if(root->left->nodetype == IF_NODE) /* Is this main's scope? */
                 {
                     //node->ir_type = LABEL;
                     char *tmp = malloc(5 * sizeof(char));
@@ -271,6 +346,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack)
                     help->rd.label = tmp;
                 }
             }
+            
         break;
 
         case FUNCTION_NODE:
@@ -306,6 +382,23 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack)
     return node;
 }
 
+int walk_LOGIC_OP_subtree(ASTnode* root)
+{
+    int temp = 0;
+
+    if(root->right != NULL)
+        temp += walk_LOGIC_OP_subtree(root->right);
+
+    if(root->left != NULL)
+        temp += walk_LOGIC_OP_subtree(root->left); 
+
+    if(root->operation == LOGIC_AND_OP || root->operation == LOGIC_OR_OP)
+    {
+        temp++;
+    }
+
+    return temp;
+}
 
 /*
 * Create LIFO node for LIFO queue for labels

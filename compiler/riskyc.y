@@ -237,7 +237,7 @@ constant_expression
 
 declaration
 	: declaration_specifiers ';'  {}
-	| declaration_specifiers init_declarator_list ';' {$$ = $2; $$->type = $1;}
+	| declaration_specifiers init_declarator_list ';' {$$ = $2; $$->type = $1;} // multi-declarations in one line are here, this is the bug for NO TYPE problem
 	;
 
 declaration_specifiers
@@ -251,7 +251,7 @@ declaration_specifiers
 
 init_declarator_list
 	: init_declarator {$$ = $1;}
-	| init_declarator_list ',' init_declarator {}
+	| init_declarator_list ',' init_declarator {$$ = $1;}
 	;
 
 init_declarator

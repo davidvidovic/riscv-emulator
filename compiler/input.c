@@ -1,11 +1,10 @@
 int main()
 { 
-    int a;
-    int b, c;
+    int a, b, c;
 
     a = 0;
     b = 3;
-    if(b && 3)
+    if(a || b)
     {
         a = 2;
     }
