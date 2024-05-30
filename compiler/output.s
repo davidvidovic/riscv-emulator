@@ -6,22 +6,27 @@
 	lw R12,a
 	bne R12,R0,.L1
 	lw R8,c
-	beq R8,R0,.L4
+	beq R8,R0,.L2
 	lw R9,b
-	beq R9,R0,.L4
+	beq R9,R0,.L2
 .L1:
 	lui R16,1
-	sw a,R16
-	lw R20,b
-	beq R20,R0,.L3
-	lw R21,a
-	beq R21,R0,.L3
+	sw c,R16
+	jal R0,.L6
 .L2:
-	lui R26,3
-	sw c,R26
+	lw R23,a
+	lui R24,0
+	bne R24,R23,.L4
 .L3:
-	lui R32,19
-	sw b,R32
+	lui R28,19
+	sw b,R28
+	jal R0,.L5
 .L4:
-	lui R38,1
-	sw c,R38
+	lui R35,90
+	sw b,R35
+.L5:
+	lui R41,2
+	sw c,R41
+.L6:
+	lui R46,1
+	sw a,R46

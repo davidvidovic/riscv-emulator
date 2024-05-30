@@ -225,6 +225,11 @@ int main()
           fprintf(asm_file, "\t%s R%d,R%d,.%s\n", IR_head->instruction, IR_head->rs1.reg, IR_head->rs2.reg, IR_head->rd.label);
         break;
 
+        case JAL:
+          printf("\tjal R%d,.%s\n", IR_head->rd.reg, IR_head->rs1.label);
+          fprintf(asm_file, "\tjal R%d,.%s\n", IR_head->rd.reg, IR_head->rs1.label);
+        break;
+
         case IR_NO_TYPE:
         case HEAD:
         break;

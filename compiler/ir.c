@@ -18,11 +18,18 @@ IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondar
 
 
 
-    if(root->nodetype == IF_NODE)
-    {
+    if(root->nodetype == IF_NODE || root->nodetype == ELSE_NODE)
+    { 
         this_node = insert_IR(root, this_node, stack, secondary_stack);
     }
 
+    if(root->right != NULL)
+    {
+        if(root->right->nodetype == ELSE_NODE)
+        {    
+            this_node = insert_IR(root, this_node, stack, secondary_stack);
+        }
+    }
 
     if(root->left != NULL) 
     {
@@ -35,7 +42,10 @@ IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondar
     if(this_node != NULL)
         head = this_node; 
 
-    return insert_IR(root, head, stack, secondary_stack);
+    if(root->nodetype == ELSE_NODE || (root->right != NULL && root->right->nodetype == ELSE_NODE))
+        return this_node;
+    else
+        return insert_IR(root, head, stack, secondary_stack);
 }
 
 /*
@@ -67,6 +77,8 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
     //node->instruction = (char*)malloc(3*sizeof(char));
     node->reg = register_counter++;
     node->ir_type = IR_NO_TYPE;
+
+    char *tmp = malloc(5 * sizeof(char));
 
     switch(root->nodetype)
     {
@@ -319,7 +331,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
         case IF_NODE:
             root->value.label_count = label_counter++;
             node->ir_type = LABEL;
-            char *tmp = malloc(5 * sizeof(char));
+            
             sprintf(tmp, "L%d", root->value.label_count);
             node->instruction = tmp;
             root->left->value.label_count = root->value.label_count;
@@ -331,15 +343,54 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
             }
         break;
 
+        case ELSE_NODE:
+            IR_node *jmp = (IR_node *)malloc(sizeof(IR_node));
+            jmp->ir_type = JAL;
+            jmp->instruction = "jal";
+            jmp->rd.reg = 0; // by ISA docs - pseudo j (jamp) instruction is jal with rd set as x0
+            jmp->next = head->next; // delete IFs node
+            jmp->prev = NULL;
+            head->next->prev = jmp;
+
+            node->next = jmp;
+            node->prev = NULL;
+            jmp->prev = node;
+
+
+            root->value.label_count = root->right->value.label_count;
+
+            node->ir_type = LABEL;
+            
+            sprintf(tmp, "L%d", root->value.label_count);
+            node->instruction = tmp;
+            root->left->value.label_count = root->value.label_count;
+
+            IR_node *help = pop(stack);
+            help->rd.label = tmp;
+
+            ASTnode *tail = root->right->right;
+            tail->right = NULL;
+            int num_AND = count_subtree_AND_OPs(tail);
+
+            for(int i = 0; i < num_AND; i++)
+            {
+                help = pop(stack);
+                help->rd.label = tmp;
+            }
+            
+            push(stack, jmp);
+        break;
+
         case EXPRESSION_NODE:
             if(root->right != NULL)
             {
+                char *tmp = malloc(5 * sizeof(char));
                 if(root->right->nodetype == IF_NODE)
                 {
                     //node->ir_type = LABEL;
                     root->value.label_count = root->right->value.label_count;
                     //root->value.label_count = label_counter++;
-                    char *tmp = malloc(5 * sizeof(char));
+                    
                     sprintf(tmp, "L%d", root->value.label_count);
                     node->instruction = tmp;                    
 
@@ -357,18 +408,22 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     */
 
                     int num_AND = count_subtree_AND_OPs(tail);
-                    //int num_OR = count_subtree_OR_OPs(tail); // ********* NOT NEEDED
 
                     for(int i = 0; i < num_AND; i++)
                     {
                         help = pop(stack);
                         help->rd.label = tmp;
                     }
-                    // for(int i = 0; i < num_OR-1; i++)
-                    // {
-                    //     help = pop(stack);
-                    //     help->rd.label = tmp;
-                    // }
+                }
+                else if(root->right->nodetype == ELSE_NODE)
+                {
+                    node->ir_type = LABEL;
+                    root->value.label_count = label_counter++;
+                    sprintf(tmp, "L%d", root->value.label_count);
+                    node->instruction = tmp;                    
+
+                    IR_node *help = pop(stack);
+                    help->rs1.label = tmp;
                 }
             }
         break;
@@ -398,11 +453,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     //     help->rd.label = tmp;
                     // }
                 }
-            }
-
-
-
-            
+            }      
         break;
 
         case FUNCTION_NODE:
@@ -456,23 +507,6 @@ int count_subtree_AND_OPs(ASTnode* root)
     return temp;
 }
 
-int count_subtree_OR_OPs(ASTnode* root)
-{
-    int temp = 0;
-
-    if(root->right != NULL)
-        temp += count_subtree_OR_OPs(root->right);
-
-    if(root->left != NULL)
-        temp += count_subtree_OR_OPs(root->left); 
-
-    if(root->operation == LOGIC_OR_OP)
-    {
-        temp++;
-    }
-
-    return temp;
-}
 
 /*
 * Create LIFO node for LIFO queue for labels
