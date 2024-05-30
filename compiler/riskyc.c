@@ -175,8 +175,10 @@ int main()
     FILE *asm_file = fopen("output.s", "w");
     IR_node *IR_head = create_IR();
     Stack stack;
+    Stack secondary_stack;
     init_stack(&stack);
-    IR_node *IR_tail = populate_IR(root, IR_head, &stack);
+    init_stack(&secondary_stack);
+    IR_node *IR_tail = populate_IR(root, IR_head, &stack, &secondary_stack);
 
     printf("\n\nASM:\n\n");
 

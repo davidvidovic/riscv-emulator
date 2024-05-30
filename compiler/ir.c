@@ -7,35 +7,35 @@
 int register_counter = 0;
 int label_counter = 1;
 
-IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack)
+IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack)
 {
     IR_node *this_node = NULL;
 
     if(root->right != NULL) 
     {
-        this_node = populate_IR(root->right, head, stack);
+        this_node = populate_IR(root->right, head, stack, secondary_stack);
     }
 
 
 
     if(root->nodetype == IF_NODE)
     {
-        this_node = insert_IR(root, this_node, stack);
+        this_node = insert_IR(root, this_node, stack, secondary_stack);
     }
 
 
     if(root->left != NULL) 
     {
         if(this_node == NULL)
-            this_node = populate_IR(root->left, head, stack);
+            this_node = populate_IR(root->left, head, stack, secondary_stack);
         else
-            this_node = populate_IR(root->left, this_node, stack);
+            this_node = populate_IR(root->left, this_node, stack, secondary_stack);
     }
 
     if(this_node != NULL)
         head = this_node; 
 
-    return insert_IR(root, head, stack);
+    return insert_IR(root, head, stack, secondary_stack);
 }
 
 /*
@@ -56,7 +56,7 @@ IR_node* create_IR()
 * Create base IR node
 */
 
-IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack)
+IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack)
 { 
     IR_node *node = (IR_node *)malloc(sizeof(IR_node));
     
@@ -240,6 +240,8 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack)
                     {
                         IR_node *temp_node = (IR_node *)malloc(sizeof(IR_node));
 
+                        //printf("HEAD IS: %s R%d %s\n", head->instruction, head->rd.reg, head->rs1.name);
+
                         temp_node->next = head->next;
                         head->next->prev = temp_node;       
                         head->next = temp_node;
@@ -251,7 +253,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack)
                         temp_node->rs1.reg = temp_node->next->reg; 
                         temp_node->rs2.reg = 0; 
 
-                        push(stack, temp_node); // but I dont need label of exp after if, I need if's scope label
+                        push(secondary_stack, temp_node); 
 
                         node->next = head;
                         node->prev = NULL;
@@ -268,6 +270,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack)
                     {
                         head->next->ir_type = BNE;
                         head->next->instruction = "bne";
+                        push(secondary_stack, pop(stack)); // holy shit
 
                         node->next = head;
                         node->prev = NULL;
@@ -278,11 +281,36 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack)
                         node->rs1.reg = node->next->reg; 
                         node->rs2.reg = 0; 
 
-                        push(stack, node); // but I dont need label of exp after if, I need if's scope label
+                        push(stack, node);
                     }
                     else
                     {
-                         
+                        // when AND op is on the right (mixed operations example)
+
+                        node->ir_type = BNE;
+                        node->instruction = "bne";
+                        node->rs1.reg = node->next->reg; 
+                        node->rs2.reg = 0;
+                        push(secondary_stack, node);
+
+                        /* First insert current head - lui, into a proper spot (4 instructions deep) */
+                        IR_node *temp = head;
+                        
+                        head = head->next;
+                        head->prev = NULL;
+
+                        temp->next = head->next->next->next->next;
+                        head->next->next->next->next->prev = temp;
+                        temp->prev = head->next->next->next;
+                        temp->prev->next = temp;
+
+                        /* Next create this node of type bne and insert it again 4 instructions deep, and return head */
+                        node->next = head->next->next->next->next;
+                        head->next->next->next->next->prev = node;
+                        node->prev = head->next->next->next;
+                        node->prev->next = node;
+
+                        return head;
                     }
                 break;
             }
@@ -294,6 +322,13 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack)
             char *tmp = malloc(5 * sizeof(char));
             sprintf(tmp, "L%d", root->value.label_count);
             node->instruction = tmp;
+            root->left->value.label_count = root->value.label_count;
+
+            while(secondary_stack->top != NULL)
+            {
+                IR_node* help = pop(secondary_stack);
+                help->rd.label = tmp;
+            }
         break;
 
         case EXPRESSION_NODE:
@@ -321,13 +356,19 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack)
                     * down to boolean expression of if node and count how many times I need to pop nodes off the stack 
                     */
 
-                    int num = walk_LOGIC_OP_subtree(tail);
+                    int num_AND = count_subtree_AND_OPs(tail);
+                    //int num_OR = count_subtree_OR_OPs(tail); // ********* NOT NEEDED
 
-                    for(int i = 0; i < num; i++)
+                    for(int i = 0; i < num_AND; i++)
                     {
                         help = pop(stack);
                         help->rd.label = tmp;
                     }
+                    // for(int i = 0; i < num_OR-1; i++)
+                    // {
+                    //     help = pop(stack);
+                    //     help->rd.label = tmp;
+                    // }
                 }
             }
         break;
@@ -335,7 +376,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack)
         case SCOPE_NODE:
             if(root->left != NULL)
             {
-                if(root->left->nodetype == IF_NODE) /* Is this main's scope? */
+                if(root->left->nodetype == IF_NODE) // ??? i think this solves bug when if is the first AST node after main's scope, should get looked at
                 {
                     //node->ir_type = LABEL;
                     char *tmp = malloc(5 * sizeof(char));
@@ -345,7 +386,22 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack)
                     IR_node *help = pop(stack);
                     help->rd.label = tmp;
                 }
+                else
+                {
+                    char *tmp = malloc(5 * sizeof(char));
+                    sprintf(tmp, "L%d", root->value.label_count);
+                    node->instruction = tmp;     
+
+                    // if(secondary_stack->top != NULL)
+                    // {
+                    //     IR_node *help = pop(secondary_stack);
+                    //     help->rd.label = tmp;
+                    // }
+                }
             }
+
+
+
             
         break;
 
@@ -382,17 +438,35 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack)
     return node;
 }
 
-int walk_LOGIC_OP_subtree(ASTnode* root)
+int count_subtree_AND_OPs(ASTnode* root)
 {
     int temp = 0;
 
     if(root->right != NULL)
-        temp += walk_LOGIC_OP_subtree(root->right);
+        temp += count_subtree_AND_OPs(root->right);
 
     if(root->left != NULL)
-        temp += walk_LOGIC_OP_subtree(root->left); 
+        temp += count_subtree_AND_OPs(root->left); 
 
-    if(root->operation == LOGIC_AND_OP || root->operation == LOGIC_OR_OP)
+    if(root->operation == LOGIC_AND_OP)
+    {
+        temp++;
+    }
+
+    return temp;
+}
+
+int count_subtree_OR_OPs(ASTnode* root)
+{
+    int temp = 0;
+
+    if(root->right != NULL)
+        temp += count_subtree_OR_OPs(root->right);
+
+    if(root->left != NULL)
+        temp += count_subtree_OR_OPs(root->left); 
+
+    if(root->operation == LOGIC_OR_OP)
     {
         temp++;
     }

@@ -190,12 +190,30 @@ inclusive_or_expression
 
 logical_and_expression
 	: inclusive_or_expression {$$ = $1;}
-	| logical_and_expression AND_OP inclusive_or_expression {$$ = new_ASTnode_OPERATION(LOGIC_AND_OP, $3, $1);}
+	| logical_and_expression AND_OP inclusive_or_expression {
+		if($1->operation == LOGIC_AND_OP)
+		{
+			$$ = new_ASTnode_OPERATION(LOGIC_AND_OP, $3, $1);
+		}
+		else
+		{
+			$$ = new_ASTnode_OPERATION(LOGIC_AND_OP, $1, $3);
+		}
+	}
 	;
 
 logical_or_expression
 	: logical_and_expression {$$ = $1;}
-	| logical_or_expression OR_OP logical_and_expression {$$ = new_ASTnode_OPERATION(LOGIC_OR_OP, $3, $1);}
+	| logical_or_expression OR_OP logical_and_expression {
+		if($1->operation == LOGIC_OR_OP || $1->operation == LOGIC_AND_OP)
+		{
+			$$ = new_ASTnode_OPERATION(LOGIC_OR_OP, $3, $1);
+		}
+		else
+		{
+			$$ = new_ASTnode_OPERATION(LOGIC_OR_OP, $1, $3);
+		}
+	}
 	;
 
 conditional_expression
