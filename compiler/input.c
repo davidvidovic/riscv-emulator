@@ -1,23 +1,9 @@
 int main()
 { 
-    int a, b, c;
-
+    int a;
     a = 0;
-    b = 3;
-    if(a || b && c)
+    if(a && 1)
     {
-        c = 1;
+    	a = 2;
     }
-    else
-    {
-        if(a == 0)
-        {
-            b = 19;
-        }
-        else{
-            b = 90;
-        }
-        c = 2;
-    }
-    a = 1;
 }

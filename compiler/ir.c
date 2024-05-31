@@ -4,7 +4,7 @@
 * Function that walks the AST and creates IR tree based on it
 */
 
-int register_counter = 0;
+int register_counter = 1;
 int label_counter = 1;
 
 IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack)
@@ -79,6 +79,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
     node->ir_type = IR_NO_TYPE;
 
     char *tmp = malloc(5 * sizeof(char));
+    IR_node *jmp = (IR_node *)malloc(sizeof(IR_node));
 
     switch(root->nodetype)
     {
@@ -344,7 +345,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
         break;
 
         case ELSE_NODE:
-            IR_node *jmp = (IR_node *)malloc(sizeof(IR_node));
+            
             jmp->ir_type = JAL;
             jmp->instruction = "jal";
             jmp->rd.reg = 0; // by ISA docs - pseudo j (jamp) instruction is jal with rd set as x0

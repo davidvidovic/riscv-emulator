@@ -10,6 +10,7 @@
     extern int lineno;
     extern ASTnode *root;
     int main_counter = 0;
+    int multiline_declaration_cnt = 0;
 
     void yyerror(const char *s);
     int yylex();
@@ -255,7 +256,32 @@ constant_expression
 
 declaration
 	: declaration_specifiers ';'  {}
-	| declaration_specifiers init_declarator_list ';' {$$ = $2; $$->type = $1;} // multi-declarations in one line are here, this is the bug for NO TYPE problem
+	| declaration_specifiers init_declarator_list ';' {
+		$$ = $2; 
+		$$->type = $1;
+		
+		/* 
+		* Multi-declarations in one line are hard to keep track of data type 
+		* This is the work around
+		* multiline_declaration_cnt is a counter that increments each time an identifier is found
+		* and it resets when single-declaration of id is found, else program gets to here and variable holds information of how many ID ASTnodes
+		* are to the right of a current ASTnode (root) that need to have the same type
+		* Simply loop thorugh all of them and finally cut the right hand side of tree with NULL (no need for ID nodes floating in the air)
+		*/
+		if($$->right != NULL)
+		{
+		ASTnode *temp = $$->right;
+			printf("tu sam %d\n", multiline_declaration_cnt);
+			for(int i = 0; i < multiline_declaration_cnt; i++)
+			{
+				temp->type = $1;
+				temp = temp->right;
+			}
+			multiline_declaration_cnt = 0;
+			$$->right = NULL;
+			free(temp);
+		}
+	} // multi-declarations in one line are here, this is the bug for NO TYPE problem
 	;
 
 declaration_specifiers
@@ -268,8 +294,11 @@ declaration_specifiers
 	;
 
 init_declarator_list
-	: init_declarator {$$ = $1;}
-	| init_declarator_list ',' init_declarator {$$ = $1;}
+	: init_declarator {$$ = $1; multiline_declaration_cnt = 0;}
+	| init_declarator_list ',' init_declarator {
+		$$ = $3;
+		$$->right = $1;
+	}
 	;
 
 init_declarator
@@ -368,6 +397,7 @@ direct_declarator
 	: IDENTIFIER {
 		$$ = new_ASTnode_ID($1.name, NO_TYPE, NULL, NULL);
 		declare($1.name, "NULL", lineno, $$);
+		multiline_declaration_cnt++;
 	}
 	| '(' declarator ')' {$$ = $2;}
 	| direct_declarator '[' constant_expression ']'
