@@ -5,6 +5,7 @@
 #include "y.tab.h"
 #include "symboltable.h"
 #include "ir.h"
+#include "ast.h"
 
 extern int lineno;
 extern FILE *yyin;
@@ -12,26 +13,6 @@ extern char *yytext;
 ht* table;
 ASTnode *root;
 
-// Copied from ht.c
-typedef struct {
-    char* key;  // key is NULL if this slot is empty
-    const char* value;
-    int line;
-    ASTnode* node;
-} ht_entry;
-
-struct ht {
-    ht_entry* entries;  // hash slots
-    size_t capacity;    // size of _entries array
-    size_t length;      // number of items in hash table
-};
-
-typedef struct {
-    char* key;
-    const char* value;
-    int line; 
-    ASTnode* node;
-} item;
 
 void exit_nomem(void) {
     fprintf(stderr, "out of memory\n");
@@ -60,7 +41,7 @@ int declare(const char* name, const char* datatype, int line, ASTnode* node)
   }
   else
   {
-    if(ht_set(table, name, datatype, line, node) == NULL) 
+    if(ht_set(table, name, datatype, line, node, NO_TYPE, 0) == NULL) 
     {
       exit_nomem();
     }
@@ -90,6 +71,75 @@ ASTnode* check_declaration(const char* name)
 
   return ht_get_ASTnode(table, name);
 }
+
+
+void ht_set_type_sp_offset(const char* key, id_type type, int sp_offset)
+{
+  ht_entry *temp = get_ht_entry(table, key);
+  if(temp == NULL)
+  {
+    printf("ERROR: ht_get_entry returned NULL for %s\n", key);
+    return;
+  }
+  else
+  {
+    temp->type = type;
+    temp->sp_offset = sp_offset;
+    ASTnode *n = ht_get_ASTnode(table, key);
+    n->type = type;
+  }
+}
+
+void type_check(ASTnode *op1, ASTnode *op2)
+{
+  id_type op1_type, op2_type;
+  char *op1_name, *op2_name;
+  ht_entry *temp, *temp2;
+
+  /* Done over AST node for now, ST stuff doesn't work for some reason... */
+
+	if(op1->nodetype == ID_NODE)
+	{
+    op1_name = op1->name;
+		//temp = get_ht_entry(table, op1_name);
+    //op1_type = temp->type;
+    op1_type = op1->type; 
+	}
+  else
+  {
+    /* Constant node */
+    op1_type = op1->type; 
+    sprintf(op1_name, "%d", op1->value.value_INT);
+  }
+
+  if(op2->nodetype == ID_NODE)
+	{ 
+		op2_name = op2->name;
+		//temp2 = get_ht_entry(table, op2_name);
+    //op2_type = temp2->type;
+    op2_type = op2->type; 
+	}
+  else
+  {
+    /* Constant node */
+    op2_type = op2->type; 
+    sprintf(op2_name, "%d", op2->value.value_INT);
+  }
+
+  if(op1_type != op2_type)
+  {
+    char error[100];
+    strcpy(error, "\033[31mERROR \t\tTypes of operators ");
+    strcat(error, op1_name);
+    strcat(error, " and ");
+    strcat(error, op2_name);
+    strcat(error, " do not match.\n\t\t\033[0m");
+    yyerror(error);
+    
+    exit(1);
+  }
+}
+
 
 int depth = 0;
 

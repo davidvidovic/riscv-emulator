@@ -1,8 +1,23 @@
 int main()
 { 
-    int a, c = 1;
+    int a = 999, c;
     int b;
-    int g = 7;
+    char g = '0';
 
-    b = 19;
+    a = 1;
+
+    if(a != b)
+    {
+        g = 'A';
+    }
+    else
+    {
+        g = '1';
+        if(a && b)
+        {
+            g = 'a';
+        }
+        c = 19;
+    }
+    a = 19;
 }

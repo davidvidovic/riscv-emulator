@@ -11,7 +11,9 @@
     extern ASTnode *root;
     int main_counter = 0;
     int multiline_declaration_cnt = 0;
+	int sp_offset = 0;
 	ASTnode* set_right_init_to_null(ASTnode *root);
+	int calculate_sp_offset(int sp_offset, id_type type);
 
     void yyerror(const char *s);
     int yylex();
@@ -144,15 +146,15 @@ cast_expression
 
 multiplicative_expression
 	: cast_expression {$$ = $1;}
-	| multiplicative_expression '*' cast_expression {$$ = new_ASTnode_OPERATION(MUL_OP, $3, $1);}
-	| multiplicative_expression '/' cast_expression {$$ = new_ASTnode_OPERATION(DIV_OP, $3, $1);}
-	| multiplicative_expression '%' cast_expression {$$ = new_ASTnode_OPERATION(MOD_OP, $3, $1);}
+	| multiplicative_expression '*' cast_expression {type_check($1, $3); $$ = new_ASTnode_OPERATION(MUL_OP, $3, $1);}
+	| multiplicative_expression '/' cast_expression {type_check($1, $3); $$ = new_ASTnode_OPERATION(DIV_OP, $3, $1);}
+	| multiplicative_expression '%' cast_expression {type_check($1, $3); $$ = new_ASTnode_OPERATION(MOD_OP, $3, $1);}
 	;
 
 additive_expression
 	: multiplicative_expression {$$ = $1;}
-	| additive_expression '+' multiplicative_expression {$$ = new_ASTnode_OPERATION(ADD_OP, $3, $1); }
-	| additive_expression '-' multiplicative_expression {$$ = new_ASTnode_OPERATION(SUB_OP, $3, $1);}
+	| additive_expression '+' multiplicative_expression {type_check($1, $3); $$ = new_ASTnode_OPERATION(ADD_OP, $3, $1); }
+	| additive_expression '-' multiplicative_expression {type_check($1, $3); $$ = new_ASTnode_OPERATION(SUB_OP, $3, $1);}
 	;
 
 shift_expression
@@ -163,16 +165,16 @@ shift_expression
 
 relational_expression
 	: shift_expression {$$ = $1;}
-	| relational_expression '<' shift_expression {$$ = new_ASTnode_OPERATION(LOGIC_LT_OP, $3, $1);}
-	| relational_expression '>' shift_expression {$$ = new_ASTnode_OPERATION(LOGIC_GT_OP, $3, $1);}
-	| relational_expression LE_OP shift_expression {$$ = new_ASTnode_OPERATION(LOGIC_LET_OP, $3, $1);}
-	| relational_expression GE_OP shift_expression {$$ = new_ASTnode_OPERATION(LOGIC_GET_OP, $3, $1);}
+	| relational_expression '<' shift_expression {type_check($1, $3); $$ = new_ASTnode_OPERATION(LOGIC_LT_OP, $3, $1);}
+	| relational_expression '>' shift_expression {type_check($1, $3); $$ = new_ASTnode_OPERATION(LOGIC_GT_OP, $3, $1);}
+	| relational_expression LE_OP shift_expression {type_check($1, $3); $$ = new_ASTnode_OPERATION(LOGIC_LET_OP, $3, $1);}
+	| relational_expression GE_OP shift_expression {type_check($1, $3); $$ = new_ASTnode_OPERATION(LOGIC_GET_OP, $3, $1);}
 	;
 
 equality_expression
 	: relational_expression {$$ = $1;}
-	| equality_expression EQ_OP relational_expression {$$ = new_ASTnode_OPERATION(LOGIC_EQU_OP, $3, $1);}
-	| equality_expression NE_OP relational_expression {$$ = new_ASTnode_OPERATION(LOGIC_NEQU_OP, $3, $1);}
+	| equality_expression EQ_OP relational_expression {type_check($1, $3); $$ = new_ASTnode_OPERATION(LOGIC_EQU_OP, $3, $1);}
+	| equality_expression NE_OP relational_expression {type_check($1, $3); $$ = new_ASTnode_OPERATION(LOGIC_NEQU_OP, $3, $1);}
 	;
 
 and_expression
@@ -193,12 +195,15 @@ inclusive_or_expression
 logical_and_expression
 	: inclusive_or_expression {$$ = $1;}
 	| logical_and_expression AND_OP inclusive_or_expression {
+		type_check($1, $3);
 		if($1->operation == LOGIC_AND_OP)
 		{
+			type_check($1->left, $3);
 			$$ = new_ASTnode_OPERATION(LOGIC_AND_OP, $3, $1);
 		}
 		else
 		{
+			type_check($1, $3);
 			$$ = new_ASTnode_OPERATION(LOGIC_AND_OP, $1, $3);
 		}
 	}
@@ -207,12 +212,15 @@ logical_and_expression
 logical_or_expression
 	: logical_and_expression {$$ = $1;}
 	| logical_or_expression OR_OP logical_and_expression {
+		
 		if($1->operation == LOGIC_OR_OP || $1->operation == LOGIC_AND_OP)
 		{
+			type_check($1->left, $3);
 			$$ = new_ASTnode_OPERATION(LOGIC_OR_OP, $3, $1);
 		}
 		else
 		{
+			type_check($1, $3);
 			$$ = new_ASTnode_OPERATION(LOGIC_OR_OP, $1, $3);
 		}
 	}
@@ -226,7 +234,9 @@ conditional_expression
 assignment_expression
 	: conditional_expression {$$ = $1;}
 	| unary_expression assignment_operator assignment_expression {
-		$$ = new_ASTnode_OPERATION($2, $1, $3); // maybe 3,1?
+		/* Type check */
+		type_check($1, $3);
+		$$ = new_ASTnode_OPERATION($2, $1, $3); // maybe 3,1?		
 	}
 	;
 
@@ -262,10 +272,12 @@ declaration
 		if($$->nodetype == ID_NODE)
 		{
 			$$->type = $1;
+			ht_set_type_sp_offset($$->name, $1, calculate_sp_offset(sp_offset, $1));
 		}
 		else if($$->nodetype == EXPRESSION_NODE)
 		{
 			$$->left->left->type = $1;
+			ht_set_type_sp_offset($$->left->left->name, $1, calculate_sp_offset(sp_offset, $1));
 		}
 		
 		/* 
@@ -284,10 +296,12 @@ declaration
 				if(temp->nodetype == ID_NODE)
 				{
 					temp->type = $1;
+					ht_set_type_sp_offset(temp->name, $1, calculate_sp_offset(sp_offset, $1));
 				}
 				else if(temp->nodetype == EXPRESSION_NODE)
 				{
 					temp->left->left->type = $1;
+					ht_set_type_sp_offset(temp->left->left->name, $1, calculate_sp_offset(sp_offset, $1));
 				}
 				temp = temp->right;
 			}
@@ -322,6 +336,8 @@ init_declarator_list
 init_declarator
 	: declarator {$$ = $1;}
 	| declarator '=' initializer {
+		
+
 		ASTnode *temp = new_ASTnode_OPERATION(EQU_OP, $1, $3);
 		$$ = new_ASTnode_EXPRESSION(temp, NULL);
 	}
@@ -516,10 +532,21 @@ compound_statement
 	| '{' statement_list '}' {$$ = new_ASTnode_SCOPE($2, NULL);} 
 	| '{' declaration_list '}' {$$ = $2;} 
 	| '{' declaration_list statement_list '}' {	
+
+		/* 
+		* Need to merge two sub-trees into one continuous, and while at it declarations must come before statements,
+		* so I loop the statement list and insert declaration sub-tree on bottom-right side
+		*/
+		ASTnode *temp = $3;
 		if($2->nodetype != ID_NODE)
-			$3->right = $2; 
-		else
-			$3->right = NULL; 
+		{
+			while(temp->right != NULL)
+			{
+				temp = temp->right;
+			}
+
+			temp->right = $2;
+		}
 
 		$$ = new_ASTnode_SCOPE($3, NULL);
 	}
@@ -656,3 +683,26 @@ ASTnode* set_right_init_to_null(ASTnode *root)
 	
 	return temp;	
 }
+
+int calculate_sp_offset(int sp_offset, id_type type)
+{
+	switch(type)
+	{
+		case TYPE_INT:
+			sp_offset += SIZE_INT;
+		break;
+
+		case TYPE_CHAR:
+			sp_offset += SIZE_CHAR;
+		break;
+
+		case TYPE_FLOAT:
+			sp_offset += SIZE_FLOAT;
+		break;
+
+		default:
+			printf("[calculate_sp_offset]\tUnrecognized data type.");
+		break;
+	}
+}
+

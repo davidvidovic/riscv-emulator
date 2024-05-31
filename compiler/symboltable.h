@@ -12,6 +12,21 @@
 *   Referencing to Ben Hoyt's "How to implement a hash table in C" article
 */
 
+typedef struct {
+    const char* key;
+    const char* value;
+    int line;
+    ASTnode* node;
+    id_type type;
+    int sp_offset;
+} ht_entry;
+
+struct ht {
+    ht_entry* entries;
+    size_t capacity;
+    size_t length;
+};
+
 // Symboltable struct that will be implemented as a hash table
 typedef struct ht ht;
 
@@ -25,9 +40,11 @@ void ht_destroy(ht* table);
 const char* ht_get_key(ht* table, const char* key);
 int ht_get_line(ht* table, const char* key);
 ASTnode* ht_get_ASTnode(ht* table, const char* key);
+ht_entry* get_ht_entry(ht* table, const char* key);
+
 
 // Set item with given key to a value (must not be NULL)
-const char* ht_set(ht* table, const char* key, const char* value, int line, ASTnode* node);
+const char* ht_set(ht* table, const char* key, const char* value, int line, ASTnode* node, id_type type, int sp_offset);
 
 // Returns number of items in table
 size_t ht_length(ht* table);
@@ -41,6 +58,8 @@ typedef struct {
     const char* value;
     int line;
     ASTnode* node;
+    id_type type;
+    int sp_offset;
 
     ht* _table;
     size_t _index;

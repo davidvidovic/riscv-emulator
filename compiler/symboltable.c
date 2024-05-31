@@ -5,23 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct {
-    const char* key;
-    const char* value;
-    int line;
-    ASTnode* node;
-    //id_type type;
-} ht_entry;
-
-struct ht {
-    ht_entry* entries;
-    size_t capacity;
-    size_t length;
-    ASTnode* node;
-};
-
 #define INITIAL_CAPACITY    64
-
 
 ht* ht_create(void)
 {
@@ -77,7 +61,7 @@ static uint64_t hash_key(const char* key)
 
 // Internal function to set an entry (without expanding table).
 static const char* ht_set_entry(ht_entry* entries, size_t capacity,
-        const char* key, const char* value, size_t* plength, int line, ASTnode* node) {
+        const char* key, const char* value, size_t* plength, int line, ASTnode* node, id_type type, int sp_offset) {
     // AND hash with capacity-1 to ensure it's within entries array.
     uint64_t hash = hash_key(key);
     size_t index = (size_t)(hash & (uint64_t)(capacity - 1));
@@ -89,6 +73,8 @@ static const char* ht_set_entry(ht_entry* entries, size_t capacity,
             entries[index].value = value;
             entries[index].line = line;
             entries[index].node = node;
+            entries[index].type = type;
+            entries[index].sp_offset = sp_offset;
             return entries[index].key;
         }
         // Key wasn't in this slot, move to next (linear probing).
@@ -111,6 +97,8 @@ static const char* ht_set_entry(ht_entry* entries, size_t capacity,
     entries[index].value = value;
     entries[index].line = line;
     entries[index].node = node;
+    entries[index].type = type;
+    entries[index].sp_offset = sp_offset;
     return key;
 }
 
@@ -199,7 +187,7 @@ static bool ht_expand(ht* table) {
         ht_entry entry = table->entries[i];
         if (entry.key != NULL) {
             ht_set_entry(new_entries, new_capacity, entry.key,
-                         entry.value, NULL, entry.line, entry.node);
+                         entry.value, NULL, entry.line, entry.node, entry.type, entry.sp_offset);
         }
     }
 
@@ -211,7 +199,7 @@ static bool ht_expand(ht* table) {
 }
 
 
-const char* ht_set(ht* table, const char* key, const char* value, int line, ASTnode* node) {
+const char* ht_set(ht* table, const char* key, const char* value, int line, ASTnode* node, id_type type, int sp_offset) {
     assert(value != NULL);
     if (value == NULL) {
         return NULL;
@@ -225,7 +213,7 @@ const char* ht_set(ht* table, const char* key, const char* value, int line, ASTn
     }
 
     // Set entry and update length
-    return ht_set_entry(table->entries, table->capacity, key, value, &table->length, line, node);
+    return ht_set_entry(table->entries, table->capacity, key, value, &table->length, line, node, type, sp_offset);
 }
 
 
@@ -259,6 +247,24 @@ bool ht_next(hti* it) {
 }
 
 
+ht_entry* get_ht_entry(ht* table, const char* key)
+{
+    uint64_t hash = hash_key(key);
+    size_t index = (size_t)(hash & (uint64_t)(table->capacity - 1));
 
+    while (table->entries[index].key != NULL) {
+        if (strcmp(key, table->entries[index].key) == 0) {
+            return table->entries;
+        }
+        // Key wasn't in this slot, move to next (linear probing)
+        index++;
+        if (index >= table->capacity) {
+            // At end of entries array, wrap around
+            index = 0;
+        }
+    }
+    
+    return NULL;
+}
 
 
