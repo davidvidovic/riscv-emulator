@@ -1,9 +1,8 @@
 int main()
 { 
-    int a;
-    a = 0;
-    if(a && 1)
-    {
-    	a = 2;
-    }
+    int a, c = 1;
+    int b;
+    int g = 7;
+
+    b = 19;
 }

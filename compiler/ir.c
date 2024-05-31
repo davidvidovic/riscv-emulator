@@ -483,6 +483,8 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
 
             temp->next = node;
             node->prev = temp;
+
+            // When sp stuff for getting in and out of a function is done, stack will have to be popped-out in here
             return rtn;
         break;
     }

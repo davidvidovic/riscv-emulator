@@ -11,6 +11,7 @@
     extern ASTnode *root;
     int main_counter = 0;
     int multiline_declaration_cnt = 0;
+	ASTnode* set_right_init_to_null(ASTnode *root);
 
     void yyerror(const char *s);
     int yylex();
@@ -244,7 +245,7 @@ assignment_operator
 	;
 
 expression
-	: assignment_expression {
+	: assignment_expression {		
 		$$ = new_ASTnode_EXPRESSION($1, NULL);
 	}
 	| expression ',' assignment_expression
@@ -258,11 +259,18 @@ declaration
 	: declaration_specifiers ';'  {}
 	| declaration_specifiers init_declarator_list ';' {
 		$$ = $2; 
-		$$->type = $1;
+		if($$->nodetype == ID_NODE)
+		{
+			$$->type = $1;
+		}
+		else if($$->nodetype == EXPRESSION_NODE)
+		{
+			$$->left->left->type = $1;
+		}
 		
 		/* 
 		* Multi-declarations in one line are hard to keep track of data type 
-		* This is the work around
+		* This is the work around:
 		* multiline_declaration_cnt is a counter that increments each time an identifier is found
 		* and it resets when single-declaration of id is found, else program gets to here and variable holds information of how many ID ASTnodes
 		* are to the right of a current ASTnode (root) that need to have the same type
@@ -270,15 +278,22 @@ declaration
 		*/
 		if($$->right != NULL)
 		{
-		ASTnode *temp = $$->right;
-			printf("tu sam %d\n", multiline_declaration_cnt);
+			ASTnode *temp = $$->right;
 			for(int i = 0; i < multiline_declaration_cnt; i++)
 			{
-				temp->type = $1;
+				if(temp->nodetype == ID_NODE)
+				{
+					temp->type = $1;
+				}
+				else if(temp->nodetype == EXPRESSION_NODE)
+				{
+					temp->left->left->type = $1;
+				}
 				temp = temp->right;
 			}
 			multiline_declaration_cnt = 0;
-			$$->right = NULL;
+
+			$$ = set_right_init_to_null($$);
 			free(temp);
 		}
 	} // multi-declarations in one line are here, this is the bug for NO TYPE problem
@@ -294,7 +309,10 @@ declaration_specifiers
 	;
 
 init_declarator_list
-	: init_declarator {$$ = $1; multiline_declaration_cnt = 0;}
+	: init_declarator {
+		$$ = $1; 
+		multiline_declaration_cnt = 0;
+	}
 	| init_declarator_list ',' init_declarator {
 		$$ = $3;
 		$$->right = $1;
@@ -303,7 +321,10 @@ init_declarator_list
 
 init_declarator
 	: declarator {$$ = $1;}
-	| declarator '=' initializer {$$ = new_ASTnode_OPERATION(EQU_OP, $1, $3); }
+	| declarator '=' initializer {
+		ASTnode *temp = new_ASTnode_OPERATION(EQU_OP, $1, $3);
+		$$ = new_ASTnode_EXPRESSION(temp, NULL);
+	}
 	;
 
 storage_class_specifier
@@ -494,12 +515,36 @@ compound_statement
 	: '{' '}' {}
 	| '{' statement_list '}' {$$ = new_ASTnode_SCOPE($2, NULL);} 
 	| '{' declaration_list '}' {$$ = $2;} 
-	| '{' declaration_list statement_list '}' {$$ = new_ASTnode_SCOPE($3, NULL);}
+	| '{' declaration_list statement_list '}' {	
+		if($2->nodetype != ID_NODE)
+			$3->right = $2; 
+		else
+			$3->right = NULL; 
+
+		$$ = new_ASTnode_SCOPE($3, NULL);
+	}
 	;
 
 declaration_list
 	: declaration {$$ = $1; } // odradice se samo jednom za main, sve ostalo ispod?
-	| declaration_list declaration {$$ = $2;}
+	| declaration_list declaration {
+			
+		
+		if($2->nodetype == EXPRESSION_NODE)
+		{
+			$$ = $2;
+			if($1->nodetype == EXPRESSION_NODE)
+			{
+				$$->right = $1;
+			}
+		}
+		else if($1->nodetype == EXPRESSION_NODE)
+		{
+			$$ = $1;
+		}
+		else
+			$$ = $2;
+	}
 	;
 
 statement_list
@@ -581,4 +626,33 @@ function_definition
 
 void yyerror(const char* msg) {
     fprintf(stderr, "%s at line %d\n", msg, lineno);
+}
+
+ASTnode* set_right_init_to_null(ASTnode *root)
+{
+	ASTnode *temp = NULL;
+	if(root->right != NULL)
+		temp = set_right_init_to_null(root->right);
+
+	
+	if(temp != NULL && temp->nodetype == EXPRESSION_NODE)
+	{
+		root->right = temp;
+	}
+	else
+	{
+		root->right = NULL;
+	}
+
+
+	if(root->nodetype == EXPRESSION_NODE)
+	{
+		return root;
+	}
+	else
+	{
+		return temp;
+	}
+	
+	return temp;	
 }

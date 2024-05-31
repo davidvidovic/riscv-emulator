@@ -10,6 +10,7 @@ typedef struct {
     const char* value;
     int line;
     ASTnode* node;
+    //id_type type;
 } ht_entry;
 
 struct ht {
