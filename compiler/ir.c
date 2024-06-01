@@ -17,6 +17,7 @@ IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondar
     }
 
 
+    /* Prio execution */
 
     if(root->nodetype == IF_NODE || root->nodetype == ELSE_NODE)
     { 
@@ -25,12 +26,14 @@ IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondar
 
     if(root->right != NULL)
     {
-        if(root->right->nodetype == ELSE_NODE)
+        if(root->right->nodetype == ELSE_NODE || root->right->nodetype == WHILE_NODE)
         {    
             this_node = insert_IR(root, this_node, stack, secondary_stack);
         }
     }
 
+
+    /* Normal execution */
     if(root->left != NULL) 
     {
         if(this_node == NULL)
@@ -42,7 +45,7 @@ IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondar
     if(this_node != NULL)
         head = this_node; 
 
-    if(root->nodetype == ELSE_NODE || (root->right != NULL && root->right->nodetype == ELSE_NODE))
+    if(root->nodetype == ELSE_NODE || (root->right != NULL && (root->right->nodetype == ELSE_NODE || root->right->nodetype == WHILE_NODE)))
         return this_node;
     else
         return insert_IR(root, head, stack, secondary_stack);
@@ -344,8 +347,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
             }
         break;
 
-        case ELSE_NODE:
-            
+        case ELSE_NODE:           
             jmp->ir_type = JAL;
             jmp->instruction = "jal";
             jmp->rd.reg = 0; // by ISA docs - pseudo j (jamp) instruction is jal with rd set as x0
@@ -426,6 +428,28 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     IR_node *help = pop(stack);
                     help->rs1.label = tmp;
                 }
+                else if(root->right->nodetype == WHILE_NODE)
+                {
+                    node->ir_type = LABEL;
+                    root->value.label_count = label_counter++;
+                    sprintf(tmp, "L%d", root->value.label_count);
+                    node->instruction = tmp; 
+
+                    IR_node *help = pop(stack);
+                    sprintf(tmp, "L%d", root->value.label_count);
+                    help->rd.label = tmp;
+
+                    ASTnode *tail = root->right->right->right;
+                    tail->right = NULL;
+
+                    int num_AND = count_subtree_AND_OPs(tail);
+
+                    for(int i = 0; i < num_AND; i++)
+                    {
+                        help = pop(stack);
+                        help->rd.label = tmp;
+                    }
+                }
             }
         break;
 
@@ -486,6 +510,45 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
 
             // When sp stuff for getting in and out of a function is done, stack will have to be popped-out in here
             return rtn;
+        break;
+
+        case WHILE_NODE:
+            //IR_node *temp_node = (IR_node *)malloc(sizeof(IR_node));
+            
+            node->ir_type = JAL;
+            node->instruction = "jal";
+            node->rd.reg = 0; // by ISA docs - pseudo j (jump) instruction is jal with rd set as x0
+            //push(stack, node);
+            sprintf(tmp, "L%d", root->right->right->right->value.label_count);
+            node->rs1.label = tmp;
+
+            // temp_node->next = head;
+            // temp_node->prev = NULL;
+            // head->prev = temp_node;
+
+            // node->ir_type = LABEL;
+            // root->value.label_count = label_counter++;
+            // sprintf(tmp, "L%d", root->value.label_count);
+            // node->instruction = tmp; 
+
+            // node->next = temp_node;
+            // node->prev = NULL;
+            // temp_node->prev = node;
+        break;
+
+        case LABEL_NODE:
+            /* This is a special type of node for inserting label before while boolean expression is evaluated */
+            node->ir_type = LABEL;
+            root->value.label_count = label_counter++;
+            sprintf(tmp, "L%d", root->value.label_count);
+            node->instruction = tmp; 
+
+            /* Risky thing about to happen */
+            while(secondary_stack->top != NULL)
+            {
+                IR_node *help = pop(secondary_stack);
+                help->rd.label = tmp;
+            }
         break;
     }
 

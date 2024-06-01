@@ -1,23 +1,22 @@
 int main()
 { 
-    int a = 999, c;
+    int a;
     int b;
-    char g = '0';
-
-    a = 1;
-
-    if(a != b)
+    b = 0;
+    a = 4;
+    
+    while(b || a)
     {
-        g = 'A';
-    }
-    else
-    {
-        g = '1';
-        if(a && b)
+        a = 2;
+        if(a == 2)
         {
-            g = 'a';
+            a = 1;
         }
-        c = 19;
+        else
+        {
+            b = 0;
+        }
+        a = 19;
     }
-    a = 19;
+    b = 19;
 }

@@ -114,6 +114,19 @@ ASTnode* new_ASTnode_ELSE(ASTnode* left, ASTnode* right)
     return (n);
 }
 
+ASTnode* new_ASTnode_WHILE(ASTnode* left, ASTnode* right)
+{
+    ASTnode *n = mkASTnode(left, right);
+    n->nodetype = WHILE_NODE;
+    return (n);
+}
+
+ASTnode* new_ASTnode_LABEL(ASTnode* left, ASTnode* right)
+{
+    ASTnode *n = mkASTnode(left, right);
+    n->nodetype = LABEL_NODE;
+    return (n);
+}
 
 ASTnode* new_ASTnode_FUNCTION(ASTnode* left, ASTnode* right)
 {
@@ -178,6 +191,14 @@ void print_value(ASTnode* n)
 
     case ELSE_NODE:
         printf("Node ELSE\n");
+        break;
+
+    case WHILE_NODE:
+        printf("Node WHILE\n");
+        break;
+    
+    case LABEL_NODE:
+        //printf("Node LABEL\n");
         break;
 
     case FUNCTION_NODE:

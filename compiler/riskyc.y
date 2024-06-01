@@ -86,6 +86,7 @@
 %type <ast> initializer
 %type <ast> initializer_list
 %type <ast> selection_statement
+%type <ast> iteration_statement
 
 %type <op> assignment_operator
 %type <ty> declaration_specifiers 
@@ -336,8 +337,6 @@ init_declarator_list
 init_declarator
 	: declarator {$$ = $1;}
 	| declarator '=' initializer {
-		
-
 		ASTnode *temp = new_ASTnode_OPERATION(EQU_OP, $1, $3);
 		$$ = new_ASTnode_EXPRESSION(temp, NULL);
 	}
@@ -582,8 +581,16 @@ statement_list
 			$$->right->right = $1;
 		else if($$->nodetype == ELSE_NODE)
 			$$->right->right->right = $1;
+		else if($$->nodetype == WHILE_NODE)
+		{
+			ASTnode *temp = new_ASTnode_LABEL(NULL, $1);
+			$$->right->right = temp;
+			ASTnode *temp1 = new_ASTnode_LABEL(NULL, $$->right);
+			$$->right = temp1;
+		}
 		else
 			$$->right = $1;
+		
 
 		if($$->right != NULL)
 		{
@@ -613,10 +620,12 @@ selection_statement
 	;
 
 iteration_statement
-	: WHILE '(' expression ')' statement
-	| DO statement WHILE '(' expression ')' ';'
-	| FOR '(' expression_statement expression_statement ')' statement
-	| FOR '(' expression_statement expression_statement expression ')' statement
+	: WHILE '(' expression ')' statement {
+		$$ = new_ASTnode_WHILE($5, $3);
+	}
+	| DO statement WHILE '(' expression ')' ';' {}
+	| FOR '(' expression_statement expression_statement ')' statement {}
+	| FOR '(' expression_statement expression_statement expression ')' statement {}
 	;
 
 jump_statement

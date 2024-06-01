@@ -12,7 +12,9 @@ typedef enum node_type {
     SCOPE_NODE,
     IF_NODE,
     ELSE_NODE,
-    FUNCTION_NODE
+    WHILE_NODE,
+    FUNCTION_NODE,
+    LABEL_NODE
 } node_type;
 
 typedef enum operation_type {
@@ -97,6 +99,8 @@ ASTnode* new_ASTnode_EXPRESSION(ASTnode* left, ASTnode* right);
 ASTnode* new_ASTnode_SCOPE(ASTnode* left, ASTnode* right);
 ASTnode* new_ASTnode_IF(ASTnode* left, ASTnode* right);
 ASTnode* new_ASTnode_ELSE(ASTnode* left, ASTnode* right);
+ASTnode* new_ASTnode_WHILE(ASTnode* left, ASTnode* right);
+ASTnode* new_ASTnode_LABEL(ASTnode* left, ASTnode* right);
 ASTnode* new_ASTnode_FUNCTION(ASTnode* left, ASTnode* right);
 
 // Helper functions
