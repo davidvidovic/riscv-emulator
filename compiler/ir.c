@@ -6,15 +6,31 @@
 
 int register_counter = 1;
 int label_counter = 1;
+extern int sp_offset;
 
 IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack)
 {
     IR_node *this_node = NULL;
 
-    if(root->right != NULL) 
-    {
-        this_node = populate_IR(root->right, head, stack, secondary_stack);
+    if(root->nodetype == FUNCTION_NODE)
+    { 
+        this_node = insert_IR(root, head, stack, secondary_stack);
+
+        if(root->right != NULL) 
+        {
+            this_node = populate_IR(root->right, this_node, stack, secondary_stack);
+        }
     }
+    else
+    {
+        if(root->right != NULL) 
+        {
+            this_node = populate_IR(root->right, head, stack, secondary_stack);
+        }
+    }
+
+
+    
 
 
     /* Prio execution */
@@ -34,7 +50,7 @@ IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondar
 
 
     /* Normal execution */
-    if(root->left != NULL) 
+    if(root->left != NULL && root->nodetype != FUNCTION_NODE) // watch out when added parameters to non-main function
     {
         if(this_node == NULL)
             this_node = populate_IR(root->left, head, stack, secondary_stack);
@@ -45,7 +61,25 @@ IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondar
     if(this_node != NULL)
         head = this_node; 
 
-    if(root->nodetype == ELSE_NODE || (root->right != NULL && (root->right->nodetype == ELSE_NODE || root->right->nodetype == WHILE_NODE || root->right->nodetype == FOR_NODE)))
+    if(root->nodetype == FUNCTION_NODE)
+    {
+        char *ls = malloc(5 * sizeof(char));
+        sprintf(ls, "L%d", root->right->value.label_count);
+        while(stack->top != NULL)
+        {
+            IR_node *help = pop(stack);
+            if(help->ir_type == JAL)
+                help->rs1.label = ls;
+            else
+                help->rd.label = ls;
+        }
+
+        return this_node;
+    }
+
+    if(root->nodetype == ELSE_NODE 
+        || (root->right != NULL && (root->right->nodetype == ELSE_NODE || root->right->nodetype == WHILE_NODE || root->right->nodetype == FOR_NODE))
+        )
         return this_node;
     else
         return insert_IR(root, head, stack, secondary_stack);
@@ -210,12 +244,24 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                 break;
 
                 case LOGIC_NOT_OP:
-                /* Not yet supporeted by AST? */
-                    // node->ir_type = BNE;
-                    // node->instruction = "bne";
-                    // node->rs1.reg = node->next->next->reg; 
-                    // node->rs2.reg = node->next->reg; 
-                    // push(stack, node); 
+                    node->ir_type = SLTIU;
+                    node->instruction = "sltiu";
+                    node->rd.reg = node->next->reg;
+                    node->rs1.reg = node->next->reg; 
+                    node->rs2.int_constant = 1;
+
+                    IR_node *nxt = (IR_node *)malloc(sizeof(IR_node));
+                    nxt->next = node;
+                    nxt->prev = NULL;
+                    node->prev = nxt;
+
+                    nxt->ir_type = ANDI;
+                    nxt->instruction = "andi";
+                    nxt->rd.reg = node->rd.reg;
+                    nxt->rs1.reg = node->rs1.reg;
+                    nxt->rs2.int_constant = 0xff;
+
+                    return nxt;
                 break;
 
                 case LOGIC_AND_OP:
@@ -328,6 +374,15 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
 
                         return head;
                     }
+                break;
+
+                case BITWISE_NOT_OP:
+                    /* Pseudo NOT by ISA docs */
+                    node->ir_type = XORI;
+                    node->instruction = "xori";
+                    node->rd.reg = node->next->reg;
+                    node->rs1.reg = node->next->reg;
+                    node->rs2.int_constant = -1;
                 break;
             }
         break;
@@ -527,43 +582,20 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
             node->ir_type = LABEL;
             node->instruction = root->left->name;
 
-            // Remove ugly ID of function from list (LW Rx,main)
-            node->next = node->next->next;
-            node->next->prev = node;
+            IR_node *sp_alloc = (IR_node *)malloc(sizeof(IR_node));
+            sp_alloc->prev = NULL;
+            sp_alloc->next = node;
+            node->prev = sp_alloc;
 
-            IR_node *rtn = node->next;
-            //rtn->next = node->next->next;
-            rtn->prev = NULL;
+            sp_alloc->ir_type = ADDI;
+            sp_alloc->instruction = "addi";
+            sp_alloc->rd.name = "sp";
+            sp_alloc->rs1.name = "sp";
+            
+            sp_offset += sp_offset % 8;
+            sp_alloc->rs2.int_constant = (-1)*sp_offset;
 
-            // This is going to be so ugly so keep in mind to fix this
-            // I need info at this point where head (I mean tail) is so that I can insert
-            // This node between tail and its next node...
-            // So I am going to do the stupidest thing ever and loop the entire list until I find tail
-            IR_node *temp = node;
-
-            while(temp->next->ir_type != HEAD)
-            {
-                temp = temp->next;
-            }
-            temp->next->prev = node;
-            node->next = temp->next;
-
-            temp->next = node;
-            node->prev = temp;
-
-            // When sp stuff for getting in and out of a function is done, stack will have to be popped-out in here
-            char *ls = malloc(5 * sizeof(char));
-            sprintf(ls, "L%d", root->right->value.label_count);
-            while(stack->top != NULL)
-            {
-                help = pop(stack);
-                if(help->ir_type == JAL)
-                    help->rs1.label = ls;
-                else
-                    help->rd.label = ls;
-            }
-
-            return rtn;
+            return sp_alloc;
         break;
 
         case WHILE_NODE:

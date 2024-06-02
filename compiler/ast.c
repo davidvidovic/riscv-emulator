@@ -302,6 +302,9 @@ char* print_operation(operation_type op)
 
     case LOGIC_GET_OP:
         return "LOGIC_GET_OP";
+
+    case BITWISE_NOT_OP:
+        return "BITWISE_NOT_OP";
     
     default:
         return "NOT VALID OPERATION";

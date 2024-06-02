@@ -12,7 +12,7 @@ extern FILE *yyin;
 extern char *yytext;
 ht* table;
 ASTnode *root;
-
+int sp_offset;
 
 void exit_nomem(void) {
     fprintf(stderr, "out of memory\n");
@@ -190,8 +190,8 @@ int main()
 
     root = mkASTnode(NULL, NULL);
 
+    sp_offset = 0;
     yyin = fopen("input.c", "r");
-    int token;
     yyparse();
 
     for(int i = 0; i < table->capacity; i++) 
@@ -276,8 +276,20 @@ int main()
         break;
 
         case JAL:
-          printf("\tjal R%d,.%s\n", IR_head->rd.reg, IR_head->rs1.label);
-          fprintf(asm_file, "\tjal R%d,.%s\n", IR_head->rd.reg, IR_head->rs1.label);
+          printf("\t%s R%d,.%s\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.label);
+          fprintf(asm_file, "\t%s R%d,.%s\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.label);
+        break;
+
+        case XORI:
+        case ANDI:
+        case SLTIU:
+          printf("\t%s R%d,R%d,%d\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.reg, IR_head->rs2.int_constant);
+          fprintf(asm_file, "\t%s R%d,R%d,%d\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.reg, IR_head->rs2.int_constant);
+        break;
+
+        case ADDI: // for now like this!
+          printf("\t%s %s,%s,%d\n", IR_head->instruction, IR_head->rd.name, IR_head->rs1.name, IR_head->rs2.int_constant);
+          fprintf(asm_file, "\t%s %s,%s,%d\n", IR_head->instruction, IR_head->rd.name, IR_head->rs1.name, IR_head->rs2.int_constant);
         break;
 
         case IR_NO_TYPE:

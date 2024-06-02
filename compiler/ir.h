@@ -6,6 +6,7 @@
 #include "ast.h"
 #include "instructions.h"
 
+
 typedef union IR_value
 {
     int int_constant;
@@ -39,6 +40,8 @@ typedef struct LIFO_node {
 typedef struct Stack {
     LIFO_node* top;
 } Stack;
+
+
 
 IR_node* create_IR();
 IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack);

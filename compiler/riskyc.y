@@ -10,8 +10,8 @@
     extern int lineno;
     extern ASTnode *root;
     int main_counter = 0;
+	extern int sp_offset;
     int multiline_declaration_cnt = 0;
-	int sp_offset = 0;
 	ASTnode* set_right_init_to_null(ASTnode *root);
 	int calculate_sp_offset(int sp_offset, id_type type);
 
@@ -89,6 +89,7 @@
 %type <ast> iteration_statement
 
 %type <op> assignment_operator
+%type <op> unary_operator
 %type <ty> declaration_specifiers 
 %type <ty> type_specifier
 
@@ -124,20 +125,26 @@ argument_expression_list
 
 unary_expression 
 	: postfix_expression {$$ = $1;}
-	| INC_OP unary_expression {}
-	| DEC_OP unary_expression {}
-	| unary_operator cast_expression {}
+	| INC_OP unary_expression {
+		ASTnode *add_node = new_ASTnode_OPERATION(ADD_OP, $2, new_ASTnode_INT(1)); // possible bug for other data types
+		$$ = new_ASTnode_OPERATION(EQU_OP, $2, add_node);	
+	} 
+	| DEC_OP unary_expression {
+		ASTnode *add_node = new_ASTnode_OPERATION(SUB_OP, $2, new_ASTnode_INT(1)); // possible bug for other data types
+		$$ = new_ASTnode_OPERATION(EQU_OP, $2, add_node);	
+	} 
+	| unary_operator cast_expression {$$ = new_ASTnode_OPERATION($1, $2, NULL);}
 	| SIZEOF unary_expression {}
 	| SIZEOF '(' type_name ')' {}
 	;
 
 unary_operator
-	: '&' 
-	| '*' 
-	| '+' 
-	| '-' 
-	| '~' 
-	| '!' 
+	: '&' {}
+	| '*' {}
+	| '+' {}
+	| '-' {}
+	| '~' {$$ = BITWISE_NOT_OP;}
+	| '!' {$$ = LOGIC_NOT_OP;}
 	;
 
 cast_expression
@@ -280,12 +287,14 @@ declaration
 		if($$->nodetype == ID_NODE)
 		{
 			$$->type = $1;
-			ht_set_type_sp_offset($$->name, $1, calculate_sp_offset(sp_offset, $1));
+			sp_offset = calculate_sp_offset(sp_offset, $1);
+			ht_set_type_sp_offset($$->name, $1, sp_offset);
 		}
 		else if($$->nodetype == EXPRESSION_NODE)
 		{
 			$$->left->left->type = $1;
-			ht_set_type_sp_offset($$->left->left->name, $1, calculate_sp_offset(sp_offset, $1));
+			sp_offset = calculate_sp_offset(sp_offset, $1);
+			ht_set_type_sp_offset($$->left->left->name, $1, sp_offset);
 		}
 		
 		/* 
@@ -304,12 +313,14 @@ declaration
 				if(temp->nodetype == ID_NODE)
 				{
 					temp->type = $1;
-					ht_set_type_sp_offset(temp->name, $1, calculate_sp_offset(sp_offset, $1));
+					sp_offset = calculate_sp_offset(sp_offset, $1);
+					ht_set_type_sp_offset(temp->name, $1, sp_offset);
 				}
 				else if(temp->nodetype == EXPRESSION_NODE)
 				{
 					temp->left->left->type = $1;
-					ht_set_type_sp_offset(temp->left->left->name, $1, calculate_sp_offset(sp_offset, $1));
+					sp_offset = calculate_sp_offset(sp_offset, $1);
+					ht_set_type_sp_offset(temp->left->left->name, $1, sp_offset);
 				}
 				temp = temp->right;
 			}
@@ -733,5 +744,7 @@ int calculate_sp_offset(int sp_offset, id_type type)
 			printf("[calculate_sp_offset]\tUnrecognized data type.");
 		break;
 	}
+
+	return sp_offset;
 }
 

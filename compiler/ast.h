@@ -46,7 +46,8 @@ typedef enum operation_type {
     LOGIC_LT_OP,
     LOGIC_GT_OP,
     LOGIC_LET_OP,
-    LOGIC_GET_OP
+    LOGIC_GET_OP,
+    BITWISE_NOT_OP
 } operation_type;
 
 typedef enum id_type {
@@ -85,6 +86,7 @@ typedef struct ASTnode {
     // Expressions
     operation_type operation;
 } ASTnode;
+
 
 
 ASTnode* mkASTnode(ASTnode *left, ASTnode *right);
