@@ -26,7 +26,7 @@ IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondar
 
     if(root->right != NULL)
     {
-        if(root->right->nodetype == ELSE_NODE || root->right->nodetype == WHILE_NODE)
+        if(root->right->nodetype == ELSE_NODE || root->right->nodetype == WHILE_NODE || root->right->nodetype == FOR_NODE)
         {    
             this_node = insert_IR(root, this_node, stack, secondary_stack);
         }
@@ -45,7 +45,7 @@ IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondar
     if(this_node != NULL)
         head = this_node; 
 
-    if(root->nodetype == ELSE_NODE || (root->right != NULL && (root->right->nodetype == ELSE_NODE || root->right->nodetype == WHILE_NODE)))
+    if(root->nodetype == ELSE_NODE || (root->right != NULL && (root->right->nodetype == ELSE_NODE || root->right->nodetype == WHILE_NODE || root->right->nodetype == FOR_NODE)))
         return this_node;
     else
         return insert_IR(root, head, stack, secondary_stack);
@@ -343,7 +343,10 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
             while(secondary_stack->top != NULL)
             {
                 IR_node* help = pop(secondary_stack);
-                help->rd.label = tmp;
+                if(help->ir_type == JAL)
+                    help->rs1.label = tmp;
+                else
+                    help->rd.label = tmp;
             }
         break;
 
@@ -369,7 +372,10 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
             root->left->value.label_count = root->value.label_count;
 
             IR_node *help = pop(stack);
-            help->rd.label = tmp;
+            if(help->ir_type == JAL)
+                help->rs1.label = tmp;
+            else
+                help->rd.label = tmp;
 
             ASTnode *tail = root->right->right;
             tail->right = NULL;
@@ -378,7 +384,10 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
             for(int i = 0; i < num_AND; i++)
             {
                 help = pop(stack);
-                help->rd.label = tmp;
+                if(help->ir_type == JAL)
+                    help->rs1.label = tmp;
+                else
+                    help->rd.label = tmp;
             }
             
             push(stack, jmp);
@@ -398,7 +407,10 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     node->instruction = tmp;                    
 
                     IR_node *help = pop(stack);
-                    help->rd.label = tmp;
+                    if(help->ir_type == JAL)
+                        help->rs1.label = tmp;
+                    else
+                        help->rd.label = tmp;
 
                     ASTnode *tail = root->right->right;
                     tail->right = NULL;
@@ -415,7 +427,10 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     for(int i = 0; i < num_AND; i++)
                     {
                         help = pop(stack);
-                        help->rd.label = tmp;
+                        if(help->ir_type == JAL)
+                            help->rs1.label = tmp;
+                        else
+                            help->rd.label = tmp;
                     }
                 }
                 else if(root->right->nodetype == ELSE_NODE)
@@ -426,7 +441,10 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     node->instruction = tmp;                    
 
                     IR_node *help = pop(stack);
-                    help->rs1.label = tmp;
+                    if(help->ir_type == JAL)
+                        help->rs1.label = tmp;
+                    else
+                        help->rd.label = tmp;
                 }
                 else if(root->right->nodetype == WHILE_NODE)
                 {
@@ -437,7 +455,10 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
 
                     IR_node *help = pop(stack);
                     sprintf(tmp, "L%d", root->value.label_count);
-                    help->rd.label = tmp;
+                    if(help->ir_type == JAL)
+                        help->rs1.label = tmp;
+                    else
+                        help->rd.label = tmp;
 
                     ASTnode *tail = root->right->right->right;
                     tail->right = NULL;
@@ -447,7 +468,38 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     for(int i = 0; i < num_AND; i++)
                     {
                         help = pop(stack);
+                        if(help->ir_type == JAL)
+                            help->rs1.label = tmp;
+                        else
+                            help->rd.label = tmp;
+                    }
+                }
+                else if(root->right->nodetype == FOR_NODE)
+                {
+                    node->ir_type = LABEL;
+                    root->value.label_count = label_counter++;
+                    sprintf(tmp, "L%d", root->value.label_count);
+                    node->instruction = tmp; 
+
+                    IR_node *help = pop(stack);
+                    sprintf(tmp, "L%d", root->value.label_count);
+                    if(help->ir_type == JAL)
+                        help->rs1.label = tmp;
+                    else
                         help->rd.label = tmp;
+
+                    ASTnode *tail = root->right->right;
+                    tail->right = NULL;
+
+                    int num_AND = count_subtree_AND_OPs(tail);
+
+                    for(int i = 0; i < num_AND; i++)
+                    {
+                        help = pop(stack);
+                        if(help->ir_type == JAL)
+                            help->rs1.label = tmp;
+                        else
+                            help->rd.label = tmp;
                     }
                 }
             }
@@ -456,27 +508,17 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
         case SCOPE_NODE:
             if(root->left != NULL)
             {
-                if(root->left->nodetype == IF_NODE) // ??? i think this solves bug when if is the first AST node after main's scope, should get looked at
+                if(root->left->nodetype != EXPRESSION_NODE) // when something other than exp is to the left of scope
                 {
-                    //node->ir_type = LABEL;
+                    node->ir_type = LABEL; 
                     char *tmp = malloc(5 * sizeof(char));
-                    sprintf(tmp, "L%d", root->left->value.label_count);
+                    root->value.label_count = label_counter++;
+                    sprintf(tmp, "L%d", root->value.label_count);
                     node->instruction = tmp;     
-
-                    IR_node *help = pop(stack);
-                    help->rd.label = tmp;
                 }
                 else
                 {
-                    char *tmp = malloc(5 * sizeof(char));
-                    sprintf(tmp, "L%d", root->value.label_count);
-                    node->instruction = tmp;     
-
-                    // if(secondary_stack->top != NULL)
-                    // {
-                    //     IR_node *help = pop(secondary_stack);
-                    //     help->rd.label = tmp;
-                    // }
+                    root->value.label_count = root->left->value.label_count;
                 }
             }      
         break;
@@ -486,10 +528,11 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
             node->instruction = root->left->name;
 
             // Remove ugly ID of function from list (LW Rx,main)
-            node->next = (node->next)->next;
+            node->next = node->next->next;
             node->next->prev = node;
 
             IR_node *rtn = node->next;
+            //rtn->next = node->next->next;
             rtn->prev = NULL;
 
             // This is going to be so ugly so keep in mind to fix this
@@ -509,6 +552,17 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
             node->prev = temp;
 
             // When sp stuff for getting in and out of a function is done, stack will have to be popped-out in here
+            char *ls = malloc(5 * sizeof(char));
+            sprintf(ls, "L%d", root->right->value.label_count);
+            while(stack->top != NULL)
+            {
+                help = pop(stack);
+                if(help->ir_type == JAL)
+                    help->rs1.label = ls;
+                else
+                    help->rd.label = ls;
+            }
+
             return rtn;
         break;
 
@@ -521,19 +575,18 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
             //push(stack, node);
             sprintf(tmp, "L%d", root->right->right->right->value.label_count);
             node->rs1.label = tmp;
+            root->value.label_count = root->right->right->right->value.label_count;
+            //root->value.label_count = label_counter++;
+        break;
 
-            // temp_node->next = head;
-            // temp_node->prev = NULL;
-            // head->prev = temp_node;
-
-            // node->ir_type = LABEL;
-            // root->value.label_count = label_counter++;
-            // sprintf(tmp, "L%d", root->value.label_count);
-            // node->instruction = tmp; 
-
-            // node->next = temp_node;
-            // node->prev = NULL;
-            // temp_node->prev = node;
+        case FOR_NODE:
+            node->ir_type = JAL;
+            node->instruction = "jal";
+            node->rd.reg = 0; // by ISA docs - pseudo j (jump) instruction is jal with rd set as x0
+            sprintf(tmp, "L%d", root->right->right->value.label_count);
+            node->rs1.label = tmp;
+            root->value.label_count = root->right->right->value.label_count;
+            //root->value.label_count = label_counter++;
         break;
 
         case LABEL_NODE:
@@ -547,7 +600,10 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
             while(secondary_stack->top != NULL)
             {
                 IR_node *help = pop(secondary_stack);
-                help->rd.label = tmp;
+                if(help->ir_type == JAL)
+                    help->rs1.label = tmp;
+                else
+                    help->rd.label = tmp;
             }
         break;
     }

@@ -236,7 +236,14 @@ assignment_expression
 	: conditional_expression {$$ = $1;}
 	| unary_expression assignment_operator assignment_expression {
 		/* Type check */
-		type_check($1, $3);
+		if($3->nodetype == OPERATION_NODE)
+		{
+			type_check($1, $3->left);
+		}
+		else
+		{
+			type_check($1, $3);
+		}
 		$$ = new_ASTnode_OPERATION($2, $1, $3); // maybe 3,1?		
 	}
 	;
@@ -311,7 +318,8 @@ declaration
 			$$ = set_right_init_to_null($$);
 			free(temp);
 		}
-	} // multi-declarations in one line are here, this is the bug for NO TYPE problem
+		
+	}
 	;
 
 declaration_specifiers
@@ -531,31 +539,13 @@ compound_statement
 	| '{' statement_list '}' {$$ = new_ASTnode_SCOPE($2, NULL);} 
 	| '{' declaration_list '}' {$$ = $2;} 
 	| '{' declaration_list statement_list '}' {	
-
-		/* 
-		* Need to merge two sub-trees into one continuous, and while at it declarations must come before statements,
-		* so I loop the statement list and insert declaration sub-tree on bottom-right side
-		*/
-		ASTnode *temp = $3;
-		if($2->nodetype != ID_NODE)
-		{
-			while(temp->right != NULL)
-			{
-				temp = temp->right;
-			}
-
-			temp->right = $2;
-		}
-
-		$$ = new_ASTnode_SCOPE($3, NULL);
+		$$ = new_ASTnode_SCOPE($3, $2);
 	}
 	;
 
 declaration_list
-	: declaration {$$ = $1; } // odradice se samo jednom za main, sve ostalo ispod?
-	| declaration_list declaration {
-			
-		
+	: declaration {$$ = $1;}
+	| declaration_list declaration {	
 		if($2->nodetype == EXPRESSION_NODE)
 		{
 			$$ = $2;
@@ -569,12 +559,29 @@ declaration_list
 			$$ = $1;
 		}
 		else
+		{
 			$$ = $2;
+		}
 	}
 	;
 
 statement_list
-	: statement {$$ = $1;}
+	: statement {
+		$$ = $1;
+		if($$->nodetype == WHILE_NODE)
+		{
+			ASTnode *temp = new_ASTnode_LABEL(NULL, NULL);
+			$$->right->right = temp;
+			ASTnode *temp1 = new_ASTnode_LABEL(NULL, $$->right);
+			$$->right = temp1;
+		}
+		else if($$->nodetype == FOR_NODE) 
+		{	
+			/* Inserting label node between init_exp and bool_exp in for statement */
+			ASTnode *temp = new_ASTnode_LABEL(NULL, $$->right->right);
+			$$->right->right = temp;
+		}
+	}
 	| statement_list statement {
 		$$ = $2; 
 		if($$->nodetype == IF_NODE)
@@ -587,6 +594,13 @@ statement_list
 			$$->right->right = temp;
 			ASTnode *temp1 = new_ASTnode_LABEL(NULL, $$->right);
 			$$->right = temp1;
+		}
+		else if($$->nodetype == FOR_NODE)
+		{
+			$$->right->right->right = $1;
+			/* Inserting label node between init_exp and bool_exp in for statement */
+			ASTnode *temp = new_ASTnode_LABEL(NULL, $$->right->right);
+			$$->right->right = temp;
 		}
 		else
 			$$->right = $1;
@@ -624,8 +638,15 @@ iteration_statement
 		$$ = new_ASTnode_WHILE($5, $3);
 	}
 	| DO statement WHILE '(' expression ')' ';' {}
-	| FOR '(' expression_statement expression_statement ')' statement {}
-	| FOR '(' expression_statement expression_statement expression ')' statement {}
+	| FOR '(' expression_statement expression_statement ')' statement {
+		$4->right = $3;
+		$$ = new_ASTnode_FOR($6, $4);
+	}
+	| FOR '(' expression_statement expression_statement expression ')' statement {
+		$4->right = $3;
+		$5->right = $7;
+		$$ = new_ASTnode_FOR($5, $4);
+	}
 	;
 
 jump_statement
@@ -670,27 +691,26 @@ ASTnode* set_right_init_to_null(ASTnode *root)
 	if(root->right != NULL)
 		temp = set_right_init_to_null(root->right);
 
-	
+		
 	if(temp != NULL && temp->nodetype == EXPRESSION_NODE)
 	{
-		root->right = temp;
+		if(root->nodetype == EXPRESSION_NODE)
+		{
+			root->right = temp;
+			return root;
+		}
+		else
+		{
+			root->right = NULL;
+			return temp;
+		}
 	}
 	else
 	{
 		root->right = NULL;
 	}
-
-
-	if(root->nodetype == EXPRESSION_NODE)
-	{
-		return root;
-	}
-	else
-	{
-		return temp;
-	}
 	
-	return temp;	
+	return root;	
 }
 
 int calculate_sp_offset(int sp_offset, id_type type)

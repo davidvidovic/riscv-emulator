@@ -121,6 +121,13 @@ ASTnode* new_ASTnode_WHILE(ASTnode* left, ASTnode* right)
     return (n);
 }
 
+ASTnode* new_ASTnode_FOR(ASTnode* left, ASTnode* right)
+{
+    ASTnode *n = mkASTnode(left, right);
+    n->nodetype = FOR_NODE;
+    return (n);
+}
+
 ASTnode* new_ASTnode_LABEL(ASTnode* left, ASTnode* right)
 {
     ASTnode *n = mkASTnode(left, right);
@@ -145,14 +152,14 @@ void print_value(ASTnode* n)
     case ID_NODE:
         if(n->name != NULL) 
         {
-            if(n->name != NULL) printf("Node ID(%s, %s)\n", n->name, print_type(n->type));
+            printf("Node ID(%s, %s)\n", n->name, print_type(n->type));
         }
         break;
 
     case CONSTANT_NODE:
         if(n->type != NO_TYPE)
         {
-            printf("Node CONST:(%s, ", print_type(n->type));
+            printf("Node CONST(%s, ", print_type(n->type));
             switch(n->type)
             {
                 case NO_TYPE:
@@ -196,9 +203,13 @@ void print_value(ASTnode* n)
     case WHILE_NODE:
         printf("Node WHILE\n");
         break;
+
+    case FOR_NODE:
+        printf("Node FOR\n");
+        break;
     
     case LABEL_NODE:
-        //printf("Node LABEL\n");
+        printf("Node LABEL\n");
         break;
 
     case FUNCTION_NODE:

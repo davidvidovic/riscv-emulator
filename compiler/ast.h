@@ -13,6 +13,7 @@ typedef enum node_type {
     IF_NODE,
     ELSE_NODE,
     WHILE_NODE,
+    FOR_NODE,
     FUNCTION_NODE,
     LABEL_NODE
 } node_type;
@@ -100,6 +101,7 @@ ASTnode* new_ASTnode_SCOPE(ASTnode* left, ASTnode* right);
 ASTnode* new_ASTnode_IF(ASTnode* left, ASTnode* right);
 ASTnode* new_ASTnode_ELSE(ASTnode* left, ASTnode* right);
 ASTnode* new_ASTnode_WHILE(ASTnode* left, ASTnode* right);
+ASTnode* new_ASTnode_FOR(ASTnode* left, ASTnode* right);
 ASTnode* new_ASTnode_LABEL(ASTnode* left, ASTnode* right);
 ASTnode* new_ASTnode_FUNCTION(ASTnode* left, ASTnode* right);
 

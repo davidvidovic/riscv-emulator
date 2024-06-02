@@ -1,22 +1,23 @@
 int main()
 { 
-    int a;
-    int b;
-    b = 0;
-    a = 4;
-    
-    while(b || a)
+    int a = 1;
+    int b = 2, c;
+
+    if(a != b)
     {
-        a = 2;
-        if(a == 2)
+        b = b + 19;
+        while(b > 15)
         {
-            a = 1;
+            b = b - 2;
         }
-        else
-        {
-            b = 0;
-        }
-        a = 19;
+        c = 0;
     }
-    b = 19;
+    else
+    {
+        for(a = 1; a < 4; a=a+1)
+        {
+            b = b + a;
+        }
+    }
+    c = 1;
 }

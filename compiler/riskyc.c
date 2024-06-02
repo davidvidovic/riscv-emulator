@@ -232,7 +232,7 @@ int main()
 
     printf("\n\nASM:\n\n");
 
-    while(IR_head->prev != IR_tail)
+    while(IR_head != IR_tail)
     {
       IR_head = IR_head->prev;
       switch(IR_head->ir_type)
