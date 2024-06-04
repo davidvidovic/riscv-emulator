@@ -1,5 +1,4 @@
 .main:
-	addi sp,sp,-16
 	lui R2,1
 	sw a,R2
 	lui R6,2
@@ -32,7 +31,7 @@
 .L6:
 	lw R47,a
 	lui R48,4
-	bge R47,R48,.L8
+	bge R47,R48,.L7
 	lw R51,b
 	lw R52,a
 	add R53,R52,R51
@@ -43,6 +42,8 @@
 	sw a,R60
 	jal R0,.L6
 .L7:
+	lui R66,0
+	sw c,R66
 .L8:
-	lui R67,1
-	sw c,R67
+	lui R71,1
+	sw c,R71

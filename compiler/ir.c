@@ -505,6 +505,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                 {
                     node->ir_type = LABEL;
                     root->value.label_count = label_counter++;
+                    
                     sprintf(tmp, "L%d", root->value.label_count);
                     node->instruction = tmp; 
 
@@ -582,20 +583,8 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
             node->ir_type = LABEL;
             node->instruction = root->left->name;
 
-            IR_node *sp_alloc = (IR_node *)malloc(sizeof(IR_node));
-            sp_alloc->prev = NULL;
-            sp_alloc->next = node;
-            node->prev = sp_alloc;
+            /* Stack frame allocation time */
 
-            sp_alloc->ir_type = ADDI;
-            sp_alloc->instruction = "addi";
-            sp_alloc->rd.name = "sp";
-            sp_alloc->rs1.name = "sp";
-            
-            sp_offset += sp_offset % 8;
-            sp_alloc->rs2.int_constant = (-1)*sp_offset;
-
-            return sp_alloc;
         break;
 
         case WHILE_NODE:
@@ -713,4 +702,80 @@ IR_node* pop(Stack *stack)
         stack->top = temp->next;
     }
     return ptr;
+}
+
+
+void print_IR(IR_node *IR_head, IR_node *IR_tail)
+{
+    printf("\n\nASM:\n\n");
+    FILE *asm_file = fopen("output.s", "w");
+
+    while(IR_head != IR_tail)
+    {
+      IR_head = IR_head->prev;
+      switch(IR_head->ir_type)
+      {
+        case LABEL:
+          printf(".%s:\n", IR_head->instruction);
+          fprintf(asm_file, ".%s:\n", IR_head->instruction);
+        break;
+        
+        case SW:
+          printf("\t%s %s,R%d\n", IR_head->instruction, IR_head->rd.name, IR_head->rs1.reg);
+          fprintf(asm_file, "\t%s %s,R%d\n", IR_head->instruction, IR_head->rd.name, IR_head->rs1.reg);
+        break;
+
+        case LW:
+          printf("\t%s R%d,%s\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.name);
+          fprintf(asm_file, "\t%s R%d,%s\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.name);
+        break;
+
+        case LUI:
+          printf("\t%s R%d,%d\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.int_constant);
+          fprintf(asm_file, "\t%s R%d,%d\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.int_constant);
+        break;        
+
+        case ADD:
+        case SUB:
+          printf("\t%s R%d,R%d,R%d\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.reg, IR_head->rs2.reg);
+          fprintf(asm_file, "\t%s R%d,R%d,R%d\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.reg, IR_head->rs2.reg);
+        break;
+
+        case BEQ:
+        case BNE:
+        case BLT:
+        case BGE:
+        case BLTU:
+        case BGEU:
+        case BGT:
+        case BLE:
+          printf("\t%s R%d,R%d,.%s\n", IR_head->instruction, IR_head->rs1.reg, IR_head->rs2.reg, IR_head->rd.label);
+          fprintf(asm_file, "\t%s R%d,R%d,.%s\n", IR_head->instruction, IR_head->rs1.reg, IR_head->rs2.reg, IR_head->rd.label);
+        break;
+
+        case JAL:
+          printf("\t%s R%d,.%s\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.label);
+          fprintf(asm_file, "\t%s R%d,.%s\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.label);
+        break;
+
+        case XORI:
+        case ANDI:
+        case SLTIU:
+          printf("\t%s R%d,R%d,%d\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.reg, IR_head->rs2.int_constant);
+          fprintf(asm_file, "\t%s R%d,R%d,%d\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.reg, IR_head->rs2.int_constant);
+        break;
+
+        case ADDI: // for now like this!
+          printf("\t%s %s,%s,%d\n", IR_head->instruction, IR_head->rd.name, IR_head->rs1.name, IR_head->rs2.int_constant);
+          fprintf(asm_file, "\t%s %s,%s,%d\n", IR_head->instruction, IR_head->rd.name, IR_head->rs1.name, IR_head->rs2.int_constant);
+        break;
+
+        case IR_NO_TYPE:
+        case HEAD:
+        break;
+      }
+    }
+
+
+    fclose(asm_file);
 }

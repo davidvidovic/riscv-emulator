@@ -51,6 +51,7 @@ void init_stack(Stack* stack);
 LIFO_node* create_LIFO_node(IR_node *node);
 void push(Stack* stack, IR_node *node);
 IR_node* pop(Stack *stack);
+void print_IR(IR_node *IR_head, IR_node *IR_tail);
 
 
 #endif

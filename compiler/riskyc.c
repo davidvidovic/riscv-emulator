@@ -6,6 +6,7 @@
 #include "symboltable.h"
 #include "ir.h"
 #include "ast.h"
+#include "control_flow.h"
 
 extern int lineno;
 extern FILE *yyin;
@@ -222,84 +223,22 @@ int main()
     // Walk the AST
     walkAST(root, depth);
 
-    FILE *asm_file = fopen("output.s", "w");
+    
     IR_node *IR_head = create_IR();
     Stack stack;
     Stack secondary_stack;
     init_stack(&stack);
     init_stack(&secondary_stack);
     IR_node *IR_tail = populate_IR(root, IR_head, &stack, &secondary_stack);
+    
+    print_IR(IR_head, IR_tail);
 
-    printf("\n\nASM:\n\n");
+    control_flow_graph *cfg;
+    init_cfg(&cfg);
+    populate_cfg(&cfg, IR_head, IR_tail);
 
-    while(IR_head != IR_tail)
-    {
-      IR_head = IR_head->prev;
-      switch(IR_head->ir_type)
-      {
-        case LABEL:
-          printf(".%s:\n", IR_head->instruction);
-          fprintf(asm_file, ".%s:\n", IR_head->instruction);
-        break;
-        
-        case SW:
-          printf("\t%s %s,R%d\n", IR_head->instruction, IR_head->rd.name, IR_head->rs1.reg);
-          fprintf(asm_file, "\t%s %s,R%d\n", IR_head->instruction, IR_head->rd.name, IR_head->rs1.reg);
-        break;
-
-        case LW:
-          printf("\t%s R%d,%s\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.name);
-          fprintf(asm_file, "\t%s R%d,%s\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.name);
-        break;
-
-        case LUI:
-          printf("\t%s R%d,%d\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.int_constant);
-          fprintf(asm_file, "\t%s R%d,%d\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.int_constant);
-        break;        
-
-        case ADD:
-        case SUB:
-          printf("\t%s R%d,R%d,R%d\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.reg, IR_head->rs2.reg);
-          fprintf(asm_file, "\t%s R%d,R%d,R%d\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.reg, IR_head->rs2.reg);
-        break;
-
-        case BEQ:
-        case BNE:
-        case BLT:
-        case BGE:
-        case BLTU:
-        case BGEU:
-        case BGT:
-        case BLE:
-          printf("\t%s R%d,R%d,.%s\n", IR_head->instruction, IR_head->rs1.reg, IR_head->rs2.reg, IR_head->rd.label);
-          fprintf(asm_file, "\t%s R%d,R%d,.%s\n", IR_head->instruction, IR_head->rs1.reg, IR_head->rs2.reg, IR_head->rd.label);
-        break;
-
-        case JAL:
-          printf("\t%s R%d,.%s\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.label);
-          fprintf(asm_file, "\t%s R%d,.%s\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.label);
-        break;
-
-        case XORI:
-        case ANDI:
-        case SLTIU:
-          printf("\t%s R%d,R%d,%d\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.reg, IR_head->rs2.int_constant);
-          fprintf(asm_file, "\t%s R%d,R%d,%d\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.reg, IR_head->rs2.int_constant);
-        break;
-
-        case ADDI: // for now like this!
-          printf("\t%s %s,%s,%d\n", IR_head->instruction, IR_head->rd.name, IR_head->rs1.name, IR_head->rs2.int_constant);
-          fprintf(asm_file, "\t%s %s,%s,%d\n", IR_head->instruction, IR_head->rd.name, IR_head->rs1.name, IR_head->rs2.int_constant);
-        break;
-
-        case IR_NO_TYPE:
-        case HEAD:
-        break;
-      }
-    }
-
-    fclose(asm_file);
-
+    printf("%d\n", cfg->last_block->bb_number);
+    
     ht_destroy(table);
     freeAST(root);
 
