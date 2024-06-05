@@ -15,11 +15,13 @@ typedef union IR_value
     char* name;
     char* label;
     int reg;
+    IR_register ir_reg;
 } IR_value;
 
 typedef struct IR_node
 {
-    instruction_type ir_type;
+    IR_instruction_type ir_type;
+    instruction_type instr_type;
     char* instruction;
     
     struct IR_node *prev;

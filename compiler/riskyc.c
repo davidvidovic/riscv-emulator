@@ -233,12 +233,16 @@ int main()
     
     print_IR(IR_head, IR_tail);
 
-    control_flow_graph *cfg;
-    init_cfg(&cfg);
-    populate_cfg(&cfg, IR_head, IR_tail);
-
-    printf("%d\n", cfg->last_block->bb_number);
+    control_flow_graph *cfg = populate_cfg(IR_head, IR_tail);
+    basic_block* temp = cfg->leader;
+  
+    do
+    {
+      printf("BLOCK %d: first instruction is %s and last instrcution is %s\n", temp->bb_number, temp->leader->instruction, temp->last_instruction->instruction);
+      temp = temp->bb_next;
+    } while(temp != NULL);
     
+
     ht_destroy(table);
     freeAST(root);
 

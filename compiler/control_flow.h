@@ -23,11 +23,10 @@ typedef struct control_flow_graph
 
 /* CFG */
 void init_cfg(control_flow_graph *cfg);
-void populate_cfg(control_flow_graph *cfg, IR_node *IR_head, IR_node *IR_tail);
-basic_block* create_graph(basic_block *this_block, IR_node *IR_head, IR_node *IR_tail);
+control_flow_graph* populate_cfg(IR_node *IR_head, IR_node *IR_tail);
 
 
 /* Basic blocks */
-basic_block* crate_basic_block(IR_node *leader, int bb_number); 
+basic_block* crate_basic_block(); 
 
 #endif
