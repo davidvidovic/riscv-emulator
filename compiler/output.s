@@ -4,46 +4,45 @@
 	lui R6,2
 	sw b,R6
 	lw R10,a
-	lw R11,b
-	beq R10,R11,.L5
+	addi R12,R10,1
+	sw a,R12
+	lw R16,a
+	lw R17,b
+	beq R16,R17,.L5
 .L1:
-	lw R15,b
-	lui R16,19
-	add R17,R16,R15
-	sw b,R17
+	lw R21,b
+	addi R23,R21,19
+	sw b,R23
 .L2:
-	lw R22,b
-	lui R23,15
-	bge R23,R22,.L4
+	lw R28,b
+	lui R29,15
+	bge R29,R28,.L4
 .L3:
-	lw R27,b
-	lui R28,2
-	sub R29,R28,R27
-	sw b,R29
+	lw R33,b
+	lui R34,2
+	sub R35,R34,R33
+	sw b,R35
 	jal R0,.L2
 .L4:
-	lui R36,0
-	sw c,R36
+	sw c,R0
 	jal R0,.L8
 .L5:
-	lui R42,1
-	sw a,R42
+	lui R47,1
+	sw a,R47
 .L6:
-	lw R47,a
-	lui R48,4
-	bge R47,R48,.L7
-	lw R51,b
 	lw R52,a
-	add R53,R52,R51
-	sw b,R53
-	lw R58,a
-	lui R59,1
-	add R60,R59,R58
-	sw a,R60
+	lui R53,4
+	bge R52,R53,.L7
+	lw R56,b
+	lw R57,a
+	add R58,R57,R56
+	sw b,R58
+	lw R63,a
+	addi R65,R63,1
+	sw a,R65
 	jal R0,.L6
 .L7:
-	lui R66,0
-	sw c,R66
+	sw c,R0
 .L8:
-	lui R71,1
-	sw c,R71
+	lui R75,1
+	sw c,R75

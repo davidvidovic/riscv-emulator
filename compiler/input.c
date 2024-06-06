@@ -3,6 +3,8 @@ int main()
     int a = 1;
     int b = 2, c;
 
+    a = a + 1;
+
     if(a != b)
     {
         b = b + 19;

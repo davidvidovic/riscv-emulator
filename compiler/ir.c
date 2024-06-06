@@ -106,6 +106,9 @@ IR_node* create_IR()
 
 IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack)
 { 
+    if(root->nodetype == CONSTANT_NODE && root->value.value_INT == 0)
+        return head;
+
     IR_node *node = (IR_node *)malloc(sizeof(IR_node));
     
     node->prev = NULL;
@@ -149,6 +152,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
 
         case ID_NODE:
             node->instr_type = LW;
+            node->ir_type = IR_LOAD;
             node->instruction = "lw";
             node->rs1.name = root->name;
             node->rd.reg = node->reg;      
@@ -160,26 +164,68 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
             {
                 case EQU_OP:
                     node->instr_type = SW;
+                    node->ir_type = IR_STORE;
                     node->instruction = "sw";
                     node->rd.name = node->next->rs1.name;
-                    
+
                     // Delete LW node created by visiting right ID node from list, it is not needed
                     node->next = (node->next)->next;
                     (node->next)->prev = node;
 
-                    node->rs1.reg = node->next->rd.reg;
+                    if((root->left->nodetype == CONSTANT_NODE && root->left->value.value_INT == 0)
+                        || (root->right->nodetype == CONSTANT_NODE && root->right->value.value_INT == 0)
+                    )
+                    {   
+                        node->rs1.reg = 0;
+                    }
+                    else
+                    {
+                        node->rs1.reg = node->next->rd.reg;
+                    }
                 break;
 
                 case ADD_OP:
-                    node->instr_type = ADD;
-                    node->instruction = "add";
-                    node->rd.reg = node->reg;
-                    node->rs1.reg = node->next->rd.reg;
-                    node->rs2.reg = (node->next)->next->rd.reg;
+
+                    if(root->right->nodetype == CONSTANT_NODE)
+                    {
+                        node->ir_type = IR_OP_IMM;
+                        node->instr_type = ADDI;
+                        node->instruction = "addi";
+                        node->rd.reg = node->reg;
+                        node->rs1.reg = node->next->rd.reg;
+                        node->rs2.int_constant = root->right->value.value_INT; // INT only
+
+                        // Delete load const IR_node, two nodes ago
+                        node->next->next->next->prev = node->next;
+                        node->next->next = node->next->next->next->next;
+                    }
+                    else if(root->left->nodetype == CONSTANT_NODE)
+                    {
+                        node->ir_type = IR_OP_IMM;
+                        node->instr_type = ADDI;
+                        node->instruction = "addi";
+                        node->rd.reg = node->reg;
+                        node->rs1.reg = node->next->next->rd.reg;
+                        node->rs2.int_constant = root->left->value.value_INT; // INT only    
+
+                        // Delete load const IR_node, one node ago
+                        node->next->next->prev = node;
+                        node->next = node->next->next->next;
+                    }
+                    else
+                    {
+                        node->ir_type = IR_OP;
+                        node->instr_type = ADD;
+                        node->instruction = "add";
+                        node->rd.reg = node->reg;
+                        node->rs1.reg = node->next->rd.reg;
+                        node->rs2.reg = (node->next)->next->rd.reg;
+                    }
                 break;
 
                 case SUB_OP:
                     node->instr_type = SUB;
+                    node->ir_type = IR_OP;
                     node->instruction = "sub";
                     node->rd.reg = node->reg;
                     node->rs1.reg = node->next->rd.reg;
@@ -253,6 +299,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
 
                 case LOGIC_NOT_OP:
                     node->instr_type = SLTIU;
+                    node->ir_type = IR_OP_IMM;
                     node->instruction = "sltiu";
                     node->rd.reg = node->next->reg;
                     node->rs1.reg = node->next->reg; 
@@ -264,6 +311,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     node->prev = nxt;
 
                     nxt->instr_type = ANDI;
+                    nxt->ir_type = IR_OP_IMM;
                     nxt->instruction = "andi";
                     nxt->rd.reg = node->rd.reg;
                     nxt->rs1.reg = node->rs1.reg;
@@ -394,6 +442,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                 case BITWISE_NOT_OP:
                     /* Pseudo NOT by ISA docs */
                     node->instr_type = XORI;
+                    node->ir_type = IR_OP_IMM;
                     node->instruction = "xori";
                     node->rd.reg = node->next->reg;
                     node->rs1.reg = node->next->reg;
@@ -414,7 +463,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
             while(secondary_stack->top != NULL)
             {
                 IR_node* help = pop(secondary_stack);
-                if(help->instr_type == JAL)
+                if(help->ir_type == IR_JUMP)
                     help->rs1.label = tmp;
                 else
                     help->rd.label = tmp;
@@ -445,7 +494,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
             root->left->value.label_count = root->value.label_count;
 
             IR_node *help = pop(stack);
-            if(help->instr_type == JAL)
+            if(help->ir_type == IR_JUMP)
                 help->rs1.label = tmp;
             else
                 help->rd.label = tmp;
@@ -457,7 +506,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
             for(int i = 0; i < num_AND; i++)
             {
                 help = pop(stack);
-                if(help->instr_type == JAL)
+                if(help->ir_type == IR_JUMP)
                     help->rs1.label = tmp;
                 else
                     help->rd.label = tmp;
@@ -480,7 +529,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     node->instruction = tmp;                    
 
                     IR_node *help = pop(stack);
-                    if(help->instr_type == JAL)
+                    if(help->ir_type == IR_JUMP)
                         help->rs1.label = tmp;
                     else
                         help->rd.label = tmp;
@@ -500,7 +549,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     for(int i = 0; i < num_AND; i++)
                     {
                         help = pop(stack);
-                        if(help->instr_type == JAL)
+                        if(help->ir_type == IR_JUMP)
                             help->rs1.label = tmp;
                         else
                             help->rd.label = tmp;
@@ -515,7 +564,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     node->instruction = tmp;                    
 
                     IR_node *help = pop(stack);
-                    if(help->instr_type == JAL)
+                    if(help->ir_type == IR_JUMP)
                         help->rs1.label = tmp;
                     else
                         help->rd.label = tmp;
@@ -531,7 +580,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
 
                     IR_node *help = pop(stack);
                     sprintf(tmp, "L%d", root->value.label_count);
-                    if(help->instr_type == JAL)
+                    if(help->ir_type == IR_JUMP)
                         help->rs1.label = tmp;
                     else
                         help->rd.label = tmp;
@@ -544,7 +593,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     for(int i = 0; i < num_AND; i++)
                     {
                         help = pop(stack);
-                        if(help->instr_type == JAL)
+                        if(help->ir_type == IR_JUMP)
                             help->rs1.label = tmp;
                         else
                             help->rd.label = tmp;
@@ -560,7 +609,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
 
                     IR_node *help = pop(stack);
                     sprintf(tmp, "L%d", root->value.label_count);
-                    if(help->instr_type == JAL)
+                    if(help->ir_type == IR_JUMP)
                         help->rs1.label = tmp;
                     else
                         help->rd.label = tmp;
@@ -573,7 +622,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     for(int i = 0; i < num_AND; i++)
                     {
                         help = pop(stack);
-                        if(help->instr_type == JAL)
+                        if(help->ir_type == IR_JUMP)
                             help->rs1.label = tmp;
                         else
                             help->rd.label = tmp;
@@ -742,19 +791,24 @@ void print_IR(IR_node *IR_head, IR_node *IR_tail)
     while(IR_head != IR_tail)
     {
       IR_head = IR_head->prev;
-      switch(IR_head->instr_type)
+      switch(IR_head->ir_type)
       {
-        case LABEL:
+        case IR_LABEL:
           printf(".%s:\n", IR_head->instruction);
           fprintf(asm_file, ".%s:\n", IR_head->instruction);
         break;
-        
-        case SW:
+
+        case IR_OP_IMM:
+          printf("\t%s R%d,R%d,%d\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.reg, IR_head->rs2.int_constant);
+          fprintf(asm_file, "\t%s R%d,R%d,%d\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.reg, IR_head->rs2.int_constant);
+        break;
+
+        case IR_STORE:
           printf("\t%s %s,R%d\n", IR_head->instruction, IR_head->rd.name, IR_head->rs1.reg);
           fprintf(asm_file, "\t%s %s,R%d\n", IR_head->instruction, IR_head->rd.name, IR_head->rs1.reg);
         break;
 
-        case LW:
+        case IR_LOAD:
           printf("\t%s R%d,%s\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.name);
           fprintf(asm_file, "\t%s R%d,%s\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.name);
         break;
@@ -764,43 +818,27 @@ void print_IR(IR_node *IR_head, IR_node *IR_tail)
           fprintf(asm_file, "\t%s R%d,%d\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.int_constant);
         break;        
 
-        case ADD:
-        case SUB:
+        case IR_OP:
           printf("\t%s R%d,R%d,R%d\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.reg, IR_head->rs2.reg);
           fprintf(asm_file, "\t%s R%d,R%d,R%d\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.reg, IR_head->rs2.reg);
         break;
 
-        case BEQ:
-        case BNE:
-        case BLT:
-        case BGE:
-        case BLTU:
-        case BGEU:
-        case BGT:
-        case BLE:
+        case IR_BRANCH:
           printf("\t%s R%d,R%d,.%s\n", IR_head->instruction, IR_head->rs1.reg, IR_head->rs2.reg, IR_head->rd.label);
           fprintf(asm_file, "\t%s R%d,R%d,.%s\n", IR_head->instruction, IR_head->rs1.reg, IR_head->rs2.reg, IR_head->rd.label);
         break;
 
-        case JAL:
+        case IR_JUMP:
           printf("\t%s R%d,.%s\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.label);
           fprintf(asm_file, "\t%s R%d,.%s\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.label);
         break;
 
-        case XORI:
-        case ANDI:
-        case SLTIU:
-          printf("\t%s R%d,R%d,%d\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.reg, IR_head->rs2.int_constant);
-          fprintf(asm_file, "\t%s R%d,R%d,%d\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.reg, IR_head->rs2.int_constant);
-        break;
+        // case ADDI: // for now like this!
+        //   printf("\t%s %s,%s,%d\n", IR_head->instruction, IR_head->rd.name, IR_head->rs1.name, IR_head->rs2.int_constant);
+        //   fprintf(asm_file, "\t%s %s,%s,%d\n", IR_head->instruction, IR_head->rd.name, IR_head->rs1.name, IR_head->rs2.int_constant);
+        // break;
 
-        case ADDI: // for now like this!
-          printf("\t%s %s,%s,%d\n", IR_head->instruction, IR_head->rd.name, IR_head->rs1.name, IR_head->rs2.int_constant);
-          fprintf(asm_file, "\t%s %s,%s,%d\n", IR_head->instruction, IR_head->rd.name, IR_head->rs1.name, IR_head->rs2.int_constant);
-        break;
-
-        case IR_NO_TYPE:
-        case HEAD:
+        case NONE:
         break;
       }
     }
