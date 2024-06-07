@@ -7,6 +7,7 @@
 #include "ir.h"
 #include "ast.h"
 #include "control_flow.h"
+#include "register_allocation.h"
 
 extern int lineno;
 extern FILE *yyin;
@@ -229,7 +230,9 @@ int main()
     Stack secondary_stack;
     init_stack(&stack);
     init_stack(&secondary_stack);
-    IR_node *IR_tail = populate_IR(root, IR_head, &stack, &secondary_stack);
+    register_pool *rp = init_register_pool();
+  
+    IR_node *IR_tail = populate_IR(root, IR_head, &stack, &secondary_stack, rp, table);
     
     print_IR(IR_head, IR_tail);
 
@@ -241,6 +244,36 @@ int main()
       printf("BLOCK %d: first instruction is %s and last instrcution is %s\n", temp->bb_number, temp->leader->instruction, temp->last_instruction->instruction);
       temp = temp->bb_next;
     } while(temp != NULL);
+
+
+    /* Register allocation */
+
+    
+    // print_register_allocation(rp, a5, table);
+    // add_id_to_register(rp, a5, ht_get_key(table, "a"));
+    // print_register_allocation(rp, a5, table);
+    // add_id_to_register(rp, a5, ht_get_key(table, "b"));
+    // print_register_allocation(rp, a5, table);
+    // remove_id_from_register(rp, a5, "c");
+    // remove_id_from_register(rp, a5, "a");
+    // print_register_allocation(rp, a5, table);
+
+    // ht_get_AD(table, "a");
+    // ht_set_AD_id(table, "a", "b");
+    // ht_get_AD(table, "a");
+    // ht_set_AD_reg(table, "a", a6);
+    // ht_get_AD(table, "a");
+    // ht_set_AD_reg(table, "a", a7);
+    // ht_get_AD(table, "a");
+    // ht_set_AD_id(table, "a", "c");
+    // ht_get_AD(table, "a");
+
+    // ht_remove_AD_reg(table, "a", a7);
+    // ht_get_AD(table, "a");
+    // ht_remove_AD_id(table, "a", "b");
+    // ht_get_AD(table, "a");
+
+    
     
 
     ht_destroy(table);

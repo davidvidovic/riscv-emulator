@@ -8,24 +8,24 @@ int register_counter = 1;
 int label_counter = 1;
 extern int sp_offset;
 
-IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack)
+IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack, register_pool *rp, ht* table)
 {
     IR_node *this_node = NULL;
 
     if(root->nodetype == FUNCTION_NODE)
     { 
-        this_node = insert_IR(root, head, stack, secondary_stack);
+        this_node = insert_IR(root, head, stack, secondary_stack, rp, table);
 
         if(root->right != NULL) 
         {
-            this_node = populate_IR(root->right, this_node, stack, secondary_stack);
+            this_node = populate_IR(root->right, this_node, stack, secondary_stack, rp, table);
         }
     }
     else
     {
         if(root->right != NULL) 
         {
-            this_node = populate_IR(root->right, head, stack, secondary_stack);
+            this_node = populate_IR(root->right, head, stack, secondary_stack, rp, table);
         }
     }
 
@@ -37,14 +37,14 @@ IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondar
 
     if(root->nodetype == IF_NODE || root->nodetype == ELSE_NODE)
     { 
-        this_node = insert_IR(root, this_node, stack, secondary_stack);
+        this_node = insert_IR(root, this_node, stack, secondary_stack, rp, table);
     }
 
     if(root->right != NULL)
     {
         if(root->right->nodetype == ELSE_NODE || root->right->nodetype == WHILE_NODE || root->right->nodetype == FOR_NODE)
         {    
-            this_node = insert_IR(root, this_node, stack, secondary_stack);
+            this_node = insert_IR(root, this_node, stack, secondary_stack, rp, table);
         }
     }
 
@@ -53,9 +53,9 @@ IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondar
     if(root->left != NULL && root->nodetype != FUNCTION_NODE) // watch out when added parameters to non-main function
     {
         if(this_node == NULL)
-            this_node = populate_IR(root->left, head, stack, secondary_stack);
+            this_node = populate_IR(root->left, head, stack, secondary_stack, rp, table);
         else
-            this_node = populate_IR(root->left, this_node, stack, secondary_stack);
+            this_node = populate_IR(root->left, this_node, stack, secondary_stack, rp, table);
     }
 
     if(this_node != NULL)
@@ -82,7 +82,7 @@ IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondar
         )
         return this_node;
     else
-        return insert_IR(root, head, stack, secondary_stack);
+        return insert_IR(root, head, stack, secondary_stack, rp, table);
 }
 
 /*
@@ -104,7 +104,7 @@ IR_node* create_IR()
 * Create base IR node
 */
 
-IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack)
+IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack, register_pool *rp, ht* table)
 { 
     if(root->nodetype == CONSTANT_NODE && root->value.value_INT == 0)
         return head;
@@ -156,13 +156,26 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
             node->instruction = "lw";
             node->rs1.name = root->name;
             node->rd.reg = node->reg;      
-
         break;
 
         case OPERATION_NODE:
             switch(root->operation)
             {
                 case EQU_OP:
+                    // IR_register holding_reg = ht_get_AD_holding_reg(table, root->right->name); // copy instruction will fail
+
+                    // if(holding_reg == 0)
+                    // {
+                        
+                    // }
+                    // else
+                    // {
+
+                    // }
+
+
+
+
                     node->instr_type = SW;
                     node->ir_type = IR_STORE;
                     node->instruction = "sw";
@@ -186,13 +199,14 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
 
                 case ADD_OP:
 
+                    node = get_reg(rp, table, root, node, head);
+                    
                     if(root->right->nodetype == CONSTANT_NODE)
                     {
                         node->ir_type = IR_OP_IMM;
                         node->instr_type = ADDI;
                         node->instruction = "addi";
                         node->rd.reg = node->reg;
-                        node->rs1.reg = node->next->rd.reg;
                         node->rs2.int_constant = root->right->value.value_INT; // INT only
 
                         // Delete load const IR_node, two nodes ago
@@ -205,7 +219,12 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                         node->instr_type = ADDI;
                         node->instruction = "addi";
                         node->rd.reg = node->reg;
-                        node->rs1.reg = node->next->next->rd.reg;
+
+                        if(root->right->nodetype == ID_NODE)
+                        {
+                            node->rs1.reg = node->rs2.reg;
+                        }
+
                         node->rs2.int_constant = root->left->value.value_INT; // INT only    
 
                         // Delete load const IR_node, one node ago
@@ -218,8 +237,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                         node->instr_type = ADD;
                         node->instruction = "add";
                         node->rd.reg = node->reg;
-                        node->rs1.reg = node->next->rd.reg;
-                        node->rs2.reg = (node->next)->next->rd.reg;
+
                     }
                 break;
 
@@ -449,6 +467,11 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     node->rs2.int_constant = -1;
                 break;
             }
+        
+
+            
+
+            
         break;
 
         case IF_NODE:
@@ -845,4 +868,164 @@ void print_IR(IR_node *IR_head, IR_node *IR_tail)
 
 
     fclose(asm_file);
+}
+
+
+IR_node* get_reg(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_node *head)
+{
+    IR_register holding_reg;
+
+    if(root->left->nodetype == ID_NODE)
+    {
+        /* Register allocation */
+
+        // First, see if ID is alrady in any register
+        holding_reg = find_ID(rp, root->left->name);
+
+        if(holding_reg == 0)
+        {
+            holding_reg = find_empty_register(rp);
+
+            if(holding_reg == 0)
+            {
+                /* Pick one register for spilling */
+                // For now, I'll do this based on minimum count
+
+                /* WARNING: VERY GREEDY! */
+                holding_reg = min_count_register(rp);
+
+                /* BUG ALERT: Check if the places you find ID elsewhere is second operand of instruction (Dragon page 548, rule 2) */
+                if(ht_find_id_elsewhere(rp, table, root->left->name))
+                {
+                    add_id_to_register(rp, holding_reg, root->left->name); 
+                    ht_set_AD_reg(table, root->left->name, holding_reg);
+                    node->rs1.reg = holding_reg;
+                }
+                else
+                {
+                    /* Spill */
+
+                    // Store everything from holding_register
+                    IR_node* sw_temp = (IR_node*)malloc(sizeof(IR_node));
+                    while(get_register_count(rp, holding_reg) != 0)
+                    {
+                        sw_temp->instr_type = SW;
+                        sw_temp->ir_type = IR_STORE;
+                        sw_temp->instruction = "sw";
+                        sw_temp->rd.name = get_id_from_register(rp, holding_reg);
+                        remove_id_from_register(rp, holding_reg, sw_temp->rd.name);
+                        sw_temp->rs1.reg = holding_reg;
+
+                        sw_temp->next = head;
+                        sw_temp->prev = NULL;
+                        head->prev = sw_temp;
+                        head = sw_temp;
+                    }
+
+                    // Load new ID into holding_reg
+                    node->instr_type = LW;
+                    node->ir_type = IR_LOAD;
+                    node->instruction = "lw";
+                    node->rs1.name = root->left->name;
+                    node->rd.reg = holding_reg;  
+
+                    node->prev = NULL;
+                    node->next = head;
+                    head->prev = node;
+                    add_id_to_register(rp, holding_reg, root->left->name);
+                    ht_set_AD_reg(table, root->left->name, holding_reg);
+                }
+            }
+            else
+            {
+                node->rs1.reg = holding_reg; 
+                add_id_to_register(rp, holding_reg, root->left->name);
+                ht_set_AD_reg(table, root->left->name, holding_reg);
+                //print_register_allocation(rp, holding_reg, table);
+            }
+        }
+        else
+        {
+            //printf("Found %s in reg %d \n", root->left->name, holding_reg);
+            node->rs1.reg = holding_reg; 
+        }
+    }
+
+    if(root->right->nodetype == ID_NODE)
+    {
+        /* Register allocation */
+
+        // First, see if ID is alrady in any register
+        holding_reg = find_ID(rp, root->right->name);
+
+        if(holding_reg == 0)
+        {
+            holding_reg = find_empty_register(rp);
+
+            if(holding_reg == 0)
+            {
+                /* Pick one register for spilling */
+                // For now, I'll do this based on minimum count
+
+                /* WARNING: VERY GREEDY! */
+                holding_reg = min_count_register(rp);
+
+                /* BUG ALERT: Check if the places you find ID elsewhere is second operand of instruction (Dragon page 548, rule 2) */
+                if(ht_find_id_elsewhere(rp, table, root->right->name))
+                {
+                    node->rs2.reg = holding_reg;
+                    add_id_to_register(rp, holding_reg, root->right->name); 
+                    ht_set_AD_reg(table, root->right->name, holding_reg);
+                }
+                else
+                {
+                    /* Spill */
+
+                    // Store everything from holding_register
+                    IR_node* sw_temp = (IR_node*)malloc(sizeof(IR_node));
+                    while(get_register_count(rp, holding_reg) != 0)
+                    {
+                        sw_temp->instr_type = SW;
+                        sw_temp->ir_type = IR_STORE;
+                        sw_temp->instruction = "sw";
+                        sw_temp->rd.name = get_id_from_register(rp, holding_reg);
+                        remove_id_from_register(rp, holding_reg, sw_temp->rd.name);
+                        sw_temp->rs1.reg = holding_reg;
+
+                        sw_temp->next = head;
+                        sw_temp->prev = NULL;
+                        head->prev = sw_temp;
+                        head = sw_temp;
+                    }
+
+                    // Load new ID into holding_reg
+                    node->instr_type = LW;
+                    node->ir_type = IR_LOAD;
+                    node->instruction = "lw";
+                    node->rs2.name = root->right->name;
+                    node->rd.reg = holding_reg;  
+
+                    node->prev = NULL;
+                    node->next = head;
+                    head->prev = node;
+                    add_id_to_register(rp, holding_reg, root->right->name);
+                    ht_set_AD_reg(table, root->right->name, holding_reg);
+                }
+            }
+            else
+            {
+                node->rs2.reg = holding_reg; 
+                add_id_to_register(rp, holding_reg, root->right->name);
+                ht_set_AD_reg(table, root->right->name, holding_reg);
+                //print_register_allocation(rp, holding_reg, table);
+            }
+        }
+        else
+        {
+            //printf("Found %s in reg %d \n", root->right->name, holding_reg);
+            node->rs2.reg = holding_reg; 
+        }
+    }
+
+    return node;
 }

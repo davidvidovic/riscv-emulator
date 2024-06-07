@@ -75,6 +75,8 @@ static const char* ht_set_entry(ht_entry* entries, size_t capacity,
             entries[index].node = node;
             entries[index].type = type;
             entries[index].sp_offset = sp_offset;
+            entries[index].AD = NULL;
+            entries[index].AD_count = 0;
             return entries[index].key;
         }
         // Key wasn't in this slot, move to next (linear probing).
@@ -99,6 +101,8 @@ static const char* ht_set_entry(ht_entry* entries, size_t capacity,
     entries[index].node = node;
     entries[index].type = type;
     entries[index].sp_offset = sp_offset;
+    entries[index].AD = NULL;
+    entries[index].AD_count = 0;
     return key;
 }
 
@@ -124,6 +128,7 @@ const char* ht_get_key(ht* table, const char* key)
     }
     return NULL;
 }
+
 
 
 int ht_get_line(ht* table, const char* key) 
@@ -268,3 +273,166 @@ ht_entry* get_ht_entry(ht* table, const char* key)
 }
 
 
+
+void ht_get_AD(ht* table, const char* key)
+{
+    ht_entry *temp = get_ht_entry(table, key);
+
+    if(temp == NULL)
+    {
+        printf("No %s ID (key) in table.\n", key);
+        return;
+    }
+
+    if(temp->AD_count == 0)
+        printf("Address descriptor of ide %s is empty.\n", key);
+    else
+    {
+        printf("Adress descriptor of id %s: ", key);
+        for(int i = 0; i < temp->AD_count; i++)
+        {
+            if(temp->AD[i]->type == AD_id)
+            {
+                printf("%s ", temp->AD[i]->id);
+            }
+            else
+            {
+                printf("R%d ", temp->AD[i]->reg);
+            }
+        }
+        printf("\n");
+    }
+}
+
+address_descriptor* create_AD()
+{
+    address_descriptor* new_AD = (address_descriptor*)calloc(1, sizeof(address_descriptor));
+    return new_AD;
+}
+
+
+void ht_set_AD_id(ht* table, const char *key, const char* id)
+{
+    ht_entry *temp = get_ht_entry(table, key);
+
+    if(temp == NULL)
+    {
+        printf("No %s ID (key) in table.\n", key);
+        return;
+    }
+
+    temp->AD = (address_descriptor*)realloc(temp->AD, ++(temp->AD_count));
+    temp->AD[(temp->AD_count)-1] = create_AD();
+    temp->AD[(temp->AD_count)-1]->id = id;
+    temp->AD[(temp->AD_count)-1]->type = AD_id;
+}
+
+void ht_set_AD_reg(ht* table, const char *key, IR_register reg)
+{
+    ht_entry *temp = get_ht_entry(table, key);
+
+    if(temp == NULL)
+    {
+        printf("No %s ID (key) in table.\n", key);
+        return;
+    }
+
+    temp->AD = (address_descriptor*)realloc(temp->AD, ++(temp->AD_count));
+    temp->AD[(temp->AD_count)-1] = create_AD();
+    temp->AD[(temp->AD_count)-1]->reg = reg;
+    temp->AD[(temp->AD_count)-1]->type = AD_reg;
+}
+
+void ht_remove_AD_id(ht *table, const char *key, const char* id)
+{
+    ht_entry *temp = get_ht_entry(table, key);
+
+    if(temp == NULL)
+    {
+        printf("No %s ID (key) in table.\n", key);
+        return;
+    }
+
+    for(int i = 0; i < temp->AD_count; i++)
+    {
+        if(temp->AD[i]->type == AD_reg)
+            continue;
+
+        if(strcmp(id, temp->AD[i]->id) == 0)
+        {
+            for(int j = i; j < (temp->AD_count)-1; j++)
+            {
+                // shift elements
+                temp->AD[j] = temp->AD[j+1]; 
+            }
+
+            temp->AD[i] = (address_descriptor*)realloc(temp->AD[i], --(temp->AD_count)*sizeof(address_descriptor));
+            return;
+        }
+    }
+
+    printf("* Element %s was not found in AD of ID %s.\n", id, key);
+}
+
+
+void ht_remove_AD_reg(ht *table, const char *key, IR_register reg)
+{
+    ht_entry *temp = get_ht_entry(table, key);
+
+    if(temp == NULL)
+    {
+        printf("No %s ID (key) in table.\n", key);
+        return;
+    }
+
+    for(int i = 0; i < temp->AD_count; i++)
+    {
+        if(temp->AD[i]->type == AD_id)
+            continue;
+
+        if(temp->AD[i]->reg == reg)
+        {
+            for(int j = i; j < temp->AD_count-1; j++)
+            {
+                // shift elements
+                temp->AD[j] = temp->AD[j+1]; 
+            }
+
+            temp->AD[i] = (address_descriptor*)realloc(temp->AD[i], --(temp->AD_count)*sizeof(address_descriptor));
+            return;
+        }
+    }
+
+    printf("* Element R%d was not found in AD of ID %s.\n", reg, key);
+}
+
+
+IR_register ht_get_AD_holding_reg(ht* table, const char* key)
+{
+    ht_entry *temp = get_ht_entry(table, key);
+
+    if(temp == NULL)
+    {
+        printf("No %s ID (key) in table.\n", key);
+        return;
+    }
+
+    if(temp->AD_count == 0)
+        return 0;
+    else
+    {
+        for(int i = 0; i < temp->AD_count; i++)
+        {
+            if(temp->AD[i]->type == AD_id)
+            {
+                
+            }
+            else
+            {
+                return temp->AD[i]->reg;
+            }
+        }
+    }
+
+    return 0;
+}

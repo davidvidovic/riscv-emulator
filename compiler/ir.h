@@ -5,7 +5,8 @@
 #include <string.h>
 #include "ast.h"
 #include "instructions.h"
-
+#include "register_allocation.h"
+#include "symboltable.h"
 
 typedef union IR_value
 {
@@ -46,14 +47,15 @@ typedef struct Stack {
 
 
 IR_node* create_IR();
-IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack);
-IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack);
+IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack, register_pool *rp, ht* table);
+IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack, register_pool *rp, ht* table);
 
 void init_stack(Stack* stack);
 LIFO_node* create_LIFO_node(IR_node *node);
 void push(Stack* stack, IR_node *node);
 IR_node* pop(Stack *stack);
 void print_IR(IR_node *IR_head, IR_node *IR_tail);
+IR_node* get_reg(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_node *head);
 
 
 #endif

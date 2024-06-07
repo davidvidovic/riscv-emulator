@@ -4,14 +4,14 @@
 	lui R6,2
 	sw b,R6
 	lw R10,a
-	addi R12,R10,1
+	addi R12,R5,1
 	sw a,R12
 	lw R16,a
 	lw R17,b
 	beq R16,R17,.L5
 .L1:
 	lw R21,b
-	addi R23,R21,19
+	addi R23,R6,19
 	sw b,R23
 .L2:
 	lw R28,b
@@ -35,10 +35,10 @@
 	bge R52,R53,.L7
 	lw R56,b
 	lw R57,a
-	add R58,R57,R56
+	add R58,R5,R6
 	sw b,R58
 	lw R63,a
-	addi R65,R63,1
+	addi R65,R5,1
 	sw a,R65
 	jal R0,.L6
 .L7:
