@@ -423,11 +423,7 @@ IR_register ht_get_AD_holding_reg(ht* table, const char* key)
     {
         for(int i = 0; i < temp->AD_count; i++)
         {
-            if(temp->AD[i]->type == AD_id)
-            {
-                
-            }
-            else
+            if(temp->AD[i]->type == AD_reg)
             {
                 return temp->AD[i]->reg;
             }

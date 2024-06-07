@@ -222,7 +222,11 @@ int main()
 
     
     // Walk the AST
+    if(root->right->right != EXPRESSION_NODE)
+      root->right->right = NULL;
+    
     walkAST(root, depth);
+
 
     
     IR_node *IR_head = create_IR();
