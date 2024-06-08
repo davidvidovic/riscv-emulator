@@ -222,8 +222,10 @@ int main()
 
     
     // Walk the AST
-    if(root->right->right != EXPRESSION_NODE)
-      root->right->right = NULL;
+    
+    /* Small bug, ID stays on the right if no init declarations are made */ 
+    //if(root->right->right != EXPRESSION_NODE)
+     // root->right->right = NULL;
     
     walkAST(root, depth);
 
@@ -243,12 +245,13 @@ int main()
     control_flow_graph *cfg = populate_cfg(IR_head, IR_tail);
     basic_block* temp = cfg->leader;
   
+/*  
     do
     {
-      printf("BLOCK %d: first instruction is %s and last instrcution is %s\n", temp->bb_number, temp->leader->instruction, temp->last_instruction->instruction);
+      printf("BLOCK %d: first instruction is %s and last instruction is %s\n", temp->bb_number, temp->leader->instruction, temp->last_instruction->instruction);
       temp = temp->bb_next;
     } while(temp != NULL);
-
+*/
 
     /* Register allocation */
 

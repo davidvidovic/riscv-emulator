@@ -1,4 +1,14 @@
-.main:
-	lui R5,1
-	lui R6,4
-	addi R1,R5,1
+	lui x5,1
+	lui x6,2
+	lui x7,3
+	lui x28,4
+	lui x29,5
+	lui x7,10
+	lui x30,6
+	lui x31,7
+	lui x5,8
+	lui x5,9
+	lui x5,11
+	lui x6,3
+	sw j,x5
+	add x5,x6,x-1112898560

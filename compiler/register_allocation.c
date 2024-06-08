@@ -104,18 +104,25 @@ IR_register min_count_register(register_pool *rp)
 {
     // For now I work only with t0-t6 registers
     int min = rp->count[t0];
+    IR_register min_reg = t0;
     for(int i = t1; i <= t2; i++)
     {
         if(rp->count[i] < min)
+        {
             min = rp->count[i];
+            min_reg = i;
+    	}
     }
     for(int i = t3; i <= t6; i++)
     {
         if(rp->count[i] < min)
+        {
             min = rp->count[i];
+            min_reg = i;
+    	}
     }
 
-    return min;
+    return min_reg;
 }
 
 
