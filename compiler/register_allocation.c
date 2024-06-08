@@ -42,12 +42,10 @@ void print_register_allocation(register_pool *rp, IR_register reg, ht* table)
         printf("Register %d empty.\n", reg);
     else
     {
-        printf("Register %d: ", reg);
         for(int i = 0; i < rp->count[reg]; i++)
         {
             printf("%s ", rp->registers[reg][i]);
         }
-        printf("\n");
     }
 }
 
@@ -115,6 +113,36 @@ IR_register min_count_register(register_pool *rp)
     }
     for(int i = t3; i <= t6; i++)
     {
+        if(rp->count[i] < min)
+        {
+            min = rp->count[i];
+            min_reg = i;
+    	}
+    }
+
+    return min_reg;
+}
+
+
+IR_register min_count_register_without_ID(register_pool *rp, char* id)
+{
+    IR_register limit_reg = find_ID(rp, id);
+
+    // For now I work only with t0-t6 registers
+    int min = 99; // avoids bug if t0 is forbidden register...
+    IR_register min_reg = t0;
+    for(int i = t1; i <= t2; i++)
+    {
+        if(i == limit_reg) continue;
+        if(rp->count[i] < min)
+        {
+            min = rp->count[i];
+            min_reg = i;
+    	}
+    }
+    for(int i = t3; i <= t6; i++)
+    {
+        if(i == limit_reg) continue;
         if(rp->count[i] < min)
         {
             min = rp->count[i];

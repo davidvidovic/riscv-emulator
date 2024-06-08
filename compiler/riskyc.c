@@ -242,8 +242,8 @@ int main()
     
     print_IR(IR_head, IR_tail);
 
-    control_flow_graph *cfg = populate_cfg(IR_head, IR_tail);
-    basic_block* temp = cfg->leader;
+    //control_flow_graph *cfg = populate_cfg(IR_head, IR_tail);
+    //basic_block* temp = cfg->leader;
   
 /*  
     do
@@ -252,36 +252,6 @@ int main()
       temp = temp->bb_next;
     } while(temp != NULL);
 */
-
-    /* Register allocation */
-
-    
-    // print_register_allocation(rp, a5, table);
-    // add_id_to_register(rp, a5, ht_get_key(table, "a"));
-    // print_register_allocation(rp, a5, table);
-    // add_id_to_register(rp, a5, ht_get_key(table, "b"));
-    // print_register_allocation(rp, a5, table);
-    // remove_id_from_register(rp, a5, "c");
-    // remove_id_from_register(rp, a5, "a");
-    // print_register_allocation(rp, a5, table);
-
-    // ht_get_AD(table, "a");
-    // ht_set_AD_id(table, "a", "b");
-    // ht_get_AD(table, "a");
-    // ht_set_AD_reg(table, "a", a6);
-    // ht_get_AD(table, "a");
-    // ht_set_AD_reg(table, "a", a7);
-    // ht_get_AD(table, "a");
-    // ht_set_AD_id(table, "a", "c");
-    // ht_get_AD(table, "a");
-
-    // ht_remove_AD_reg(table, "a", a7);
-    // ht_get_AD(table, "a");
-    // ht_remove_AD_id(table, "a", "b");
-    // ht_get_AD(table, "a");
-
-    
-    
 
     ht_destroy(table);
     freeAST(root);

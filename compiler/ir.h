@@ -55,7 +55,7 @@ LIFO_node* create_LIFO_node(IR_node *node);
 void push(Stack* stack, IR_node *node);
 IR_node* pop(Stack *stack);
 void print_IR(IR_node *IR_head, IR_node *IR_tail);
-IR_node* get_reg(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_node *head);
+IR_node* get_reg(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_node **head);
 
 
 #endif

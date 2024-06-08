@@ -337,18 +337,11 @@ void ht_set_AD_reg(ht* table, const char *key, IR_register reg)
         return;
     }
 
-    printf("Starting at %s\n", ht_get_key(table, key));
-    ht_get_AD(table, "a");
-    ht_get_AD(table, "b");
-    ht_get_AD(table, "c");
+    // Do not work, AD is assigned to every ID in symbol table?
     temp->AD = (address_descriptor*)realloc(temp->AD, ++(temp->AD_count));
     temp->AD[(temp->AD_count)-1] = create_AD();
     temp->AD[(temp->AD_count)-1]->reg = reg;
     temp->AD[(temp->AD_count)-1]->type = AD_reg;
-    ht_get_AD(table, "a");
-    ht_get_AD(table, "b");
-    ht_get_AD(table, "c");
-    printf("Over\n");
 }
 
 void ht_remove_AD_id(ht *table, const char *key, const char* id)

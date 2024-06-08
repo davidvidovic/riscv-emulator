@@ -1,11 +1,11 @@
 int main()
 { 
-    int a;
+    int a = 2;
     int b, c, d, e, f, g, h, i, j;
     a = 1;
-    b = 2;
-    c = 3;
-    d = 4;
+    b = a + a;
+    c = a + b;
+    d = c + 4;
     e = 5;
     c = 10;
     f = 6;
@@ -16,5 +16,7 @@ int main()
     j = 11;
     
     b = 3;
-    c = a + b;
+    
+    j = b + 1;
+    d = a + j;
 }

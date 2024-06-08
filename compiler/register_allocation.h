@@ -24,8 +24,10 @@ void remove_id_from_register(register_pool *rp, IR_register reg, char *id);
 IR_register find_ID(register_pool *rp, const char* id);
 IR_register find_empty_register(register_pool *rp);
 IR_register min_count_register(register_pool *rp);
+IR_register min_count_register_without_ID(register_pool *rp, char* id);
 int ht_find_id_elsewhere(register_pool *rp, ht* table, const char* id);
 int get_register_count(register_pool* rp, IR_register reg);
 char* get_id_from_register(register_pool* rp, IR_register reg);
+
 
 #endif
