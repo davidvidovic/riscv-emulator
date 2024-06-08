@@ -182,16 +182,15 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
 
                     if(holding_reg == 0)
                     {
-                        
                         IR_node *temp = (IR_node*)malloc(sizeof(IR_node));
-                        temp = get_reg(rp, table, root, node, head);
+                        
                         if(root->right->nodetype == CONSTANT_NODE)
-                        {   
-                            temp->rd.reg = holding_reg;
+                        {               
+                            temp = get_reg(rp, table, root, node, head);
                             temp->ir_type = IR_LOAD_IMM;
                             temp->instr_type = LUI;
                             temp->instruction = "lui";
-                            temp->rd.reg = holding_reg;
+                            temp->rd.reg = temp->rs1.reg;
                             temp->rs1.int_constant = root->right->value.value_INT;
 
                             temp->prev = NULL;
@@ -202,11 +201,11 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
 
                         if(root->left->nodetype == CONSTANT_NODE)
                         {
-                            temp->rd.reg = holding_reg;
+                            temp = get_reg(rp, table, root, node, head);
                             temp->ir_type = IR_LOAD_IMM;
                             temp->instr_type = LUI;
                             temp->instruction = "lui";
-                            temp->rd.reg = holding_reg;
+                            temp->rd.reg = temp->rs1.reg;
                             temp->rs1.int_constant = root->left->value.value_INT;
 
                             temp->prev = NULL;
@@ -215,18 +214,26 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                             return temp;
                         }
 
-                        node = get_reg(rp, table, root, node, head);
-                        //ht_set_AD_reg(rp, root->left->name, head->rd.reg);
+                        if(root->left == root->right->left)
+                        {
+                            head->prev = NULL;
+                            head->rd.reg = head->rs1.reg;
+                            return head;
+                        }
+
+                        if(root->left == root->right->right)
+                        {
+                            head->prev = NULL;
+                            head->rd.reg = head->rs2.reg;
+                            return head;
+                        }
                     }
                     else
                     {
-                        printf("tu sam %d i %d\n", root->right->nodetype, root->left->nodetype);
-
-                        
+                        head->prev = NULL;
+                        head->rd.reg = holding_reg;
+                        return head;
                     }
-
-                    head->prev = NULL;
-                    return head;
 
 
                     // node->instr_type = SW;
@@ -281,8 +288,8 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                         node->rs2.int_constant = root->left->value.value_INT; // INT only    
 
                         // Delete load const IR_node, one node ago
-                        node->next->next->prev = node;
-                        node->next = node->next->next->next;
+                        //node->next->next->prev = node;
+                        //node->next = node->next->next->next;
                     }
                     else
                     {
@@ -290,7 +297,6 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                         node->instr_type = ADD;
                         node->instruction = "add";
                         //node->rd.reg = node->reg;
-
                     }
                 break;
 
@@ -989,7 +995,7 @@ IR_node* get_reg(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_
             {
                 node->rs1.reg = holding_reg; 
                 add_id_to_register(rp, holding_reg, root->left->name);
-                ht_set_AD_reg(table, root->left->name, holding_reg);
+                //ht_set_AD_reg(table, root->left->name, holding_reg);
                 print_register_allocation(rp, holding_reg, table);
             }
         }
