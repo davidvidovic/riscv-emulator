@@ -124,16 +124,16 @@ IR_register min_count_register(register_pool *rp)
 }
 
 
-IR_register min_count_register_without_ID(register_pool *rp, char* id)
+IR_register min_count_register_without_ID(register_pool *rp, char* id1)
 {
-    IR_register limit_reg = find_ID(rp, id);
+    IR_register limit_reg1 = find_ID(rp, id1);
 
     // For now I work only with t0-t6 registers
     int min = 99; // avoids bug if t0 is forbidden register...
     IR_register min_reg = t0;
     for(int i = t1; i <= t2; i++)
     {
-        if(i == limit_reg) continue;
+        if(i == limit_reg1) continue;
         if(rp->count[i] < min)
         {
             min = rp->count[i];
@@ -142,7 +142,69 @@ IR_register min_count_register_without_ID(register_pool *rp, char* id)
     }
     for(int i = t3; i <= t6; i++)
     {
-        if(i == limit_reg) continue;
+        if(i == limit_reg1) continue;
+        if(rp->count[i] < min)
+        {
+            min = rp->count[i];
+            min_reg = i;
+    	}
+    }
+
+    return min_reg;
+}
+
+
+IR_register min_count_register_without_IDs(register_pool *rp, char* id1, char* id2)
+{
+    IR_register limit_reg1 = find_ID(rp, id1);
+    IR_register limit_reg2 = find_ID(rp, id2);
+
+    // For now I work only with t0-t6 registers
+    int min = 99; // avoids bug if t0 is forbidden register...
+    IR_register min_reg = t0;
+    for(int i = t1; i <= t2; i++)
+    {
+        if(i == limit_reg1) continue;
+        if(i == limit_reg2) continue;
+        if(rp->count[i] < min)
+        {
+            min = rp->count[i];
+            min_reg = i;
+    	}
+    }
+    for(int i = t3; i <= t6; i++)
+    {
+        if(i == limit_reg1) continue;
+        if(i == limit_reg2) continue;
+        if(rp->count[i] < min)
+        {
+            min = rp->count[i];
+            min_reg = i;
+    	}
+    }
+
+    return min_reg;
+}
+
+IR_register min_count_register_without_REGs(register_pool *rp, IR_register reg1, IR_register reg2)
+{
+    // For now I work only with t0-t6 registers
+    int min = 99; // avoids bug if t0 is forbidden register...
+    IR_register min_reg = t0;
+    for(int i = t1; i <= t2; i++)
+    {
+        if(i == reg1) continue;
+        if(i == reg2) continue;
+        if(rp->count[i] < min)
+        {
+            min = rp->count[i];
+            min_reg = i;
+    	}
+    }
+    for(int i = t3; i <= t6; i++)
+    {
+        if(i == reg1) continue;
+        if(i == reg2) continue;
         if(rp->count[i] < min)
         {
             min = rp->count[i];

@@ -17,6 +17,12 @@ int main()
     
     b = 3;
     
-    j = b + 1;
+    j = b + a;
     d = a + j;
+    c = 1 + a;
+    g = g + 99;
+    f = 88 + f;
+    h = i + g;
+    h = d;
+    h = 3;
 }
