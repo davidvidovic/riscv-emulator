@@ -19,10 +19,12 @@ typedef struct register_pool {
 
 register_pool* init_register_pool();
 void add_id_to_register(register_pool *rp, IR_register reg, char *id);
-void print_register_allocation(register_pool *rp, IR_register reg, ht* table);
+void print_register_allocation(register_pool *rp, IR_register reg);
+void print_register_allocation_ALL(register_pool *rp);
 void remove_id_from_register(register_pool *rp, IR_register reg, char *id);
 IR_register find_ID(register_pool *rp, const char* id);
 IR_register find_empty_register(register_pool *rp);
+IR_register find_empty_register_without_REGs(register_pool *rp, IR_register reg1, IR_register reg2);
 IR_register min_count_register(register_pool *rp);
 IR_register min_count_register_without_ID(register_pool *rp, char* id1);
 IR_register min_count_register_without_IDs(register_pool *rp, char* id1, char* id2);

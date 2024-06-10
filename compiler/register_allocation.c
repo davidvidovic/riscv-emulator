@@ -12,6 +12,8 @@ void add_id_to_register(register_pool *rp, IR_register reg, char *id)
 {
     rp->registers[reg] = realloc(rp->registers[reg], ++(rp->count[reg]));
     rp->registers[reg][(rp->count[reg])-1] = id;
+
+    //print_register_allocation_ALL(rp);
 }
 
 
@@ -36,19 +38,34 @@ void remove_id_from_register(register_pool *rp, IR_register reg, char *id)
 }
 
 
-void print_register_allocation(register_pool *rp, IR_register reg, ht* table)
+void print_register_allocation(register_pool *rp, IR_register reg)
 {
     if(rp->count[reg] == 0)
         printf("Register %d empty.\n", reg);
     else
     {
+        printf("Register %d: ", reg);
         for(int i = 0; i < rp->count[reg]; i++)
         {
             printf("%s ", rp->registers[reg][i]);
         }
+        printf("\n");
     }
 }
 
+void print_register_allocation_ALL(register_pool *rp)
+{
+    printf("*** Registers: ***\n");
+    for(int i = t0; i <= t2; i++)
+    {
+        print_register_allocation(rp, i);
+    }
+    for(int i = t3; i <= t6; i++)
+    {
+        print_register_allocation(rp, i);
+    }
+    printf("\n");
+}
 
 /* Find ID if it is live in any of register. Return register if found, else return 0. */
 
@@ -90,6 +107,27 @@ IR_register find_empty_register(register_pool *rp)
     }
     for(int i = t3; i <= t6; i++)
     {
+        if(rp->count[i] == 0)
+            return i;
+    }
+
+    return 0;
+}
+
+IR_register find_empty_register_without_REGs(register_pool *rp, IR_register reg1, IR_register reg2)
+{
+    // For now I work only with t0-t6 registers
+    for(int i = t0; i <= t2; i++)
+    {
+        if(i == reg1) continue;
+        if(i == reg2) continue;
+        if(rp->count[i] == 0)
+            return i;
+    }
+    for(int i = t3; i <= t6; i++)
+    {
+        if(i == reg1) continue;
+        if(i == reg2) continue;
         if(rp->count[i] == 0)
             return i;
     }

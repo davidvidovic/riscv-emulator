@@ -23,6 +23,14 @@ int main()
     g = g + 99;
     f = 88 + f;
     h = i + g;
-    h = d;
+    h = i;
     h = 3;
+    a = d;
+    a = 9;
+
+    while(b < i)
+    {
+        c = a + b;
+    }
+    d = 19;
 }
