@@ -15,20 +15,12 @@ int main()
     i = 9;
     j = 11;
     
-    b = 3;
-    
-    j = b + a;
+
     d = a + j;
     c = 1 + a;
     g = g + 99;
-    f = 88 + f;
-    h = i + g;
-    h = i;
-    h = 3;
-    a = d;
-    a = 9;
 
-    while(b < i)
+    while(b && a)
     {
         c = a + b;
     }

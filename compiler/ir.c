@@ -8,10 +8,23 @@ int register_counter = 1;
 int label_counter = 1;
 extern int sp_offset;
 
+void print_stack(Stack* stack)
+{
+    if(stack->top != NULL)
+    {
+        printf("Top: %s\n", stack->top->ptr->instruction);
+    }
+    else
+    {
+        printf("Stack top NULL\n");    
+    }
+}
+
 IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack, register_pool *rp, ht* table)
 {
     IR_node *this_node = NULL;
-
+//     print_value(root);
+// print_stack(stack);
     if(root->nodetype == FUNCTION_NODE)
     { 
         this_node = insert_IR(root, head, stack, secondary_stack, rp, table);
@@ -446,36 +459,45 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                 break;
 
                 case LOGIC_AND_OP:
-                    if(root->right->nodetype != OPERATION_NODE)
+                    IR_node *id_left = (IR_node*)malloc(sizeof(IR_node));
+                    IR_node *id_right = (IR_node*)malloc(sizeof(IR_node));
+
+                    if(root->right->nodetype == ID_NODE)
                     {
-                        IR_node *temp_node = (IR_node *)malloc(sizeof(IR_node));
+                        id_right = create_LOGIC_AND_node(rp, table, root->right, id_right, &(node->next));
+                        id_right->next = head;
+                        push(stack, id_right); 
 
-                        temp_node->next = head->next;
-                        head->next->prev = temp_node;       
-                        head->next = temp_node;
-                        temp_node->prev = head;
-                        
-                        temp_node->reg = register_counter++;
-                        temp_node->instr_type = BEQ;
-                        temp_node->ir_type = IR_BRANCH;
-                        temp_node->instruction = "beq";
-                        temp_node->rs1.reg = temp_node->next->reg; 
-                        temp_node->rs2.reg = 0; 
+                        id_left->prev = NULL;
+                        id_left->next = id_right;
+                        id_right->prev = id_left;
+                    }
+                    else if(root->right->nodetype == CONSTANT_NODE)
+                    {
+                        id_right = create_LOGIC_AND_node(rp, table, root->right, id_right, &(node->next));
+                        id_right->next = head;
+                        push(stack, id_right); 
 
-                        push(stack, temp_node);
+                        id_left->prev = NULL;
+                        id_left->next = id_right;
+                        id_right->prev = id_left;
+                    }
+                    else
+                    {
+                        // On the right OPERATION (nested logical ops)
+                        id_left->prev = NULL;
+                        id_left->next = head;
+                        head->prev = id_left;
                     }
 
-                    node->next = head;
-                    node->prev = NULL;
-                    head->prev = node;
-
-                    node->instr_type = BEQ;
-                    node->ir_type = IR_BRANCH;
-                    node->instruction = "beq";
-                    node->rs1.reg = node->next->reg; 
-                    node->rs2.reg = 0; 
-
-                    push(stack, node); 
+                    if(root->left->nodetype == ID_NODE)
+                    {
+                        id_left = create_LOGIC_AND_node(rp, table, root->left, id_left, &(id_left->next));
+                    }
+                    
+                    push(stack, id_left); 
+                    
+                    return id_left;
                     break;
 
 
@@ -712,12 +734,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     sprintf(tmp, "L%d", root->value.label_count);
                     node->instruction = tmp; 
 
-                    IR_node *help = pop(stack);
-                    sprintf(tmp, "L%d", root->value.label_count);
-                    if(help->ir_type == IR_JUMP)
-                        help->rs1.label = tmp;
-                    else
-                        help->rd.label = tmp;
+                    IR_node *help;
 
                     ASTnode *tail = root->right->right->right;
                     tail->right = NULL;
@@ -741,12 +758,12 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     sprintf(tmp, "L%d", root->value.label_count);
                     node->instruction = tmp; 
 
-                    IR_node *help = pop(stack);
-                    sprintf(tmp, "L%d", root->value.label_count);
-                    if(help->ir_type == IR_JUMP)
-                        help->rs1.label = tmp;
-                    else
-                        help->rd.label = tmp;
+                    // IR_node *help = pop(stack);
+                    // sprintf(tmp, "L%d", root->value.label_count);
+                    // if(help->ir_type == IR_JUMP)
+                    //     help->rs1.label = tmp;
+                    // else
+                    //     help->rd.label = tmp;
 
                     ASTnode *tail = root->right->right;
                     tail->right = NULL;
@@ -795,7 +812,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
 
         case WHILE_NODE:
             //IR_node *temp_node = (IR_node *)malloc(sizeof(IR_node));
-            
+
             node->instr_type = JAL;
             node->ir_type = IR_JUMP;
             node->instruction = "jal";
@@ -903,7 +920,7 @@ IR_node* pop(Stack *stack)
         printf("Stack empty\n");
         return NULL;
     }
-    
+
     LIFO_node *temp = stack->top;
     IR_node *ptr = temp->ptr;
     if(temp->next == NULL)
@@ -1027,7 +1044,7 @@ IR_node* get_reg(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_
     }
 
 
-    if(root->left->nodetype == ID_NODE && root->left != NULL)
+    if(root->left != NULL && root->left->nodetype == ID_NODE)
     {
         /* Register allocation */
 
@@ -1046,7 +1063,7 @@ IR_node* get_reg(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_
                 /* WARNING: VERY GREEDY! */
                 if(root->operation == EQU_OP)
                 {
-                    if(root->right->nodetype != CONSTANT_NODE && root->right->nodetype != ID_NODE)
+                    if(root->right != NULL && root->right->nodetype != CONSTANT_NODE && root->right->nodetype != ID_NODE)
                     {
                         /* Some operation is to the right and is in head */
                         holding_reg = min_count_register_without_REGs(rp, node->rs1.reg, node->rs2.reg);
@@ -1076,8 +1093,8 @@ IR_node* get_reg(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_
                     sw_temp->prev = NULL;
                     (*head)->prev = sw_temp;
                     //*head = sw_temp;    
-
-                    if(root->right->nodetype == ID_NODE && root->right != NULL)
+ 
+                    if(root->right != NULL && root->right->nodetype == ID_NODE)
                     {
                         /* Issue a load word instruction because operand is ID */
                         
@@ -1109,6 +1126,7 @@ IR_node* get_reg(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_
                         
                         return node;
                     }
+                    
                 }
                 
                 add_id_to_register(rp, holding_reg, root->left->name);
@@ -1167,7 +1185,7 @@ IR_node* get_reg(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_
     }
 
 
-    if(root->right->nodetype == ID_NODE && root->right != NULL)
+    if(root->right != NULL && root->right->nodetype == ID_NODE)
     {
         /* Register allocation */
 
@@ -1279,6 +1297,96 @@ IR_node* get_reg(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_
     return node;
 }
 
+
+IR_node* get_reg_single_ID(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_node **head)
+{
+    IR_register holding_reg;
+    if(root->nodetype == ID_NODE)
+    {
+        /* Register allocation */
+
+        // First, see if ID is already in any register
+        holding_reg = find_ID(rp, root->name);
+
+        if(holding_reg == 0)
+        {
+            holding_reg = find_empty_register(rp);
+
+            if(holding_reg == 0)
+            {
+                /* Pick one register for spilling */
+                // For now, I'll do this based on minimum count
+
+                /* WARNING: VERY GREEDY! */         
+                holding_reg = min_count_register(rp);
+      
+                IR_node* sw_temp;
+                if(get_register_count(rp, holding_reg) != 0)
+                {             
+                    sw_temp = (IR_node*)malloc(sizeof(IR_node)); 	
+                    sw_temp->instr_type = SW;
+                    sw_temp->ir_type = IR_STORE;
+                    sw_temp->instruction = "sw";
+                    sw_temp->rd.name = get_id_from_register(rp, holding_reg);
+                    remove_id_from_register(rp, holding_reg, sw_temp->rd.name);
+                    sw_temp->rs1.reg = holding_reg;
+                
+                    sw_temp->next = *head;
+                    sw_temp->prev = NULL;
+                    (*head)->prev = sw_temp;
+                    //*head = sw_temp;    
+                }
+
+                /* Issue a load word instruction because operand is ID */
+                        
+                IR_node *lw = (IR_node*)malloc(sizeof(IR_node)); 
+                add_id_to_register(rp, holding_reg, root->name);
+                
+                lw->ir_type = IR_LOAD;
+                lw->instr_type = LW;
+                lw->instruction = "lw";
+                lw->rd.reg = holding_reg;
+                lw->rs1.name = root->name;       
+
+                sw_temp->prev = lw;
+                lw->next = sw_temp;
+                lw->prev = node;     
+
+                node->prev = NULL;
+                node->next = lw;
+                node->rs1.reg = holding_reg;
+            }
+            else
+            {
+
+                IR_node* lui_insert = (IR_node*)malloc(sizeof(IR_node));
+                lui_insert->ir_type = IR_LOAD;
+                lui_insert->instr_type = LW;
+                lui_insert->instruction = "lw";
+                lui_insert->rd.reg = holding_reg;
+                lui_insert->rs1.name = root->name;
+                lui_insert->prev = node;
+                lui_insert->next = *head;
+                (*head)->prev = lui_insert;
+                node->next = lui_insert;
+
+                node->rs1.reg = lui_insert->rd.reg;
+
+                add_id_to_register(rp, holding_reg, root->name);
+            }
+        }
+        else
+        {
+            node->next = (*head);
+            (*head)->prev = node;
+            node->rs1.reg = holding_reg; 
+        }
+    }
+
+    return node;
+}
+
+
 IR_node* get_OP_node(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_node **head)
 {
     IR_node *temp_left = (IR_node*)malloc(sizeof(IR_node));
@@ -1314,4 +1422,31 @@ IR_node* get_OP_node(register_pool *rp, ht *table, ASTnode *root, IR_node *node,
     }
 
     return node;
+}
+
+
+IR_node* create_LOGIC_AND_node(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_node **head)
+{
+    IR_node *temp_left = (IR_node*)malloc(sizeof(IR_node));
+
+    if(root->nodetype == ID_NODE)
+    {
+        temp_left = get_reg_single_ID(rp, table, root, temp_left, head);  
+    }
+    else if(root->nodetype == CONSTANT_NODE)
+    {
+        IR_node *lui_node = (IR_node*)malloc(sizeof(IR_node));
+        lui_node = get_reg(rp, table, root, lui_node, head);  
+
+        lui_node->prev = temp_left;
+        temp_left->next = lui_node;
+        temp_left->rs1.reg = lui_node->rd.reg;
+    }
+
+    temp_left->ir_type = IR_BRANCH;
+    temp_left->instr_type = BEQ;
+    temp_left->instruction = "beq";
+    // rs1.reg already set?
+    temp_left->rs2.reg = 0;    
+    return temp_left;
 }
