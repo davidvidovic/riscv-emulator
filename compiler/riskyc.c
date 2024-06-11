@@ -107,11 +107,17 @@ void type_check(ASTnode *op1, ASTnode *op2)
     //op1_type = temp->type;
     op1_type = op1->type; 
 	}
-  else
+  else if(op1->nodetype == CONSTANT_NODE)
   {
     /* Constant node */
     op1_type = op1->type; 
     sprintf(op1_name, "%d", op1->value.value_INT);
+  }
+  else
+  {
+    /* Operation to the right */
+    op1_type = op1->left->type; 
+    sprintf(op1_name, "OPERATION");
   }
 
   if(op2->nodetype == ID_NODE)
@@ -121,11 +127,17 @@ void type_check(ASTnode *op1, ASTnode *op2)
     //op2_type = temp2->type;
     op2_type = op2->type; 
 	}
-  else
+  else if(op2->nodetype == CONSTANT_NODE)
   {
     /* Constant node */
     op2_type = op2->type; 
     sprintf(op2_name, "%d", op2->value.value_INT);
+  }
+  else
+  {
+    /* Operation to the right */
+    op2_type = op2->left->type; 
+    sprintf(op2_name, "OPERATION");
   }
 
   if(op1_type != op2_type)
@@ -193,7 +205,7 @@ int main()
     root = mkASTnode(NULL, NULL);
 
     sp_offset = 0;
-    yyin = fopen("input.c", "r");
+    yyin = fopen("../input.c", "r");
     yyparse();
 
     for(int i = 0; i < table->capacity; i++) 

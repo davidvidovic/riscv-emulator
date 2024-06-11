@@ -20,9 +20,27 @@ int main()
     c = 1 + a;
     g = g + 99;
 
-    while(b && a)
+    if(a > b)
     {
-        c = a + b;
+        g = 77;
+    }
+    else
+    {
+        c = 88;
+        if(c > g)
+        {
+            j = 19;
+        }
+        d = 9;
     }
     d = 19;
+    while(b && 3)
+    {
+        b = b + 1;
+    }
+
+    for(i = 0; i < 10; i++)
+    {
+        a = a + i;
+    }
 }

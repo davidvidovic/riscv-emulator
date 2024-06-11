@@ -8,23 +8,10 @@ int register_counter = 1;
 int label_counter = 1;
 extern int sp_offset;
 
-void print_stack(Stack* stack)
-{
-    if(stack->top != NULL)
-    {
-        printf("Top: %s\n", stack->top->ptr->instruction);
-    }
-    else
-    {
-        printf("Stack top NULL\n");    
-    }
-}
-
 IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack, register_pool *rp, ht* table)
 {
     IR_node *this_node = NULL;
-//     print_value(root);
-// print_stack(stack);
+
     if(root->nodetype == FUNCTION_NODE)
     { 
         this_node = insert_IR(root, head, stack, secondary_stack, rp, table);
@@ -43,8 +30,6 @@ IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondar
     }
 
 
-    
-
 
     /* Prio execution */
 
@@ -55,7 +40,7 @@ IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondar
 
     if(root->right != NULL)
     {
-        if(root->right->nodetype == ELSE_NODE || root->right->nodetype == WHILE_NODE || root->right->nodetype == FOR_NODE)
+        if((root->nodetype != ELSE_NODE && root->right->nodetype == IF_NODE) ||root->right->nodetype == ELSE_NODE || root->right->nodetype == WHILE_NODE || root->right->nodetype == FOR_NODE)
         {    
             this_node = insert_IR(root, this_node, stack, secondary_stack, rp, table);
         }
@@ -90,8 +75,14 @@ IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondar
         return this_node;
     }
 
-    if(root->nodetype == ELSE_NODE 
-        || (root->right != NULL && (root->right->nodetype == ELSE_NODE || root->right->nodetype == WHILE_NODE || root->right->nodetype == FOR_NODE))
+    if(root->nodetype == IF_NODE
+        || root->nodetype == ELSE_NODE 
+        || (root->right != NULL && (root->right->nodetype == IF_NODE 
+                                    ||root->right->nodetype == ELSE_NODE 
+                                    || root->right->nodetype == WHILE_NODE 
+                                    || root->right->nodetype == FOR_NODE
+                                    )
+            )
         )
         return this_node;
     else
@@ -464,7 +455,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
 
                     if(root->right->nodetype == ID_NODE)
                     {
-                        id_right = create_LOGIC_AND_node(rp, table, root->right, id_right, &(node->next));
+                        id_right = create_BEQ_node(rp, table, root->right, id_right, &(node->next));
                         id_right->next = head;
                         push(stack, id_right); 
 
@@ -474,7 +465,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     }
                     else if(root->right->nodetype == CONSTANT_NODE)
                     {
-                        id_right = create_LOGIC_AND_node(rp, table, root->right, id_right, &(node->next));
+                        id_right = create_BEQ_node(rp, table, root->right, id_right, &(node->next));
                         id_right->next = head;
                         push(stack, id_right); 
 
@@ -490,11 +481,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                         head->prev = id_left;
                     }
 
-                    if(root->left->nodetype == ID_NODE)
-                    {
-                        id_left = create_LOGIC_AND_node(rp, table, root->left, id_left, &(id_left->next));
-                    }
-                    
+                    id_left = create_BEQ_node(rp, table, root->left, id_left, &(id_left->next));
                     push(stack, id_left); 
                     
                     return id_left;
@@ -502,88 +489,46 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
 
 
                 case LOGIC_OR_OP:
-                    /* Checking if this is the root of logical sub-tree (boolean exp for if is deeper than 2 operands) */
-                    if(root->right->nodetype != OPERATION_NODE) 
+                    
+                    id_left = (IR_node*)malloc(sizeof(IR_node));
+                    id_right = (IR_node*)malloc(sizeof(IR_node));
+
+                    if(root->right->nodetype == ID_NODE)
                     {
-                        IR_node *temp_node = (IR_node *)malloc(sizeof(IR_node));
+                        id_right = create_BNE_node(rp, table, root->right, id_right, &(node->next));
+                        id_right->next = head;
+                        push(secondary_stack, id_right); 
 
-                        //printf("HEAD IS: %s R%d %s\n", head->instruction, head->rd.reg, head->rs1.name);
-
-                        temp_node->next = head->next;
-                        head->next->prev = temp_node;       
-                        head->next = temp_node;
-                        temp_node->prev = head;
-                        
-                        temp_node->reg = register_counter++;
-                        temp_node->instr_type = BNE;
-                        node->ir_type = IR_BRANCH;
-                        temp_node->instruction = "bne";
-                        temp_node->rs1.reg = temp_node->next->reg; 
-                        temp_node->rs2.reg = 0; 
-
-                        push(secondary_stack, temp_node); 
-
-                        node->next = head;
-                        node->prev = NULL;
-                        head->prev = node;
-
-                        node->instr_type = BEQ;
-                        node->ir_type = IR_BRANCH;
-                        node->instruction = "beq";
-                        node->rs1.reg = node->next->reg; 
-                        node->rs2.reg = 0; 
-
-                        push(stack, node);
+                        id_left->prev = NULL;
+                        id_left->next = id_right;
+                        id_right->prev = id_left;
                     }
-                    else if(root->right->operation == LOGIC_OR_OP)
+                    else if(root->right->nodetype == CONSTANT_NODE)
                     {
-                        head->next->instr_type = BNE;
-                        node->ir_type = IR_BRANCH;
-                        head->next->instruction = "bne";
-                        push(secondary_stack, pop(stack)); // holy shit
+                        id_right = create_BNE_node(rp, table, root->right, id_right, &(node->next));
+                        id_right->next = head;
+                        push(secondary_stack, id_right); 
 
-                        node->next = head;
-                        node->prev = NULL;
-                        head->prev = node;
-
-                        node->instr_type = BEQ;
-                        node->ir_type = IR_BRANCH;
-                        node->instruction = "beq";
-                        node->rs1.reg = node->next->reg; 
-                        node->rs2.reg = 0; 
-
-                        push(stack, node);
+                        id_left->prev = NULL;
+                        id_left->next = id_right;
+                        id_right->prev = id_left;
                     }
                     else
                     {
-                        // when AND op is on the right (mixed operations example)
-
-                        node->instr_type = BNE;
-                        node->ir_type = IR_BRANCH;
-                        node->instruction = "bne";
-                        node->rs1.reg = node->next->reg; 
-                        node->rs2.reg = 0;
-                        push(secondary_stack, node);
-
-                        /* First insert current head - lui, into a proper spot (4 instructions deep) */
-                        IR_node *temp = head;
-                        
-                        head = head->next;
-                        head->prev = NULL;
-
-                        temp->next = head->next->next->next->next;
-                        head->next->next->next->next->prev = temp;
-                        temp->prev = head->next->next->next;
-                        temp->prev->next = temp;
-
-                        /* Next create this node of type bne and insert it again 4 instructions deep, and return head */
-                        node->next = head->next->next->next->next;
-                        head->next->next->next->next->prev = node;
-                        node->prev = head->next->next->next;
-                        node->prev->next = node;
-
-                        return head;
+                        // On the right OPERATION (nested logical ops)
+                        IR_node *popped = pop(stack);
+                        popped->instr_type = BNE;
+                        popped->instruction = "bne";
+                        push(secondary_stack, popped); // holy shit
+                        id_left->prev = NULL;
+                        id_left->next = head;
+                        head->prev = id_left;
                     }
+               
+                    id_left = create_BEQ_node(rp, table, root->left, id_left, &(id_left->next));          
+                    push(stack, id_left); 
+                    
+                    return id_left;
                 break;
 
                 case BITWISE_NOT_OP:
@@ -596,11 +541,8 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     node->rs2.int_constant = -1;
                 break;
             }
-        
 
-            
-
-            
+            /* Implement other operations */    
         break;
 
         case IF_NODE:
@@ -627,16 +569,18 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
             jmp->ir_type = IR_JUMP;
             jmp->instruction = "jal";
             jmp->rd.reg = 0; // by ISA docs - pseudo j (jamp) instruction is jal with rd set as x0
-            jmp->next = head->next; // delete IFs node
-            jmp->prev = NULL;
-            head->next->prev = jmp;
+            // jmp->next = head->next; // delete IFs node
+            // jmp->prev = NULL;
+            // head->next->prev = jmp;
+            
+            head->prev = jmp;
+            jmp->next = head;
 
             node->next = jmp;
             node->prev = NULL;
             jmp->prev = node;
 
-
-            root->value.label_count = root->right->value.label_count;
+            root->value.label_count = label_counter++;
 
             node->instr_type = LABEL;
             node->ir_type = IR_LABEL;
@@ -644,7 +588,6 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
             sprintf(tmp, "L%d", root->value.label_count);
             node->instruction = tmp;
             root->left->value.label_count = root->value.label_count;
-
             IR_node *help = pop(stack);
             if(help->ir_type == IR_JUMP)
                 help->rs1.label = tmp;
@@ -673,10 +616,25 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                 char *tmp = malloc(5 * sizeof(char));
                 if(root->right->nodetype == IF_NODE)
                 {
-                    //node->instr_type = LABEL;
-                    root->value.label_count = root->right->value.label_count;
-                    //root->value.label_count = label_counter++;
+                    // //node->instr_type = LABEL;
+                    // root->value.label_count = root->right->value.label_count;
+                    // //root->value.label_count = label_counter++;
                     
+                    // sprintf(tmp, "L%d", root->value.label_count);
+                    // node->instruction = tmp;                    
+
+                    // IR_node *help = pop(stack);
+                    // if(help->ir_type == IR_JUMP)
+                    //     help->rs1.label = tmp;
+                    // else
+                    //     help->rd.label = tmp;
+
+                    // ASTnode *tail = root->right->right;
+                    // tail->right = NULL;
+
+                    node->instr_type = LABEL;
+                    node->ir_type = IR_LABEL;
+                    root->value.label_count = label_counter++;
                     sprintf(tmp, "L%d", root->value.label_count);
                     node->instruction = tmp;                    
 
@@ -686,9 +644,6 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     else
                         help->rd.label = tmp;
 
-                    ASTnode *tail = root->right->right;
-                    tail->right = NULL;
-
                     /* 
                     * When there are multiple subexpressions or operands in logical expressions, for each branching
                     * there will be and instruction node created and it will be pushed to stack, so I make a temporary sub-tree
@@ -696,6 +651,8 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     * down to boolean expression of if node and count how many times I need to pop nodes off the stack 
                     */
 
+                    ASTnode *tail = root->right->right;
+                    tail->right = NULL;
                     int num_AND = count_subtree_AND_OPs(tail);
 
                     for(int i = 0; i < num_AND; i++)
@@ -706,8 +663,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                         else
                             help->rd.label = tmp;
                     }
-                    
-                    //printf("izdajem %s nakon IF\n", node->instruction);
+
                 }
                 else if(root->right->nodetype == ELSE_NODE)
                 {
@@ -723,7 +679,6 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     else
                         help->rd.label = tmp;
                         
-                    //printf("izdajem %s nakon ELSE\n", node->instruction);
                 }
                 else if(root->right->nodetype == WHILE_NODE)
                 {
@@ -734,10 +689,15 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     sprintf(tmp, "L%d", root->value.label_count);
                     node->instruction = tmp; 
 
-                    IR_node *help;
-
                     ASTnode *tail = root->right->right->right;
                     tail->right = NULL;
+
+                    IR_node *help = pop(stack);
+                    sprintf(tmp, "L%d", root->value.label_count);
+                    if(help->ir_type == IR_JUMP)
+                        help->rs1.label = tmp;
+                    else
+                        help->rd.label = tmp;
 
                     int num_AND = count_subtree_AND_OPs(tail);
 
@@ -758,12 +718,12 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     sprintf(tmp, "L%d", root->value.label_count);
                     node->instruction = tmp; 
 
-                    // IR_node *help = pop(stack);
-                    // sprintf(tmp, "L%d", root->value.label_count);
-                    // if(help->ir_type == IR_JUMP)
-                    //     help->rs1.label = tmp;
-                    // else
-                    //     help->rd.label = tmp;
+                    IR_node *help = pop(stack);
+                    sprintf(tmp, "L%d", root->value.label_count);
+                    if(help->ir_type == IR_JUMP)
+                        help->rs1.label = tmp;
+                    else
+                        help->rd.label = tmp;
 
                     ASTnode *tail = root->right->right;
                     tail->right = NULL;
@@ -938,7 +898,7 @@ IR_node* pop(Stack *stack)
 void print_IR(IR_node *IR_head, IR_node *IR_tail)
 {
     printf("\n\nASM:\n\n");
-    FILE *asm_file = fopen("output.s", "w");
+    FILE *asm_file = fopen("../output.s", "w");
 
     while(IR_head != IR_tail)
     {
@@ -1425,7 +1385,7 @@ IR_node* get_OP_node(register_pool *rp, ht *table, ASTnode *root, IR_node *node,
 }
 
 
-IR_node* create_LOGIC_AND_node(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_node **head)
+IR_node* create_BEQ_node(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_node **head)
 {
     IR_node *temp_left = (IR_node*)malloc(sizeof(IR_node));
 
@@ -1446,6 +1406,32 @@ IR_node* create_LOGIC_AND_node(register_pool *rp, ht *table, ASTnode *root, IR_n
     temp_left->ir_type = IR_BRANCH;
     temp_left->instr_type = BEQ;
     temp_left->instruction = "beq";
+    // rs1.reg already set?
+    temp_left->rs2.reg = 0;    
+    return temp_left;
+}
+
+IR_node* create_BNE_node(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_node **head)
+{
+    IR_node *temp_left = (IR_node*)malloc(sizeof(IR_node));
+
+    if(root->nodetype == ID_NODE)
+    {
+        temp_left = get_reg_single_ID(rp, table, root, temp_left, head);  
+    }
+    else if(root->nodetype == CONSTANT_NODE)
+    {
+        IR_node *lui_node = (IR_node*)malloc(sizeof(IR_node));
+        lui_node = get_reg(rp, table, root, lui_node, head);  
+
+        lui_node->prev = temp_left;
+        temp_left->next = lui_node;
+        temp_left->rs1.reg = lui_node->rd.reg;
+    }
+
+    temp_left->ir_type = IR_BRANCH;
+    temp_left->instr_type = BNE;
+    temp_left->instruction = "bne";
     // rs1.reg already set?
     temp_left->rs2.reg = 0;    
     return temp_left;

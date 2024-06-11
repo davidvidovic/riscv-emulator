@@ -596,9 +596,13 @@ statement_list
 	| statement_list statement {
 		$$ = $2; 
 		if($$->nodetype == IF_NODE)
+		{
 			$$->right->right = $1;
+		}
 		else if($$->nodetype == ELSE_NODE)
+		{
 			$$->right->right->right = $1;
+		}
 		else if($$->nodetype == WHILE_NODE)
 		{
 			ASTnode *temp = new_ASTnode_LABEL(NULL, $1);
