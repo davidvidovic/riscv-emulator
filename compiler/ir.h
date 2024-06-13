@@ -17,6 +17,7 @@ typedef union IR_value
     char* label;
     int reg;
     IR_register ir_reg;
+    
 } IR_value;
 
 typedef struct IR_node
@@ -32,6 +33,7 @@ typedef struct IR_node
     IR_value rs1;
     IR_value rs2;
     IR_value rd;
+    int sf_offset;
 } IR_node;
 
 // LIFO queue (stack) for labels
@@ -60,5 +62,6 @@ IR_node* get_reg_single_ID(register_pool *rp, ht *table, ASTnode *root, IR_node 
 IR_node* get_OP_node(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_node **head);
 IR_node* create_BEQ_node(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_node **head);
 IR_node* create_BNE_node(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_node **head);
+IR_node* clean_up(IR_node* head);
 
 #endif

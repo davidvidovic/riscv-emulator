@@ -273,6 +273,48 @@ ht_entry* get_ht_entry(ht* table, const char* key)
 }
 
 
+int get_sf_offset(ht* table, const char* key)
+{
+    uint64_t hash = hash_key(key);
+    size_t index = (size_t)(hash & (uint64_t)(table->capacity - 1));
+
+    while (table->entries[index].key != NULL) {
+        if (strcmp(key, table->entries[index].key) == 0) {
+            return table->entries[index].sp_offset;
+        }
+        // Key wasn't in this slot, move to next (linear probing)
+        index++;
+        if (index >= table->capacity) {
+            // At end of entries array, wrap around
+            index = 0;
+        }
+    }
+    
+    return 0;
+}
+
+void ht_set_sf_offset(ht* table, const char* key, int offset)
+{
+    uint64_t hash = hash_key(key);
+    size_t index = (size_t)(hash & (uint64_t)(table->capacity - 1));
+
+    while (table->entries[index].key != NULL) {
+        if (strcmp(key, table->entries[index].key) == 0) {
+            table->entries[index].sp_offset = offset;
+            return;
+        }
+        // Key wasn't in this slot, move to next (linear probing)
+        index++;
+        if (index >= table->capacity) {
+            // At end of entries array, wrap around
+            index = 0;
+        }
+    }
+    
+    return;
+}
+
+
 
 void ht_get_AD(ht* table, const char* key)
 {

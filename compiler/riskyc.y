@@ -161,8 +161,8 @@ multiplicative_expression
 
 additive_expression
 	: multiplicative_expression {$$ = $1;}
-	| additive_expression '+' multiplicative_expression {type_check($1, $3); $$ = new_ASTnode_OPERATION(ADD_OP, $3, $1); }
-	| additive_expression '-' multiplicative_expression {type_check($1, $3); $$ = new_ASTnode_OPERATION(SUB_OP, $3, $1);}
+	| additive_expression '+' multiplicative_expression {type_check($1, $3); $$ = new_ASTnode_OPERATION(ADD_OP, $1, $3); }
+	| additive_expression '-' multiplicative_expression {type_check($1, $3); $$ = new_ASTnode_OPERATION(SUB_OP, $1, $3);}
 	;
 
 shift_expression

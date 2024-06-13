@@ -87,6 +87,7 @@ void ht_set_type_sp_offset(const char* key, id_type type, int sp_offset)
   {
     temp->type = type;
     temp->sp_offset = sp_offset;
+    ht_set_sf_offset(table, key, sp_offset);
     ASTnode *n = ht_get_ASTnode(table, key);
     n->type = type;
   }
@@ -251,9 +252,9 @@ int main()
     register_pool *rp = init_register_pool();
   
     IR_node *IR_tail = populate_IR(root, IR_head, &stack, &secondary_stack, rp, table);
-    
-    print_IR(IR_head, IR_tail);
 
+    print_IR(IR_head, IR_tail);
+    
     //control_flow_graph *cfg = populate_cfg(IR_head, IR_tail);
     //basic_block* temp = cfg->leader;
   

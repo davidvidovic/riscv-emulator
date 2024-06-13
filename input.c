@@ -3,9 +3,9 @@ int main()
     int a = 2;
     int b, c, d, e, f, g, h, i, j;
     a = 1;
-    b = a + a;
+    b = a - a;
     c = a + b;
-    d = c + 4;
+    d = c - 4;
     e = 5;
     c = 10;
     f = 6;
@@ -20,9 +20,9 @@ int main()
     c = 1 + a;
     g = g + 99;
 
-    if(a > b)
+    if(!a)
     {
-        g = 77;
+        g = ~f;
     }
     else
     {
@@ -38,9 +38,10 @@ int main()
     {
         b = b + 1;
     }
-
-    for(i = 0; i < 10; i++)
+    b = 888;
+    for(i = 0; i < 10; i=i+1)
     {
         a = a + i;
     }
+    a = 999;
 }

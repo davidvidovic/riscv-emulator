@@ -60,6 +60,8 @@ const char* ht_get_key(ht* table, const char* key);
 int ht_get_line(ht* table, const char* key);
 ASTnode* ht_get_ASTnode(ht* table, const char* key);
 ht_entry* get_ht_entry(ht* table, const char* key);
+int get_sf_offset(ht* table, const char* key);
+void ht_set_sf_offset(ht* table, const char* key, int offset);
 
 
 
