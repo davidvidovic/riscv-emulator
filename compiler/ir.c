@@ -401,7 +401,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                 /*
                 * BLE - branch if less or equal => is BGE when operand are reversed
                 */
-                    node->instr_type = BLE;
+                    node->instr_type = BGE;
                     node->ir_type = IR_BRANCH;
                     node->instruction = "bge";
                     push(stack, node); 
@@ -413,7 +413,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                 /*
                 * BGT - branch if greater than => is BLT when operand are reversed
                 */
-                    node->instr_type = BGT;
+                    node->instr_type = BLT;
                     node->ir_type = IR_BRANCH;
                     node->instruction = "blt";
                     push(stack, node); 
@@ -965,51 +965,66 @@ IR_node* pop(Stack *stack)
 void print_IR(IR_node *IR_head, IR_node *IR_tail)
 {
     printf("\n\nASM:\n\n");
+
+    int ir_address = 0;
+
     FILE *asm_file = fopen("../output.s", "w");
 
     while(IR_head != IR_tail)
     {
       IR_head = IR_head->prev;
+
+      IR_head->ir_address = ir_address;
+      ir_address += 4;
+
       switch(IR_head->ir_type)
       {
         case IR_LABEL:
-          printf(".%s:\n", IR_head->instruction);
-          fprintf(asm_file, ".%s:\n", IR_head->instruction);
+          printf("%.4x:\t.%s:\n", IR_head->ir_address, IR_head->instruction);
+          fprintf(asm_file, "%.4x:\t.%s:\n", IR_head->ir_address, IR_head->instruction);
         break;
 
         case IR_OP_IMM:
-          printf("\t%s x%d,x%d,%d\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.reg, IR_head->rs2.int_constant);
-          fprintf(asm_file, "\t%s x%d,x%d,%d\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.reg, IR_head->rs2.int_constant);
+          printf("%.4x:\t\t%s x%d,x%d,%d\n", IR_head->ir_address, IR_head->instruction, IR_head->rd.reg, IR_head->rs1.reg, IR_head->rs2.int_constant);
+          fprintf(asm_file, "%.4x:\t\t%s x%d,x%d,%d\n", IR_head->ir_address, IR_head->instruction, IR_head->rd.reg, IR_head->rs1.reg, IR_head->rs2.int_constant);
         break;
 
         case IR_STORE:
-          printf("\t%s x%d,%d(x%d)\n", IR_head->instruction, IR_head->rs1.reg, IR_head->sf_offset, IR_head->rd.reg);
-          fprintf(asm_file, "\t%s x%d,%d(x%d)\n", IR_head->instruction, IR_head->rs1.reg, IR_head->sf_offset, IR_head->rd.reg);
+          printf("%.4x:\t\t%s x%d,%d(x%d)\n", IR_head->ir_address, IR_head->instruction, IR_head->rs1.reg, IR_head->sf_offset, IR_head->rd.reg);
+          fprintf(asm_file, "%.4x:\t\t%s x%d,%d(x%d)\n", IR_head->ir_address, IR_head->instruction, IR_head->rs1.reg, IR_head->sf_offset, IR_head->rd.reg);
         break;
 
         case IR_LOAD:
-          printf("\t%s x%d,%d(x%d)\n", IR_head->instruction, IR_head->rd.reg, IR_head->sf_offset, IR_head->rs1.reg);
-          fprintf(asm_file, "\t%s x%d,%d(x%d)\n", IR_head->instruction, IR_head->rd.reg, IR_head->sf_offset, IR_head->rs1.reg);
+          printf("%.4x:\t\t%s x%d,%d(x%d)\n", IR_head->ir_address, IR_head->instruction, IR_head->rd.reg, IR_head->sf_offset, IR_head->rs1.reg);
+          fprintf(asm_file, "%.4x:\t\t%s x%d,%d(x%d)\n", IR_head->ir_address, IR_head->instruction, IR_head->rd.reg, IR_head->sf_offset, IR_head->rs1.reg);
         break;
 
         case IR_LOAD_IMM:
-          printf("\t%s x%d,%d\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.int_constant);
-          fprintf(asm_file, "\t%s x%d,%d\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.int_constant);
+          printf("%.4x:\t\t%s x%d,%d\n", IR_head->ir_address, IR_head->instruction, IR_head->rd.reg, IR_head->rs1.int_constant);
+          fprintf(asm_file, "%.4x:\t\t%s x%d,%d\n", IR_head->ir_address, IR_head->instruction, IR_head->rd.reg, IR_head->rs1.int_constant);
         break;        
 
         case IR_OP:
-          printf("\t%s x%d,x%d,x%d\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.reg, IR_head->rs2.reg);
-          fprintf(asm_file, "\t%s x%d,x%d,x%d\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.reg, IR_head->rs2.reg);
+          printf("%.4x:\t\t%s x%d,x%d,x%d\n", IR_head->ir_address, IR_head->instruction, IR_head->rd.reg, IR_head->rs1.reg, IR_head->rs2.reg);
+          fprintf(asm_file, "%.4x:\t\t%s x%d,x%d,x%d\n", IR_head->ir_address, IR_head->instruction, IR_head->rd.reg, IR_head->rs1.reg, IR_head->rs2.reg);
         break;
 
         case IR_BRANCH:
-          printf("\t%s x%d,x%d,.%s\n", IR_head->instruction, IR_head->rs1.reg, IR_head->rs2.reg, IR_head->rd.label);
-          fprintf(asm_file, "\t%s x%d,x%d,.%s\n", IR_head->instruction, IR_head->rs1.reg, IR_head->rs2.reg, IR_head->rd.label);
+          printf("%.4x:\t\t%s x%d,x%d,.%s\n", IR_head->ir_address, IR_head->instruction, IR_head->rs1.reg, IR_head->rs2.reg, IR_head->rd.label);
+          fprintf(asm_file, "%.4x:\t\t%s x%d,x%d,.%s\n", IR_head->ir_address, IR_head->instruction, IR_head->rs1.reg, IR_head->rs2.reg, IR_head->rd.label);
         break;
 
         case IR_JUMP:
-          printf("\t%s x%d,.%s\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.label);
-          fprintf(asm_file, "\t%s x%d,.%s\n", IR_head->instruction, IR_head->rd.reg, IR_head->rs1.label);
+            if(IR_head->instr_type == JAL)
+            {
+                printf("%.4x:\t\t%s x%d,.%s\n", IR_head->ir_address, IR_head->instruction, IR_head->rd.reg, IR_head->rs1.label);
+                fprintf(asm_file, "%.4x:\t\t%s x%d,.%s\n", IR_head->ir_address, IR_head->instruction, IR_head->rd.reg, IR_head->rs1.label);
+            }
+            else
+            {
+                printf("%.4x:\t\t%s x%d,%d(x%d)\n", IR_head->ir_address, IR_head->instruction, IR_head->rd.reg, IR_head->sf_offset, IR_head->rs1.reg);
+                fprintf(asm_file, "%.4x:\t\t%s x%d,%d(x%d)\n", IR_head->ir_address, IR_head->instruction, IR_head->rd.reg, IR_head->sf_offset, IR_head->rs1.reg);
+            }
         break;
 
         case NONE:
@@ -1583,11 +1598,29 @@ IR_node* clean_up(IR_node* head)
     jump_ra->instr_type = JALR;
     jump_ra->instruction = "jalr";
     jump_ra->rd.reg = 0;
-    jump_ra->rs1.label = "ra"; 
+    jump_ra->rs1.reg = ra; 
 
     jump_ra->next = reset_sp;
     reset_sp->prev = jump_ra;
     jump_ra->prev = NULL;
 
     return jump_ra;
+}
+
+int get_label_address(char* label, IR_node *IR_head, IR_node *IR_tail)
+{
+    while(IR_head != IR_tail)
+    {
+        IR_head = IR_head->prev;
+
+        if(IR_head->ir_type == IR_LABEL)
+        {
+            if(strcmp(IR_head->instruction, label) == 0)
+            {
+                return IR_head->ir_address;
+            }
+        }
+    }
+
+    return -1;
 }

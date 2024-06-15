@@ -266,6 +266,8 @@ int main()
     } while(temp != NULL);
 */
 
+    assemble_binary_output(IR_head, IR_tail);
+
     ht_destroy(table);
     freeAST(root);
 

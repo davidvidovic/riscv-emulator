@@ -25,6 +25,7 @@ typedef struct IR_node
     IR_instruction_type ir_type;
     instruction_type instr_type;
     char* instruction;
+    int ir_address;
     
     struct IR_node *prev;
     struct IR_node *next;
@@ -63,5 +64,6 @@ IR_node* get_OP_node(register_pool *rp, ht *table, ASTnode *root, IR_node *node,
 IR_node* create_BEQ_node(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_node **head);
 IR_node* create_BNE_node(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_node **head);
 IR_node* clean_up(IR_node* head);
+int get_label_address(char* label, IR_node *IR_head, IR_node *IR_tail);
 
 #endif
