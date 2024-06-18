@@ -85,6 +85,9 @@ typedef struct ASTnode {
 
     // Expressions
     operation_type operation;
+
+    // Line position needed for GUI
+    int line;
 } ASTnode;
 
 
@@ -97,7 +100,7 @@ ASTnode* new_ASTnode_INT(int value);
 ASTnode* new_ASTnode_FLOAT(float value);
 ASTnode* new_ASTnode_CHAR(char value);
 
-ASTnode* new_ASTnode_OPERATION(operation_type operation, ASTnode *left, ASTnode *right);
+ASTnode* new_ASTnode_OPERATION(operation_type operation, ASTnode *left, ASTnode *right, int line);
 ASTnode* new_ASTnode_EXPRESSION(ASTnode* left, ASTnode* right);
 ASTnode* new_ASTnode_SCOPE(ASTnode* left, ASTnode* right);
 ASTnode* new_ASTnode_IF(ASTnode* left, ASTnode* right);
@@ -105,7 +108,7 @@ ASTnode* new_ASTnode_ELSE(ASTnode* left, ASTnode* right);
 ASTnode* new_ASTnode_WHILE(ASTnode* left, ASTnode* right);
 ASTnode* new_ASTnode_FOR(ASTnode* left, ASTnode* right);
 ASTnode* new_ASTnode_LABEL(ASTnode* left, ASTnode* right);
-ASTnode* new_ASTnode_FUNCTION(ASTnode* left, ASTnode* right);
+ASTnode* new_ASTnode_FUNCTION(ASTnode* left, ASTnode* right, int line);
 
 // Helper functions
 void print_value(ASTnode* n);

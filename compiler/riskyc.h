@@ -22,7 +22,6 @@ typedef struct
 } ID_struct;
 
 
-
 //ASTnode *root = NULL;
 int declare(const char* name, const char* datatype, int line, ASTnode* node);
 ASTnode* check_declaration(const char* name);

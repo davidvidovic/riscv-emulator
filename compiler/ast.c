@@ -9,6 +9,7 @@ ASTnode* mkASTnode(ASTnode *left, ASTnode *right)
     n->left = left;
     n->right = right;
     n->type = NO_TYPE;
+
     return (n);
 }
 
@@ -26,12 +27,13 @@ ASTnode* new_ASTnode_ID(const char* name, id_type type, ASTnode *left, ASTnode *
     //n->name = malloc(len * sizeof(char));
     n->name = name;
     n->type = type;
+
     return (n);
 }
 
 
 ASTnode* new_ASTnode_INT(int value)
-{
+{ 
     ASTnode *n = new_AST_leaf();
     n->nodetype = CONSTANT_NODE;
     n->type = TYPE_INT;
@@ -57,11 +59,12 @@ ASTnode* new_ASTnode_CHAR(char value)
     return (n);
 }
 
-ASTnode* new_ASTnode_OPERATION(operation_type operation, ASTnode *left, ASTnode *right)
+ASTnode* new_ASTnode_OPERATION(operation_type operation, ASTnode *left, ASTnode *right, int line)
 {
     ASTnode *n = mkASTnode(left, right);
     n->nodetype = OPERATION_NODE;
     n->operation = operation;
+    n->line = line; 
     return (n);
 }
 
@@ -135,11 +138,12 @@ ASTnode* new_ASTnode_LABEL(ASTnode* left, ASTnode* right)
     return (n);
 }
 
-ASTnode* new_ASTnode_FUNCTION(ASTnode* left, ASTnode* right)
+ASTnode* new_ASTnode_FUNCTION(ASTnode* left, ASTnode* right, int line)
 {
     ASTnode *n = mkASTnode(left, right);
     n->nodetype = FUNCTION_NODE;
     n->name = left->name;
+    n->line = line;
 
     return (n);
 }

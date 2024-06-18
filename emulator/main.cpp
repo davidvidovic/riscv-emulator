@@ -7,7 +7,7 @@
 void read_input_file(CPU &cpu)
 {
     std::ifstream input_file;
-    input_file.open("binary_input.bin");
+    input_file.open("../output.bin");
 
     std::string line;
     int offset = 0;

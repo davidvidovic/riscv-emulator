@@ -26,6 +26,7 @@
     char value_char;
     char* value_string;
     ID_struct id_obj;
+	int line;
 
     // AST stuff
     ASTnode* ast;
@@ -126,14 +127,14 @@ argument_expression_list
 unary_expression 
 	: postfix_expression {$$ = $1;}
 	| INC_OP unary_expression {
-		ASTnode *add_node = new_ASTnode_OPERATION(ADD_OP, $2, new_ASTnode_INT(1)); // possible bug for other data types
-		$$ = new_ASTnode_OPERATION(EQU_OP, $2, add_node);	
+		ASTnode *add_node = new_ASTnode_OPERATION(ADD_OP, $2, new_ASTnode_INT(1), lineno); // possible bug for other data types
+		$$ = new_ASTnode_OPERATION(EQU_OP, $2, add_node, lineno);	
 	} 
 	| DEC_OP unary_expression {
-		ASTnode *add_node = new_ASTnode_OPERATION(SUB_OP, $2, new_ASTnode_INT(1)); // possible bug for other data types
-		$$ = new_ASTnode_OPERATION(EQU_OP, $2, add_node);	
+		ASTnode *add_node = new_ASTnode_OPERATION(SUB_OP, $2, new_ASTnode_INT(1), lineno); // possible bug for other data types
+		$$ = new_ASTnode_OPERATION(EQU_OP, $2, add_node, lineno);	
 	} 
-	| unary_operator cast_expression {$$ = new_ASTnode_OPERATION($1, $2, NULL);}
+	| unary_operator cast_expression {$$ = new_ASTnode_OPERATION($1, $2, NULL, lineno);}
 	| SIZEOF unary_expression {}
 	| SIZEOF '(' type_name ')' {}
 	;
@@ -154,15 +155,15 @@ cast_expression
 
 multiplicative_expression
 	: cast_expression {$$ = $1;}
-	| multiplicative_expression '*' cast_expression {type_check($1, $3); $$ = new_ASTnode_OPERATION(MUL_OP, $3, $1);}
-	| multiplicative_expression '/' cast_expression {type_check($1, $3); $$ = new_ASTnode_OPERATION(DIV_OP, $3, $1);}
-	| multiplicative_expression '%' cast_expression {type_check($1, $3); $$ = new_ASTnode_OPERATION(MOD_OP, $3, $1);}
+	| multiplicative_expression '*' cast_expression {type_check($1, $3); $$ = new_ASTnode_OPERATION(MUL_OP, $3, $1, lineno);}
+	| multiplicative_expression '/' cast_expression {type_check($1, $3); $$ = new_ASTnode_OPERATION(DIV_OP, $3, $1, lineno);}
+	| multiplicative_expression '%' cast_expression {type_check($1, $3); $$ = new_ASTnode_OPERATION(MOD_OP, $3, $1, lineno);}
 	;
 
 additive_expression
 	: multiplicative_expression {$$ = $1;}
-	| additive_expression '+' multiplicative_expression {type_check($1, $3); $$ = new_ASTnode_OPERATION(ADD_OP, $1, $3); }
-	| additive_expression '-' multiplicative_expression {type_check($1, $3); $$ = new_ASTnode_OPERATION(SUB_OP, $1, $3);}
+	| additive_expression '+' multiplicative_expression {type_check($1, $3); $$ = new_ASTnode_OPERATION(ADD_OP, $1, $3, lineno);}
+	| additive_expression '-' multiplicative_expression {type_check($1, $3); $$ = new_ASTnode_OPERATION(SUB_OP, $1, $3, lineno);}
 	;
 
 shift_expression
@@ -173,16 +174,16 @@ shift_expression
 
 relational_expression
 	: shift_expression {$$ = $1;}
-	| relational_expression '<' shift_expression {type_check($1, $3); $$ = new_ASTnode_OPERATION(LOGIC_LT_OP, $3, $1);}
-	| relational_expression '>' shift_expression {type_check($1, $3); $$ = new_ASTnode_OPERATION(LOGIC_GT_OP, $3, $1);}
-	| relational_expression LE_OP shift_expression {type_check($1, $3); $$ = new_ASTnode_OPERATION(LOGIC_LET_OP, $3, $1);}
-	| relational_expression GE_OP shift_expression {type_check($1, $3); $$ = new_ASTnode_OPERATION(LOGIC_GET_OP, $3, $1);}
+	| relational_expression '<' shift_expression {type_check($1, $3); $$ = new_ASTnode_OPERATION(LOGIC_LT_OP, $3, $1, lineno);}
+	| relational_expression '>' shift_expression {type_check($1, $3); $$ = new_ASTnode_OPERATION(LOGIC_GT_OP, $3, $1, lineno);}
+	| relational_expression LE_OP shift_expression {type_check($1, $3); $$ = new_ASTnode_OPERATION(LOGIC_LET_OP, $3, $1, lineno);}
+	| relational_expression GE_OP shift_expression {type_check($1, $3); $$ = new_ASTnode_OPERATION(LOGIC_GET_OP, $3, $1, lineno);}
 	;
 
 equality_expression
 	: relational_expression {$$ = $1;}
-	| equality_expression EQ_OP relational_expression {type_check($1, $3); $$ = new_ASTnode_OPERATION(LOGIC_EQU_OP, $3, $1);}
-	| equality_expression NE_OP relational_expression {type_check($1, $3); $$ = new_ASTnode_OPERATION(LOGIC_NEQU_OP, $3, $1);}
+	| equality_expression EQ_OP relational_expression {type_check($1, $3); $$ = new_ASTnode_OPERATION(LOGIC_EQU_OP, $3, $1, lineno);}
+	| equality_expression NE_OP relational_expression {type_check($1, $3); $$ = new_ASTnode_OPERATION(LOGIC_NEQU_OP, $3, $1, lineno);}
 	;
 
 and_expression
@@ -207,12 +208,12 @@ logical_and_expression
 		if($1->operation == LOGIC_AND_OP)
 		{
 			type_check($1->left, $3);
-			$$ = new_ASTnode_OPERATION(LOGIC_AND_OP, $3, $1);
+			$$ = new_ASTnode_OPERATION(LOGIC_AND_OP, $3, $1, lineno);
 		}
 		else
 		{
 			type_check($1, $3);
-			$$ = new_ASTnode_OPERATION(LOGIC_AND_OP, $1, $3);
+			$$ = new_ASTnode_OPERATION(LOGIC_AND_OP, $1, $3, lineno);
 		}
 	}
 	;
@@ -224,12 +225,12 @@ logical_or_expression
 		if($1->operation == LOGIC_OR_OP || $1->operation == LOGIC_AND_OP)
 		{
 			type_check($1->left, $3);
-			$$ = new_ASTnode_OPERATION(LOGIC_OR_OP, $3, $1);
+			$$ = new_ASTnode_OPERATION(LOGIC_OR_OP, $3, $1, lineno);
 		}
 		else
 		{
 			type_check($1, $3);
-			$$ = new_ASTnode_OPERATION(LOGIC_OR_OP, $1, $3);
+			$$ = new_ASTnode_OPERATION(LOGIC_OR_OP, $1, $3, lineno);
 		}
 	}
 	;
@@ -251,7 +252,7 @@ assignment_expression
 		{
 			type_check($1, $3);
 		}
-		$$ = new_ASTnode_OPERATION($2, $1, $3); // maybe 3,1?		
+		$$ = new_ASTnode_OPERATION($2, $1, $3, lineno); // maybe 3,1?		
 	}
 	;
 
@@ -356,7 +357,7 @@ init_declarator_list
 init_declarator
 	: declarator {$$ = $1;}
 	| declarator '=' initializer {
-		ASTnode *temp = new_ASTnode_OPERATION(EQU_OP, $1, $3);
+		ASTnode *temp = new_ASTnode_OPERATION(EQU_OP, $1, $3, lineno);
 		$$ = new_ASTnode_EXPRESSION(temp, NULL);
 	}
 	;
@@ -686,7 +687,7 @@ function_definition
 	: declaration_specifiers declarator declaration_list compound_statement {$$ = $4;}
 	| declaration_specifiers declarator compound_statement {
 		$2->type = $1; 
-		$$ = new_ASTnode_FUNCTION($2, $3); 
+		$$ = new_ASTnode_FUNCTION($2, $3, lineno); 
 		$$->type = $1;
 	}
 	| declarator declaration_list compound_statement {$$ = $3;}

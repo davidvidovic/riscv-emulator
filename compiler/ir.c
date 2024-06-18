@@ -72,7 +72,7 @@ IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondar
                 help->rd.label = ls;
         }
 
-        return clean_up(this_node);
+        return clean_up(this_node, root->line);
     }
 
     if(root->nodetype == IF_NODE
@@ -137,6 +137,8 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
         break;
 
         case OPERATION_NODE:
+            node->line = root->line;
+            
             switch(root->operation)
             {
             	IR_register holding_reg;
@@ -202,6 +204,9 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                                 head->prev = node;
                                 add_id_to_register(rp, operand2_reg, root->left->name);
                             }
+
+                            node->line = root->line;
+                            update_line_number_IR(&node);
                             return node;
                         }
 
@@ -214,6 +219,9 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                             node->instruction = "lui";
                             //temp->rd.reg = temp->rs1.reg;
                             node->rs1.int_constant = root->right->value.value_INT; 
+
+                            node->line = root->line;
+                            update_line_number_IR(&node);
                                 
                             return node;
                         }
@@ -226,6 +234,9 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                             node->instruction = "lui";
                             //temp->rd.reg = temp->rs1.reg;
                             node->rs1.int_constant = root->left->value.value_INT;
+
+                            node->line = root->line;
+                            update_line_number_IR(&node);
                             return node;
                         }
 
@@ -233,6 +244,9 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                         {
                             head->prev = NULL;
                             head->rd.reg = head->rs1.reg;
+
+                            head->line = root->line;
+                            update_line_number_IR(&head);
                             return head;
                         }
 
@@ -247,12 +261,18 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                             {
                             	head->rd.reg = head->rs1.reg;
                             }
+
+                            head->line = root->line;
+                            update_line_number_IR(&head);
                             return head;
                         }
                         
                 	    /* Assign new register to hold resulting value of past OPERATION */
                         
-                	    temp = get_reg(rp, table, root, head, &(head->next));    
+                	    temp = get_reg(rp, table, root, head, &(head->next));   
+
+                        temp->line = root->line;
+                        update_line_number_IR(&temp); 
 
 		                return temp;
                     }
@@ -263,6 +283,9 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                         {
                             head->prev = NULL;
                             head->rd.reg = holding_reg;
+
+                            head->line = root->line;
+                            update_line_number_IR(&head);
                             return head;
                         }
                         else if(root->right->nodetype == ID_NODE)
@@ -321,7 +344,10 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                             node->prev = NULL;
                             node->next = head;
                             head->prev = node;
-                            
+                            node->line = root->line;
+
+                            node->line = root->line;
+                            update_line_number_IR(&node);
                             return node;
                         }
                     }
@@ -427,7 +453,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     node->ir_type = IR_BRANCH;
                     node->instruction = "bge";
                     push(stack, node);  
-                    return node;
+                    
                 break;
 
                 case LOGIC_NEQU_OP:
@@ -447,6 +473,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     node->instruction = "sltiu";
                     node->rd.reg = node->rs1.reg;
                     node->rs2.int_constant = 1;
+                    
                     //push(stack, node); // no need to push anything on stack, but resolves "stack empty" bug the easiest way
 
                     IR_node *nxt = (IR_node *)malloc(sizeof(IR_node));
@@ -474,6 +501,9 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     insert_branch->rs1.reg = node->rs1.reg;
                     insert_branch->rs2.reg = 0;
                     push(stack, insert_branch);
+
+                    insert_branch->line = root->line;
+                    update_line_number_IR(&insert_branch);
                     return insert_branch;
                 break;
 
@@ -511,6 +541,9 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
 
                     id_left = create_BEQ_node(rp, table, root->left, id_left, &(id_left->next));
                     push(stack, id_left); 
+
+                    id_left->line = root->line;
+                    update_line_number_IR(&id_left);
                     
                     return id_left;
                     break;
@@ -555,7 +588,9 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                
                     id_left = create_BEQ_node(rp, table, root->left, id_left, &(id_left->next));          
                     push(stack, id_left); 
-                    
+
+                    id_left->line = root->line;
+                    update_line_number_IR(&id_left);
                     return id_left;
                 break;
 
@@ -571,6 +606,9 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
             }
 
             /* Implement other operations */    
+
+            node->line = root->line;
+            update_line_number_IR(&node);
         break;
 
         case IF_NODE:
@@ -590,6 +628,9 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                 else if(help->ir_type == IR_BRANCH)
                     help->rd.label = tmp;
             }
+
+            node->line = root->line;
+            update_line_number_IR(&node);
         break;
 
         case ELSE_NODE:           
@@ -636,9 +677,13 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
             }
             
             push(stack, jmp);
+
+            node->line = root->line;
+            update_line_number_IR(&node);
         break;
 
         case EXPRESSION_NODE:
+
             if(root->right != NULL)
             {
                 char *tmp = malloc(5 * sizeof(char));
@@ -676,6 +721,9 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                             help->rd.label = tmp;
                     }
 
+                    node->line = root->line;
+                    update_line_number_IR(&node);
+
                 }
                 else if(root->right->nodetype == ELSE_NODE)
                 {
@@ -690,7 +738,9 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                         help->rs1.label = tmp;
                     else if(help->ir_type == IR_BRANCH)
                         help->rd.label = tmp;
-                        
+                    
+                    node->line = root->line;
+                    update_line_number_IR(&node);              
                 }
                 else if(root->right->nodetype == WHILE_NODE)
                 {
@@ -721,6 +771,9 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                         else if(help->ir_type == IR_BRANCH)
                             help->rd.label = tmp;
                     }
+
+                    node->line = root->line;
+                    update_line_number_IR(&node);
                 }
                 else if(root->right->nodetype == FOR_NODE)
                 {
@@ -751,6 +804,9 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                         else if(help->ir_type == IR_BRANCH)
                             help->rd.label = tmp;
                     }
+
+                    node->line = root->line;
+                    update_line_number_IR(&node);
                 }
             }
         break;
@@ -771,6 +827,9 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                 {
                     root->value.label_count = root->left->value.label_count;
                 }
+
+                node->line = root->line;
+                update_line_number_IR(&node);
             }      
         break;
 
@@ -778,6 +837,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
             node->instr_type = LABEL;
             node->ir_type = IR_LABEL;
             node->instruction = root->left->name;
+            
             
             /* Stack frame allocation time */
             IR_node *stack_allocation_node = (IR_node*)malloc(sizeof(IR_node));
@@ -833,6 +893,9 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
             save_s0->prev = allocate_s0;
             allocate_s0->next = save_s0;
             allocate_s0->prev = NULL;
+
+            allocate_s0->line = ht_get_line(table, root->left->name);
+            update_line_number_IR(&allocate_s0);
             
             return allocate_s0;
         break;
@@ -849,6 +912,9 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
             node->rs1.label = tmp;
             root->value.label_count = root->right->right->right->value.label_count;
             //root->value.label_count = label_counter++;
+
+            node->line = root->line;
+            update_line_number_IR(&node);
         break;
 
         case FOR_NODE:
@@ -860,6 +926,8 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
             node->rs1.label = tmp;
             root->value.label_count = root->right->right->value.label_count;
             //root->value.label_count = label_counter++;
+            node->line = root->line;
+            update_line_number_IR(&node);
         break;
 
         case LABEL_NODE:
@@ -879,6 +947,9 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                 else if(help->ir_type == IR_BRANCH)
                     help->rd.label = tmp;
             }
+
+            node->line = root->line;
+            update_line_number_IR(&node);
         break;
     }
 
@@ -969,10 +1040,14 @@ void print_IR(IR_node *IR_head, IR_node *IR_tail)
     int ir_address = 0;
 
     FILE *asm_file = fopen("../output.s", "w");
+    FILE *rows_lookup_file = fopen("lookup_rows.txt", "w");
+
 
     while(IR_head != IR_tail)
     {
       IR_head = IR_head->prev;
+
+      if(IR_head->line != 0) fprintf(rows_lookup_file, "%d\n", IR_head->line);
 
       IR_head->ir_address = ir_address;
       ir_address += 4;
@@ -1032,8 +1107,8 @@ void print_IR(IR_node *IR_head, IR_node *IR_tail)
       }
     }
 
-
     fclose(asm_file);
+    fclose(rows_lookup_file);
 }
 
 
@@ -1546,7 +1621,7 @@ IR_node* create_BNE_node(register_pool *rp, ht *table, ASTnode *root, IR_node *n
 }
 
 
-IR_node* clean_up(IR_node* head)
+IR_node* clean_up(IR_node* head, int line)
 {
     /* By C convention, main function will always return int and will always return 0 on clean exit */
     IR_node *load_zero = (IR_node*)malloc(sizeof(IR_node));
@@ -1604,6 +1679,9 @@ IR_node* clean_up(IR_node* head)
     reset_sp->prev = jump_ra;
     jump_ra->prev = NULL;
 
+    jump_ra->line = line;
+    update_line_number_IR(&jump_ra);
+
     return jump_ra;
 }
 
@@ -1623,4 +1701,15 @@ int get_label_address(char* label, IR_node *IR_head, IR_node *IR_tail)
     }
 
     return -1;
+}
+
+void update_line_number_IR(IR_node** node)
+{   
+    int line = (*node)->line;
+    IR_node *temp = *node;
+    while(temp->next != HEAD && temp->next->line == 0)
+    {  
+        temp = temp->next;
+        temp->line = line;
+    }
 }
