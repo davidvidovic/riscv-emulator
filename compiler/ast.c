@@ -124,6 +124,13 @@ ASTnode* new_ASTnode_WHILE(ASTnode* left, ASTnode* right)
     return (n);
 }
 
+ASTnode* new_ASTnode_DO(ASTnode* left, ASTnode* right)
+{
+    ASTnode *n = mkASTnode(left, right);
+    n->nodetype = DO_NODE;
+    return (n);
+}
+
 ASTnode* new_ASTnode_FOR(ASTnode* left, ASTnode* right)
 {
     ASTnode *n = mkASTnode(left, right);
@@ -206,6 +213,10 @@ void print_value(ASTnode* n)
 
     case WHILE_NODE:
         printf("Node WHILE\n");
+        break;
+
+    case DO_NODE:
+        printf("Node DO\n");
         break;
 
     case FOR_NODE:

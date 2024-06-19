@@ -808,6 +808,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     node->line = root->line;
                     update_line_number_IR(&node);
                 }
+                
             }
         break;
 
@@ -948,8 +949,15 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     help->rd.label = tmp;
             }
 
-            node->line = root->line;
-            update_line_number_IR(&node);
+            if(root->right != NULL)
+            {
+                if(root->right->left != NULL && root->right->left->nodetype == OPERATION_NODE)
+                {
+                    node->line = root->right->left->line;
+                }
+            }
+            
+            //update_line_number_IR(&node);
         break;
     }
 

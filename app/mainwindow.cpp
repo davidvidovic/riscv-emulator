@@ -11,6 +11,9 @@
 #include <iostream>
 #include <QTextDocument>
 #include <QTextBlock>
+#include <sstream>
+#include <string>
+#include <QRegularExpression>
 
 
 MainWindow::MainWindow(QWidget *parent)
@@ -115,31 +118,41 @@ void MainWindow::on_code_textbox_cursorPositionChanged()
     QString lookup_content = stream.readAll();
     lookup_file.close();
 
+    //std::cout << "FILE:\n" << lookup_content.toStdString() << "***\n" << std::endl;
+
     int row_cnt = 1;
     QList<QTextEdit::ExtraSelection> selsi;
-    for(auto chr : lookup_content)
-    {
-        if(chr.isDigit())
+
+    QRegularExpression re("\\d+"); // Regular expression to match one or more digits
+    QRegularExpressionMatchIterator i = re.globalMatch(lookup_content);
+
+    while (i.hasNext()) {
+        QRegularExpressionMatch match = i.next();
+        QString numberStr = match.captured(0);
+        int number = numberStr.toInt();
+        //qDebug() << "Parsed number:" << number;
+        // Analyze the number here
+
+        if(number == (cursor.blockNumber() + 1))
         {
-            if(chr.digitValue() == (cursor.blockNumber() + 1))
-            {
-                // Highlight that row
-                QTextEdit::ExtraSelection sel;
-                QTextBlock block(ui->asm_textbox->document()->findBlockByLineNumber(row_cnt-1));
-                QTextCursor cursor(block);
-                sel.cursor = cursor;
-                QTextCharFormat fmt;
-                fmt.setBackground(QColor(220,220,255));
-                fmt.setProperty(QTextFormat::FullWidthSelection, true); // this is important
-                sel.format = fmt;
+            // Highlight that row
+            //std::cout << "Highlighting " << row_cnt << std::endl;
+            QTextEdit::ExtraSelection sel;
+            QTextBlock block(ui->asm_textbox->document()->findBlockByLineNumber(row_cnt-1));
+            QTextCursor cursor(block);
+            sel.cursor = cursor;
+            QTextCharFormat fmt;
+            fmt.setBackground(QColor(220,220,255));
+            fmt.setProperty(QTextFormat::FullWidthSelection, true); // this is important
+            sel.format = fmt;
 
-                selsi << sel;
+            selsi << sel;
 
-            }
-
-            row_cnt++;
         }
+
+        row_cnt++;
     }
+
     ui->asm_textbox->setExtraSelections(selsi);
 
 

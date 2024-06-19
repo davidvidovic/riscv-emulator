@@ -1,9 +1,12 @@
 int main()
 {
-	int a = 2, b, c, d;
-	b = a + 3;
-	while(b < 6)
+	int a = 3, b = 5;
+	int c, d, e;
+
+	do
 	{
-		c = c + d;
-	}
+		d = a + b;
+		e = a + 1;
+	}while(a == d);
+	c = 99;
 }

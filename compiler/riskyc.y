@@ -550,9 +550,7 @@ compound_statement
 	: '{' '}' {}
 	| '{' statement_list '}' {$$ = new_ASTnode_SCOPE($2, NULL);} 
 	| '{' declaration_list '}' {$$ = $2;} 
-	| '{' declaration_list statement_list '}' {	
-		$$ = new_ASTnode_SCOPE($3, $2);
-	}
+	| '{' declaration_list statement_list '}' {$$ = new_ASTnode_SCOPE($3, $2);}
 	;
 
 declaration_list
@@ -582,10 +580,21 @@ statement_list
 		$$ = $1;
 		if($$->nodetype == WHILE_NODE)
 		{
-			ASTnode *temp = new_ASTnode_LABEL(NULL, NULL);
-			$$->right->right = temp;
-			ASTnode *temp1 = new_ASTnode_LABEL(NULL, $$->right);
-			$$->right = temp1;
+			if($$->right->right->nodetype == DO_NODE)
+			{ 
+				$$->right->right->right = NULL;
+				ASTnode *temp = new_ASTnode_LABEL(NULL, $$->right->right);
+				$$->right->right = temp;
+				ASTnode *temp1 = new_ASTnode_LABEL(NULL, $$->right);
+				$$->right = temp1;
+			}
+			else
+			{
+				ASTnode *temp = new_ASTnode_LABEL(NULL, NULL);
+				$$->right->right = temp;
+				ASTnode *temp1 = new_ASTnode_LABEL(NULL, $$->right);
+				$$->right = temp1;
+			}
 		}
 		else if($$->nodetype == FOR_NODE) 
 		{	
@@ -606,10 +615,21 @@ statement_list
 		}
 		else if($$->nodetype == WHILE_NODE)
 		{
-			ASTnode *temp = new_ASTnode_LABEL(NULL, $1);
-			$$->right->right = temp;
-			ASTnode *temp1 = new_ASTnode_LABEL(NULL, $$->right);
-			$$->right = temp1;
+			if($$->right->right->nodetype == DO_NODE)
+			{ 
+				$$->right->right->right = $1;
+				ASTnode *temp = new_ASTnode_LABEL(NULL, $$->right->right);
+				$$->right->right = temp;
+				ASTnode *temp1 = new_ASTnode_LABEL(NULL, $$->right);
+				$$->right = temp1;
+			}
+			else
+			{
+				ASTnode *temp = new_ASTnode_LABEL(NULL, $1);
+				$$->right->right = temp;
+				ASTnode *temp1 = new_ASTnode_LABEL(NULL, $$->right);
+				$$->right = temp1;
+			}
 		}
 		else if($$->nodetype == FOR_NODE)
 		{
@@ -653,7 +673,11 @@ iteration_statement
 	: WHILE '(' expression ')' statement {
 		$$ = new_ASTnode_WHILE($5, $3);
 	}
-	| DO statement WHILE '(' expression ')' ';' {}
+	| DO statement WHILE '(' expression ')' ';' {
+		ASTnode *do_node = new_ASTnode_DO($2, NULL);
+		$5->right = do_node;
+		$$ = new_ASTnode_WHILE($2, $5);
+	}
 	| FOR '(' expression_statement expression_statement ')' statement {
 		$4->right = $3;
 		$$ = new_ASTnode_FOR($6, $4);
