@@ -155,6 +155,30 @@ ASTnode* new_ASTnode_FUNCTION(ASTnode* left, ASTnode* right, int line)
     return (n);
 }
 
+ASTnode* new_ASTnode_BREAK(ASTnode* left, ASTnode* right)
+{
+    ASTnode *n = mkASTnode(left, right);
+    n->nodetype = BREAK_NODE;
+    return (n);
+}
+
+ASTnode* new_ASTnode_SWITCH(ASTnode* left, ASTnode* right)
+{
+    ASTnode *n = mkASTnode(left, right);
+    n->nodetype = SWITCH_NODE;
+    return (n);
+}
+
+ASTnode* new_ASTnode_CASE(ASTnode* left, ASTnode* right, ASTnode *const_exp, int lineno)
+{
+    ASTnode *case_body = mkASTnode(left, new_ASTnode_EXPRESSION(new_ASTnode_OPERATION(LOGIC_EQU_OP, const_exp, NULL, lineno), NULL));
+    case_body->nodetype = CASE_BODY_NODE;
+
+    ASTnode *n = mkASTnode(case_body, right);
+    n->nodetype = CASE_NODE;
+    return (n);
+}
+
 
 void print_value(ASTnode* n)
 {
@@ -229,6 +253,22 @@ void print_value(ASTnode* n)
 
     case FUNCTION_NODE:
         printf("Node FUNC(%s)\n", n->name);
+        break;
+    
+    case BREAK_NODE:
+        printf("Node BREAK\n");
+        break;
+
+    case SWITCH_NODE:
+        printf("Node SWITCH\n");
+        break;
+
+    case CASE_NODE:
+        printf("Node CASE\n");
+        break;
+
+    case CASE_BODY_NODE:
+        printf("Node CASE BODY\n");
         break;
     }
 }

@@ -8,24 +8,24 @@ int register_counter = 1;
 int label_counter = 1;
 extern int sp_offset;
 
-IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack, register_pool *rp, ht* table)
+IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack, Stack *break_stack, register_pool *rp, ht* table)
 {
     IR_node *this_node = NULL;
 
     if(root->nodetype == FUNCTION_NODE)
     { 
-        this_node = insert_IR(root, head, stack, secondary_stack, rp, table);
+        this_node = insert_IR(root, head, stack, secondary_stack, break_stack, rp, table);
 
         if(root->right != NULL) 
         {
-            this_node = populate_IR(root->right, this_node, stack, secondary_stack, rp, table);
+            this_node = populate_IR(root->right, this_node, stack, secondary_stack, break_stack, rp, table);
         }
     }
     else
     {
         if(root->right != NULL) 
         {
-            this_node = populate_IR(root->right, head, stack, secondary_stack, rp, table);
+            this_node = populate_IR(root->right, head, stack, secondary_stack, break_stack, rp, table);
         }
     }
 
@@ -35,14 +35,14 @@ IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondar
 
     if(root->nodetype == IF_NODE || root->nodetype == ELSE_NODE)
     { 
-        this_node = insert_IR(root, this_node, stack, secondary_stack, rp, table);
+        this_node = insert_IR(root, this_node, stack, secondary_stack, break_stack, rp, table);
     }
 
     if(root->right != NULL)
     {
         if((root->nodetype != ELSE_NODE && root->right->nodetype == IF_NODE) ||root->right->nodetype == ELSE_NODE || root->right->nodetype == WHILE_NODE || root->right->nodetype == FOR_NODE)
         {    
-            this_node = insert_IR(root, this_node, stack, secondary_stack, rp, table);
+            this_node = insert_IR(root, this_node, stack, secondary_stack, break_stack, rp, table);
         }
     }
 
@@ -51,9 +51,9 @@ IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondar
     if(root->left != NULL && root->nodetype != FUNCTION_NODE) // watch out when added parameters to non-main function
     {
         if(this_node == NULL)
-            this_node = populate_IR(root->left, head, stack, secondary_stack, rp, table);
+            this_node = populate_IR(root->left, head, stack, secondary_stack, break_stack, rp, table);
         else
-            this_node = populate_IR(root->left, this_node, stack, secondary_stack, rp, table);
+            this_node = populate_IR(root->left, this_node, stack, secondary_stack, break_stack, rp, table);
     }
 
     if(this_node != NULL)
@@ -86,7 +86,7 @@ IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondar
         )
         return this_node;
     else
-        return insert_IR(root, head, stack, secondary_stack, rp, table);
+        return insert_IR(root, head, stack, secondary_stack, break_stack, rp, table);
 }
 
 /*
@@ -108,7 +108,7 @@ IR_node* create_IR()
 * Create base IR node
 */
 
-IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack, register_pool *rp, ht* table)
+IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack, Stack *break_stack, register_pool *rp, ht* table)
 { 
     if(root->nodetype == CONSTANT_NODE && root->value.value_INT == 0)
         return head;
@@ -212,13 +212,9 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
 
                         if(root->right->nodetype == CONSTANT_NODE)
                         {            
-                            node = get_reg(rp, table, root, node, &head);
-                            
-                            node->ir_type = IR_LOAD_IMM;
-                            node->instr_type = LUI;
-                            node->instruction = "lui";
-                            //temp->rd.reg = temp->rs1.reg;
-                            node->rs1.int_constant = root->right->value.value_INT; 
+                            node = get_reg(rp, table, root, node, &head); 
+
+                            load_imm(root->right, &node);        
 
                             node->line = root->line;
                             update_line_number_IR(&node);
@@ -229,11 +225,8 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                         if(root->left->nodetype == CONSTANT_NODE)
                         {
                             node = get_reg(rp, table, root, node, &head);
-                            node->ir_type = IR_LOAD_IMM;
-                            node->instr_type = LUI;
-                            node->instruction = "lui";
-                            //temp->rd.reg = temp->rs1.reg;
-                            node->rs1.int_constant = root->left->value.value_INT;
+                            
+                            load_imm(root->left, &node);
 
                             node->line = root->line;
                             update_line_number_IR(&node);
@@ -336,11 +329,9 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                         }
                         else 
                         {
-                            node->ir_type = IR_LOAD_IMM;
-                            node->instr_type = LUI;
-                            node->instruction = "lui";
                             node->rd.reg = holding_reg;
-                            node->rs1.int_constant = root->right->value.value_INT;
+
+                            load_imm(root->right, &node);
                             node->prev = NULL;
                             node->next = head;
                             head->prev = node;
@@ -687,6 +678,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
             if(root->right != NULL)
             {
                 char *tmp = malloc(5 * sizeof(char));
+                ASTnode *tail;
                 if(root->right->nodetype == IF_NODE)
                 {
                     node->instr_type = LABEL;
@@ -708,7 +700,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     * down to boolean expression of if node and count how many times I need to pop nodes off the stack 
                     */
 
-                    ASTnode *tail = root->right->right;
+                    tail = root->right->right;
                     tail->right = NULL;
                     int num_AND = count_subtree_AND_OPs(tail);
 
@@ -717,6 +709,21 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                         help = pop(stack);
                         if(help->ir_type == IR_JUMP)
                             help->rs1.label = tmp;
+                        else if(help->ir_type == IR_BRANCH)
+                            help->rd.label = tmp;
+                    }
+
+                    tail = root->right;
+                    tail->right = NULL;
+                    int num_BREAKS = count_subtree_BREAKs(tail);
+                    
+                    for(int i = 0; i < num_BREAKS; i++)
+                    {
+                        help = pop(break_stack);
+                        if(help->ir_type == IR_JUMP)
+                        {
+                            help->rs1.label = tmp;
+                        }
                         else if(help->ir_type == IR_BRANCH)
                             help->rd.label = tmp;
                     }
@@ -739,6 +746,25 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     else if(help->ir_type == IR_BRANCH)
                         help->rd.label = tmp;
                     
+                    tail = root->right->right;
+                    tail->right = NULL;
+                    int num_BREAKS = count_subtree_BREAKs(tail);
+                    tail = root->right;
+                    tail->right = NULL;
+                    num_BREAKS += count_subtree_BREAKs(tail);
+                    
+                    for(int i = 0; i < num_BREAKS; i++)
+                    {
+                        help = pop(break_stack);
+                        if(help->ir_type == IR_JUMP)
+                        {
+                            help->rs1.label = tmp;
+                        }
+                        else if(help->ir_type == IR_BRANCH)
+                            help->rd.label = tmp;
+                    }
+                    
+
                     node->line = root->line;
                     update_line_number_IR(&node);              
                 }
@@ -766,6 +792,19 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     for(int i = 0; i < num_AND; i++)
                     {
                         help = pop(stack);
+                        if(help->ir_type == IR_JUMP)
+                            help->rs1.label = tmp;
+                        else if(help->ir_type == IR_BRANCH)
+                            help->rd.label = tmp;
+                    }
+
+                    tail = root->right;
+                    tail->right = NULL;
+                    int num_BREAKS = count_subtree_BREAKs(tail);
+
+                    for(int i = 0; i < num_BREAKS; i++)
+                    {
+                        help = pop(break_stack);
                         if(help->ir_type == IR_JUMP)
                             help->rs1.label = tmp;
                         else if(help->ir_type == IR_BRANCH)
@@ -805,10 +844,22 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                             help->rd.label = tmp;
                     }
 
+                    tail = root->right;
+                    tail->right = NULL;
+                    int num_BREAKS = count_subtree_BREAKs(tail);
+
+                    for(int i = 0; i < num_BREAKS; i++)
+                    {
+                        help = pop(break_stack);
+                        if(help->ir_type == IR_JUMP)
+                            help->rs1.label = tmp;
+                        else if(help->ir_type == IR_BRANCH)
+                            help->rd.label = tmp;
+                    }
+
                     node->line = root->line;
                     update_line_number_IR(&node);
                 }
-                
             }
         break;
 
@@ -823,6 +874,33 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     root->value.label_count = label_counter++;
                     sprintf(tmp, "L%d", root->value.label_count);
                     node->instruction = tmp;     
+
+                    
+                    tail = root->left;
+                    //tail->right = NULL;
+                    int num_BREAKS = count_subtree_BREAKs(tail);
+                    
+                    for(int i = 0; i < num_BREAKS; i++) 
+                    {
+                        help = pop(break_stack);
+                        if(help->ir_type == IR_JUMP)
+                        {
+                            help->rs1.label = tmp;
+                        }
+                        else if(help->ir_type == IR_BRANCH)
+                            help->rd.label = tmp;
+                    }
+
+                    if(root->left->nodetype == CASE_NODE)
+                    {
+                        help = pop(stack);
+                        if(help->ir_type == IR_JUMP)
+                        {
+                            help->rs1.label = tmp;
+                        }
+                        else if(help->ir_type == IR_BRANCH)
+                            help->rd.label = tmp;
+                    }
                 }
                 else
                 {
@@ -959,6 +1037,32 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
             
             //update_line_number_IR(&node);
         break;
+
+
+        case BREAK_NODE:
+            node->ir_type = IR_JUMP;
+            node->instr_type = JAL;
+            node->instruction = "jal";
+            node->rd.reg = 0;
+            push(break_stack, node);
+        break;
+
+        case CASE_NODE:
+            root->value.label_count = root->right->value.label_count;
+            sprintf(tmp, "L%d", root->value.label_count);
+            
+            if(root->right->right != NULL && root->right->right->nodetype == CASE_NODE)
+            {
+                IR_node* temp_pop = pop(stack);
+                help = pop(stack);
+                push(stack, temp_pop);
+            
+                if(help->ir_type == IR_JUMP)
+                    help->rs1.label = tmp;
+                else if(help->ir_type == IR_BRANCH)
+                    help->rd.label = tmp;
+            }
+        break;
     }
 
 
@@ -979,6 +1083,24 @@ int count_subtree_AND_OPs(ASTnode* root)
         temp += count_subtree_AND_OPs(root->left); 
 
     if(root->operation == LOGIC_AND_OP)
+    {
+        temp++;
+    }
+
+    return temp;
+}
+
+int count_subtree_BREAKs(ASTnode* root)
+{
+    int temp = 0;
+
+    if(root->right != NULL)
+        temp += count_subtree_BREAKs(root->right);
+
+    if(root->left != NULL)
+        temp += count_subtree_BREAKs(root->left); 
+
+    if(root->nodetype == BREAK_NODE)
     {
         temp++;
     }
@@ -1126,10 +1248,7 @@ IR_node* get_reg(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_
 
     if(root->nodetype == CONSTANT_NODE)
     {
-        node->ir_type = IR_LOAD_IMM;
-        node->instr_type = LUI;
-        node->instruction = "lui";
-        node->rs1.int_constant = root->value.value_INT;
+        load_imm(root, &node);
 
         holding_reg = find_empty_register(rp);
 
@@ -1634,11 +1753,12 @@ IR_node* clean_up(IR_node* head, int line)
     /* By C convention, main function will always return int and will always return 0 on clean exit */
     IR_node *load_zero = (IR_node*)malloc(sizeof(IR_node));
 
-    load_zero->ir_type = IR_LOAD_IMM;
-    load_zero->instr_type = LUI;
-    load_zero->instruction = "lui";
+    load_zero->ir_type = IR_OP_IMM;
+    load_zero->instr_type = ADDI;
+    load_zero->instruction = "addi";
     load_zero->rd.reg = a0;
-    load_zero->rs1.int_constant = 0;
+    load_zero->rs1.reg = 0;
+    load_zero->rs2.int_constant = 0;
     load_zero->next = head;
     head->prev = load_zero;
 
@@ -1720,4 +1840,40 @@ void update_line_number_IR(IR_node** node)
         temp = temp->next;
         temp->line = line;
     }
+}
+
+void load_imm(ASTnode* root, IR_node** node)
+{
+    /* Check if IMM is larger than 12 bits (2^12-1) = 4096 */
+    if(root->value.value_INT < 4096)
+    {
+        (*node)->ir_type = IR_OP_IMM;
+        (*node)->instr_type = ADDI;
+        (*node)->instruction = "addi";
+        (*node)->rs1.reg = 0;
+        (*node)->rs2.int_constant = root->value.value_INT;
+    }
+    else
+    {
+        /* Break LI into LUI and ADDI */
+
+        IR_node *lui_node = (IR_node*)malloc(sizeof(IR_node));
+
+        lui_node->ir_type = IR_LOAD_IMM;
+        lui_node->instr_type = LUI;
+        lui_node->instruction = "lui";
+        lui_node->rd.reg = (*node)->rd.reg;
+        lui_node->rs1.int_constant = root->value.value_INT >> 12;
+
+        (*node)->next->prev = lui_node;
+        lui_node->next = (*node)->next; 
+        lui_node->prev = (*node);
+        (*node)->next = lui_node;
+
+        (*node)->ir_type = IR_OP_IMM;
+        (*node)->instr_type = ADDI;
+        (*node)->instruction = "addi";
+        (*node)->rs1.reg = 0;
+        (*node)->rs2.int_constant = root->value.value_INT & 0xfff;
+    }   
 }

@@ -88,6 +88,10 @@
 %type <ast> initializer_list
 %type <ast> selection_statement
 %type <ast> iteration_statement
+%type <ast> jump_statement
+%type <ast> constant_expression
+%type <ast> labeled_statement
+%type <ast> labeled_statements
 
 %type <op> assignment_operator
 %type <op> unary_operator
@@ -278,7 +282,7 @@ expression
 	;
 
 constant_expression
-	: conditional_expression 
+	: conditional_expression {$$ = $1;}
 	;
 
 declaration
@@ -532,18 +536,32 @@ initializer_list
 	;
 
 statement
-	: labeled_statement {}
-	| compound_statement {$$ = $1;}
+	: compound_statement {$$ = $1;}
 	| expression_statement {$$ = $1;}
 	| selection_statement {$$ = $1;}
-	| iteration_statement {}
-	| jump_statement {}
+	| iteration_statement {$$ = $1;}
+	| jump_statement {$$ = $1;}
 	;
 
 labeled_statement
-	: IDENTIFIER ':' statement
-	| CASE constant_expression ':' statement
-	| DEFAULT ':' statement
+	: IDENTIFIER ':' statement {}
+	| CASE constant_expression ':' statement_list {
+		$$ = new_ASTnode_CASE($4, NULL, $2, lineno);
+	}
+	| DEFAULT ':' statement {}
+	;
+
+labeled_statements
+	: labeled_statement {
+		$$ = $1;
+		ASTnode *label_node = new_ASTnode_LABEL(NULL, NULL);
+		$$->right = label_node;
+	}
+	| labeled_statements labeled_statement {
+		$$ = $2;
+		ASTnode *label_node = new_ASTnode_LABEL(NULL, $1);
+		$$->right = label_node;
+	}
 	;
 
 compound_statement
@@ -551,6 +569,7 @@ compound_statement
 	| '{' statement_list '}' {$$ = new_ASTnode_SCOPE($2, NULL);} 
 	| '{' declaration_list '}' {$$ = $2;} 
 	| '{' declaration_list statement_list '}' {$$ = new_ASTnode_SCOPE($3, $2);}
+	| '{' labeled_statements '}' {$$ = new_ASTnode_SCOPE($2, NULL);}
 	;
 
 declaration_list
@@ -638,8 +657,14 @@ statement_list
 			ASTnode *temp = new_ASTnode_LABEL(NULL, $$->right->right);
 			$$->right->right = temp;
 		}
+		// else if($$->nodetype == CASE_NODE)
+		// {
+			
+		// }
 		else
+		{
 			$$->right = $1;
+		}
 		
 
 		if($$->right != NULL)
@@ -666,7 +691,29 @@ selection_statement
 		ASTnode* temp = new_ASTnode_IF($5, $3);
 		$$ = new_ASTnode_ELSE($7, temp);
 	}
-	| SWITCH '(' expression ')' statement {}
+	| SWITCH '(' expression ')' compound_statement {
+		$$ = new_ASTnode_SWITCH($5, NULL);
+
+		/* Traverse SWITCH subtree and insert expression into every CASE BODY right operation as left operand */
+		ASTnode *temp = $$->left->left;
+		
+		while(temp != NULL)
+		{
+			temp->left->right->left->right = $3->left;
+			
+			if(temp->right->right != NULL)
+			{
+				if(temp->right->right != NULL && temp->right->right->nodetype == CASE_NODE)
+				{
+					temp = temp->right->right;
+				}
+				else
+					break;
+			}
+			else
+				break;
+		}
+	}
 	;
 
 iteration_statement
@@ -690,11 +737,11 @@ iteration_statement
 	;
 
 jump_statement
-	: GOTO IDENTIFIER ';'
-	| CONTINUE ';'
-	| BREAK ';'
-	| RETURN ';'
-	| RETURN expression ';'
+	: GOTO IDENTIFIER ';' {}
+	| CONTINUE ';' {}
+	| BREAK ';' {$$ = new_ASTnode_BREAK(NULL, NULL);}
+	| RETURN ';' {}
+	| RETURN expression ';' {}
 	;
 
 translation_unit

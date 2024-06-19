@@ -52,8 +52,8 @@ typedef struct Stack {
 
 
 IR_node* create_IR();
-IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack, register_pool *rp, ht* table);
-IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack, register_pool *rp, ht* table);
+IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack, Stack *break_stack, register_pool *rp, ht* table);
+IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack, Stack *break_stack, register_pool *rp, ht* table);
 
 void init_stack(Stack* stack);
 LIFO_node* create_LIFO_node(IR_node *node);

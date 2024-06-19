@@ -16,7 +16,11 @@ typedef enum node_type {
     DO_NODE,
     FOR_NODE,
     FUNCTION_NODE,
-    LABEL_NODE
+    LABEL_NODE,
+    BREAK_NODE,
+    SWITCH_NODE,
+    CASE_NODE,
+    CASE_BODY_NODE
 } node_type;
 
 typedef enum operation_type {
@@ -111,6 +115,9 @@ ASTnode* new_ASTnode_DO(ASTnode* left, ASTnode* right);
 ASTnode* new_ASTnode_FOR(ASTnode* left, ASTnode* right);
 ASTnode* new_ASTnode_LABEL(ASTnode* left, ASTnode* right);
 ASTnode* new_ASTnode_FUNCTION(ASTnode* left, ASTnode* right, int line);
+ASTnode* new_ASTnode_BREAK(ASTnode* left, ASTnode* right);
+ASTnode* new_ASTnode_SWITCH(ASTnode* left, ASTnode* right);
+ASTnode* new_ASTnode_CASE(ASTnode* left, ASTnode* right, ASTnode *const_exp, int lineno);
 
 // Helper functions
 void print_value(ASTnode* n);
