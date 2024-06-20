@@ -197,6 +197,14 @@ ASTnode* new_ASTnode_CASE(ASTnode* left, ASTnode* right, ASTnode *const_exp, int
     return (n);
 }
 
+ASTnode* new_ASTnode_RETURN(ASTnode* left, ASTnode* right, int line)
+{
+    ASTnode *n = mkASTnode(left, right);
+    n->nodetype = RETURN_NODE;
+    n->line = line;
+    return (n);
+}
+
 
 void print_value(ASTnode* n)
 {
@@ -295,6 +303,10 @@ void print_value(ASTnode* n)
 
     case DEFAULT_NODE:
         printf("Node DEFAULT\n");
+        break;
+
+    case RETURN_NODE:
+        printf("Node RETURN\n");
         break;
     }
 }

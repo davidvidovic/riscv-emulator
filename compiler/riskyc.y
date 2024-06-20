@@ -759,8 +759,10 @@ jump_statement
 	: GOTO IDENTIFIER ';' {}
 	| CONTINUE ';' {$$ = new_ASTnode_CONTINUE(NULL, NULL, lineno);}
 	| BREAK ';' {$$ = new_ASTnode_BREAK(NULL, NULL, lineno);}
-	| RETURN ';' {}
-	| RETURN expression ';' {}
+	| RETURN ';' {$$ = new_ASTnode_RETURN(NULL, NULL, lineno);}
+	| RETURN expression ';' {
+		$$ = new_ASTnode_RETURN($2, NULL, lineno);
+	}
 	;
 
 translation_unit
@@ -777,7 +779,7 @@ function_definition
 	: declaration_specifiers declarator declaration_list compound_statement {$$ = $4;}
 	| declaration_specifiers declarator compound_statement {
 		$2->type = $1; 
-		$$ = new_ASTnode_FUNCTION($2, $3, lineno); 
+		$$ = new_ASTnode_FUNCTION($2, new_ASTnode_LABEL(NULL, $3), lineno); 
 		$$->type = $1;
 	}
 	| declarator declaration_list compound_statement {$$ = $3;}

@@ -8,24 +8,24 @@ int register_counter = 1;
 int label_counter = 1;
 extern int sp_offset;
 
-IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack, Stack *break_stack, Stack *continue_stack, register_pool *rp, ht* table)
+IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack, Stack *break_stack, Stack *continue_stack, Stack *return_stack, register_pool *rp, ht* table)
 {
     IR_node *this_node = NULL;
 
     if(root->nodetype == FUNCTION_NODE)
     { 
-        this_node = insert_IR(root, head, stack, secondary_stack, break_stack, continue_stack, rp, table);
+        this_node = insert_IR(root, head, stack, secondary_stack, break_stack, continue_stack, return_stack, rp, table);
 
         if(root->right != NULL) 
         {
-            this_node = populate_IR(root->right, this_node, stack, secondary_stack, break_stack, continue_stack, rp, table);
+            this_node = populate_IR(root->right, this_node, stack, secondary_stack, break_stack, continue_stack, return_stack, rp, table);
         }
     }
     else
     {
         if(root->right != NULL) 
         {
-            this_node = populate_IR(root->right, head, stack, secondary_stack, break_stack, continue_stack, rp, table);
+            this_node = populate_IR(root->right, head, stack, secondary_stack, break_stack, continue_stack, return_stack, rp, table);
         }
     }
 
@@ -35,14 +35,14 @@ IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondar
 
     if(root->nodetype == IF_NODE || root->nodetype == ELSE_NODE)
     { 
-        this_node = insert_IR(root, this_node, stack, secondary_stack, break_stack, continue_stack, rp, table);
+        this_node = insert_IR(root, this_node, stack, secondary_stack, break_stack, continue_stack, return_stack, rp, table);
     }
 
     if(root->right != NULL)
     {
         if((root->nodetype != ELSE_NODE && root->right->nodetype == IF_NODE) ||root->right->nodetype == ELSE_NODE || root->right->nodetype == WHILE_NODE || root->right->nodetype == FOR_NODE)
         {    
-            this_node = insert_IR(root, this_node, stack, secondary_stack, break_stack, continue_stack, rp, table);
+            this_node = insert_IR(root, this_node, stack, secondary_stack, break_stack, continue_stack, return_stack, rp, table);
         }
     }
 
@@ -51,9 +51,9 @@ IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondar
     if(root->left != NULL && root->nodetype != FUNCTION_NODE) // watch out when added parameters to non-main function
     {
         if(this_node == NULL)
-            this_node = populate_IR(root->left, head, stack, secondary_stack, break_stack, continue_stack, rp, table);
+            this_node = populate_IR(root->left, head, stack, secondary_stack, break_stack, continue_stack, return_stack, rp, table);
         else
-            this_node = populate_IR(root->left, this_node, stack, secondary_stack, break_stack, continue_stack, rp, table);
+            this_node = populate_IR(root->left, this_node, stack, secondary_stack, break_stack, continue_stack, return_stack, rp, table);
     }
 
     if(this_node != NULL)
@@ -66,6 +66,15 @@ IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondar
         while(stack->top != NULL)
         {
             IR_node *help = pop(stack);
+            if(help->instr_type == JAL)
+                help->rs1.label = ls;
+            else if(help->ir_type == IR_BRANCH)
+                help->rd.label = ls;
+        }
+
+        while(return_stack->top != NULL)
+        {
+            IR_node *help = pop(return_stack);
             if(help->instr_type == JAL)
                 help->rs1.label = ls;
             else if(help->ir_type == IR_BRANCH)
@@ -86,7 +95,7 @@ IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondar
         )
         return this_node;
     else
-        return insert_IR(root, head, stack, secondary_stack, break_stack, continue_stack, rp, table);
+        return insert_IR(root, head, stack, secondary_stack, break_stack, continue_stack, return_stack, rp, table);
 }
 
 /*
@@ -108,7 +117,7 @@ IR_node* create_IR()
 * Create base IR node
 */
 
-IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack, Stack *break_stack, Stack *continue_stack, register_pool *rp, ht* table)
+IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack, Stack *break_stack, Stack *continue_stack, Stack *return_stack, register_pool *rp, ht* table)
 { 
     if(root->nodetype == CONSTANT_NODE && root->value.value_INT == 0)
         return head;
@@ -886,7 +895,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
         case SCOPE_NODE:
             if(root->left != NULL)
             {
-                if(root->left->nodetype != EXPRESSION_NODE) // when something other than exp is to the left of scope
+                if(root->left->nodetype != EXPRESSION_NODE && root->left->nodetype != RETURN_NODE) // when something other than exp is to the left of scope
                 {
                     node->instr_type = LABEL; 
                     node->ir_type = IR_LABEL;
@@ -1111,6 +1120,30 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
             node->instruction = "jal";
             node->rd.reg = 0;
             push(continue_stack, node);
+            node->line = root->line;
+            update_line_number_IR(&node);
+        break;
+
+
+        case RETURN_NODE:
+            /* Save return exp into a5 */
+            // Limit return statement to only CONST INT as a parameter
+            if(root->left != NULL)
+            {
+                IR_node *save_return = (IR_node*)malloc(sizeof(IR_node));
+                save_return->next = head;
+                head->prev = save_return;
+                load_imm(root->left->left, &save_return, &head);
+                save_return->rd.reg = a5;
+                save_return->prev = node;
+                node->next = save_return;
+            }
+
+            node->ir_type = IR_JUMP;
+            node->instr_type = JAL;
+            node->instruction = "jal";
+            node->rd.reg = 0;
+            push(return_stack, node);
             node->line = root->line;
             update_line_number_IR(&node);
         break;
@@ -1802,16 +1835,16 @@ IR_node* create_BNE_node(register_pool *rp, ht *table, ASTnode *root, IR_node *n
 IR_node* clean_up(IR_node* head, int line)
 {
     /* By C convention, main function will always return int and will always return 0 on clean exit */
-    IR_node *load_zero = (IR_node*)malloc(sizeof(IR_node));
+    // IR_node *load_zero = (IR_node*)malloc(sizeof(IR_node));
 
-    load_zero->ir_type = IR_OP_IMM;
-    load_zero->instr_type = ADDI;
-    load_zero->instruction = "addi";
-    load_zero->rd.reg = a0;
-    load_zero->rs1.reg = 0;
-    load_zero->rs2.int_constant = 0;
-    load_zero->next = head;
-    head->prev = load_zero;
+    // load_zero->ir_type = IR_OP_IMM;
+    // load_zero->instr_type = ADDI;
+    // load_zero->instruction = "addi";
+    // load_zero->rd.reg = a0;
+    // load_zero->rs1.reg = 0;
+    // load_zero->rs2.int_constant = 0;
+    // load_zero->next = head;
+    // head->prev = load_zero;
 
     IR_node *load_ra = (IR_node*)malloc(sizeof(IR_node));
 
@@ -1821,8 +1854,10 @@ IR_node* clean_up(IR_node* head, int line)
     load_ra->rd.reg = ra;
     load_ra->sf_offset = sp_offset - 8;
     load_ra->rs1.reg = sp; 
-    load_ra->next = load_zero;
-    load_zero->prev = load_ra;
+    //load_ra->next = load_zero;
+    load_ra->next = head;
+    //load_zero->prev = load_ra;
+    head->prev = load_ra;
 
     IR_node *load_s0 = (IR_node*)malloc(sizeof(IR_node));
 

@@ -15,6 +15,12 @@ int main()
 	}
 	b = 10000;
 	
+	if(a == b)
+	{
+		return 555;
+	}
+
+	a = 2;
 
 	switch(a)
 	{
@@ -37,4 +43,6 @@ int main()
 		
 	}
 	a = 2;
+
+	return 0;
 }

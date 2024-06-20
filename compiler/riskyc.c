@@ -249,13 +249,15 @@ int main()
     Stack secondary_stack;
     Stack break_stack;
     Stack continue_stack;
+    Stack return_stack;
     init_stack(&stack);
     init_stack(&secondary_stack);
     init_stack(&break_stack);
     init_stack(&continue_stack);
+    init_stack(&return_stack);
     register_pool *rp = init_register_pool();
   
-    IR_node *IR_tail = populate_IR(root, IR_head, &stack, &secondary_stack, &break_stack, &continue_stack, rp, table);
+    IR_node *IR_tail = populate_IR(root, IR_head, &stack, &secondary_stack, &break_stack, &continue_stack, &return_stack, rp, table);
 
     print_IR(IR_head, IR_tail);
     

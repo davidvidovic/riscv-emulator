@@ -22,7 +22,8 @@ typedef enum node_type {
     CASE_NODE,
     CASE_BODY_NODE,
     CONTINUE_NODE,
-    DEFAULT_NODE
+    DEFAULT_NODE,
+    RETURN_NODE
 } node_type;
 
 typedef enum operation_type {
@@ -122,6 +123,7 @@ ASTnode* new_ASTnode_CONTINUE(ASTnode* left, ASTnode* right, int line);
 ASTnode* new_ASTnode_SWITCH(ASTnode* left, ASTnode* right);
 ASTnode* new_ASTnode_DEFAULT(ASTnode* left, ASTnode* right);
 ASTnode* new_ASTnode_CASE(ASTnode* left, ASTnode* right, ASTnode *const_exp, int lineno);
+ASTnode* new_ASTnode_RETURN(ASTnode* left, ASTnode* right, int line);
 
 // Helper functions
 void print_value(ASTnode* n);
