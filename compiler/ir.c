@@ -8,24 +8,24 @@ int register_counter = 1;
 int label_counter = 1;
 extern int sp_offset;
 
-IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack, Stack *break_stack, register_pool *rp, ht* table)
+IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack, Stack *break_stack, Stack *continue_stack, register_pool *rp, ht* table)
 {
     IR_node *this_node = NULL;
 
     if(root->nodetype == FUNCTION_NODE)
     { 
-        this_node = insert_IR(root, head, stack, secondary_stack, break_stack, rp, table);
+        this_node = insert_IR(root, head, stack, secondary_stack, break_stack, continue_stack, rp, table);
 
         if(root->right != NULL) 
         {
-            this_node = populate_IR(root->right, this_node, stack, secondary_stack, break_stack, rp, table);
+            this_node = populate_IR(root->right, this_node, stack, secondary_stack, break_stack, continue_stack, rp, table);
         }
     }
     else
     {
         if(root->right != NULL) 
         {
-            this_node = populate_IR(root->right, head, stack, secondary_stack, break_stack, rp, table);
+            this_node = populate_IR(root->right, head, stack, secondary_stack, break_stack, continue_stack, rp, table);
         }
     }
 
@@ -35,14 +35,14 @@ IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondar
 
     if(root->nodetype == IF_NODE || root->nodetype == ELSE_NODE)
     { 
-        this_node = insert_IR(root, this_node, stack, secondary_stack, break_stack, rp, table);
+        this_node = insert_IR(root, this_node, stack, secondary_stack, break_stack, continue_stack, rp, table);
     }
 
     if(root->right != NULL)
     {
         if((root->nodetype != ELSE_NODE && root->right->nodetype == IF_NODE) ||root->right->nodetype == ELSE_NODE || root->right->nodetype == WHILE_NODE || root->right->nodetype == FOR_NODE)
         {    
-            this_node = insert_IR(root, this_node, stack, secondary_stack, break_stack, rp, table);
+            this_node = insert_IR(root, this_node, stack, secondary_stack, break_stack, continue_stack, rp, table);
         }
     }
 
@@ -51,9 +51,9 @@ IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondar
     if(root->left != NULL && root->nodetype != FUNCTION_NODE) // watch out when added parameters to non-main function
     {
         if(this_node == NULL)
-            this_node = populate_IR(root->left, head, stack, secondary_stack, break_stack, rp, table);
+            this_node = populate_IR(root->left, head, stack, secondary_stack, break_stack, continue_stack, rp, table);
         else
-            this_node = populate_IR(root->left, this_node, stack, secondary_stack, break_stack, rp, table);
+            this_node = populate_IR(root->left, this_node, stack, secondary_stack, break_stack, continue_stack, rp, table);
     }
 
     if(this_node != NULL)
@@ -86,7 +86,7 @@ IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondar
         )
         return this_node;
     else
-        return insert_IR(root, head, stack, secondary_stack, break_stack, rp, table);
+        return insert_IR(root, head, stack, secondary_stack, break_stack, continue_stack, rp, table);
 }
 
 /*
@@ -108,7 +108,7 @@ IR_node* create_IR()
 * Create base IR node
 */
 
-IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack, Stack *break_stack, register_pool *rp, ht* table)
+IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack, Stack *break_stack, Stack *continue_stack, register_pool *rp, ht* table)
 { 
     if(root->nodetype == CONSTANT_NODE && root->value.value_INT == 0)
         return head;
@@ -214,7 +214,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                         {            
                             node = get_reg(rp, table, root, node, &head); 
 
-                            load_imm(root->right, &node);        
+                            load_imm(root->right, &node, &head);                           
 
                             node->line = root->line;
                             update_line_number_IR(&node);
@@ -226,7 +226,8 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                         {
                             node = get_reg(rp, table, root, node, &head);
                             
-                            load_imm(root->left, &node);
+                            load_imm(root->left, &node, &head);
+                              
 
                             node->line = root->line;
                             update_line_number_IR(&node);
@@ -331,10 +332,11 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                         {
                             node->rd.reg = holding_reg;
 
-                            load_imm(root->right, &node);
-                            node->prev = NULL;
-                            node->next = head;
-                            head->prev = node;
+                            load_imm(root->right, &node, &head);
+                            
+                            // node->prev = NULL;
+                            // node->next = head;
+                            // head->prev = node;
                             node->line = root->line;
 
                             node->line = root->line;
@@ -860,6 +862,24 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     node->line = root->line;
                     update_line_number_IR(&node);
                 }
+                else if(root->right->nodetype == LABEL_NODE)
+                {
+                    root->value.label_count = root->right->value.label_count;
+
+                    if(root->right->right != NULL && root->right->right->nodetype == SCOPE_NODE) // FOR incr/decr expression
+                    {
+                        while(continue_stack->top != NULL)
+                        {
+                            IR_node *help = pop(continue_stack);
+
+                            sprintf(tmp, "L%d", root->value.label_count);
+                            if(help->ir_type == IR_JUMP)
+                                help->rs1.label = tmp;
+                            else if(help->ir_type == IR_BRANCH)
+                                help->rd.label = tmp;
+                        }
+                    }
+                }
             }
         break;
 
@@ -1045,6 +1065,8 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
             node->instruction = "jal";
             node->rd.reg = 0;
             push(break_stack, node);
+            node->line = root->line;
+            update_line_number_IR(&node);
         break;
 
         case CASE_NODE:
@@ -1062,6 +1084,35 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                 else if(help->ir_type == IR_BRANCH)
                     help->rd.label = tmp;
             }
+
+            //node->line = root->line;
+            //update_line_number_IR(&node);
+        break;
+
+        case DEFAULT_NODE:
+            root->value.label_count = root->right->value.label_count;
+            sprintf(tmp, "L%d", root->value.label_count);
+            
+            if(root->right->right != NULL && root->right->right->nodetype == CASE_NODE)
+            {
+                help = pop(stack);
+            
+                if(help->ir_type == IR_JUMP)
+                    help->rs1.label = tmp;
+                else if(help->ir_type == IR_BRANCH)
+                    help->rd.label = tmp;
+            }
+        break;
+
+
+        case CONTINUE_NODE:
+            node->ir_type = IR_JUMP;
+            node->instr_type = JAL;
+            node->instruction = "jal";
+            node->rd.reg = 0;
+            push(continue_stack, node);
+            node->line = root->line;
+            update_line_number_IR(&node);
         break;
     }
 
@@ -1248,7 +1299,7 @@ IR_node* get_reg(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_
 
     if(root->nodetype == CONSTANT_NODE)
     {
-        load_imm(root, &node);
+        load_imm(root, &node, &head);
 
         holding_reg = find_empty_register(rp);
 
@@ -1842,7 +1893,7 @@ void update_line_number_IR(IR_node** node)
     }
 }
 
-void load_imm(ASTnode* root, IR_node** node)
+void load_imm(ASTnode* root, IR_node** node, IR_node** head)
 {
     /* Check if IMM is larger than 12 bits (2^12-1) = 4096 */
     if(root->value.value_INT < 4096)
@@ -1865,8 +1916,8 @@ void load_imm(ASTnode* root, IR_node** node)
         lui_node->rd.reg = (*node)->rd.reg;
         lui_node->rs1.int_constant = root->value.value_INT >> 12;
 
-        (*node)->next->prev = lui_node;
-        lui_node->next = (*node)->next; 
+        (*head)->prev = lui_node;
+        lui_node->next = (*head); 
         lui_node->prev = (*node);
         (*node)->next = lui_node;
 
@@ -1874,6 +1925,6 @@ void load_imm(ASTnode* root, IR_node** node)
         (*node)->instr_type = ADDI;
         (*node)->instruction = "addi";
         (*node)->rs1.reg = 0;
-        (*node)->rs2.int_constant = root->value.value_INT & 0xfff;
+        (*node)->rs2.int_constant = root->value.value_INT & 0xfff; 
     }   
 }

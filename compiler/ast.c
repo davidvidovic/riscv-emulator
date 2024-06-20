@@ -155,10 +155,26 @@ ASTnode* new_ASTnode_FUNCTION(ASTnode* left, ASTnode* right, int line)
     return (n);
 }
 
-ASTnode* new_ASTnode_BREAK(ASTnode* left, ASTnode* right)
+ASTnode* new_ASTnode_BREAK(ASTnode* left, ASTnode* right, int line)
 {
     ASTnode *n = mkASTnode(left, right);
     n->nodetype = BREAK_NODE;
+    n->line = line;
+    return (n);
+}
+
+ASTnode* new_ASTnode_CONTINUE(ASTnode* left, ASTnode* right, int line)
+{
+    ASTnode *n = mkASTnode(left, right);
+    n->nodetype = CONTINUE_NODE;
+    n->line = line;
+    return (n);
+}
+
+ASTnode* new_ASTnode_DEFAULT(ASTnode* left, ASTnode* right)
+{
+    ASTnode *n = mkASTnode(left, right);
+    n->nodetype = DEFAULT_NODE;
     return (n);
 }
 
@@ -173,9 +189,11 @@ ASTnode* new_ASTnode_CASE(ASTnode* left, ASTnode* right, ASTnode *const_exp, int
 {
     ASTnode *case_body = mkASTnode(left, new_ASTnode_EXPRESSION(new_ASTnode_OPERATION(LOGIC_EQU_OP, const_exp, NULL, lineno), NULL));
     case_body->nodetype = CASE_BODY_NODE;
+    case_body->line = lineno;
 
     ASTnode *n = mkASTnode(case_body, right);
     n->nodetype = CASE_NODE;
+    n->line = lineno;
     return (n);
 }
 
@@ -269,6 +287,14 @@ void print_value(ASTnode* n)
 
     case CASE_BODY_NODE:
         printf("Node CASE BODY\n");
+        break;
+
+    case CONTINUE_NODE:
+        printf("Node CONTINUE\n");
+        break;
+
+    case DEFAULT_NODE:
+        printf("Node DEFAULT\n");
         break;
     }
 }

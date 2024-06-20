@@ -52,8 +52,8 @@ typedef struct Stack {
 
 
 IR_node* create_IR();
-IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack, Stack *break_stack, register_pool *rp, ht* table);
-IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack, Stack *break_stack, register_pool *rp, ht* table);
+IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack, Stack *break_stack, Stack *continue_stack, register_pool *rp, ht* table);
+IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack, Stack *break_stack, Stack *continue_stack, register_pool *rp, ht* table);
 
 void init_stack(Stack* stack);
 LIFO_node* create_LIFO_node(IR_node *node);
@@ -67,5 +67,6 @@ IR_node* create_BEQ_node(register_pool *rp, ht *table, ASTnode *root, IR_node *n
 IR_node* create_BNE_node(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_node **head);
 IR_node* clean_up(IR_node* head, int line);
 int get_label_address(char* label, IR_node *IR_head, IR_node *IR_tail);
+void load_imm(ASTnode* root, IR_node** node, IR_node** head);
 
 #endif

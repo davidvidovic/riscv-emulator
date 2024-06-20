@@ -1,12 +1,40 @@
 int main()
 {
-	int a = 3, b = 5;
-	int c, d, e;
+	int a,b;
+	a = 3;
+	b = 0;
 
-	do
+	for(a = 0; a < 10; ++a)
 	{
-		d = a + b;
-		e = a + 1;
-	}while(a == d);
-	c = 99;
+		b = a + 2;
+		if(b > 5)
+		{
+			continue;
+		}
+		b = b + b;
+	}
+	b = 10000;
+	
+
+	switch(a)
+	{
+		case 1:
+			b = 1111;
+			break;
+		
+		default:
+			b = 2222;
+			break;
+		
+		case 2:
+			b = 3333;
+			break;
+
+		case 3:
+			b = 4444;
+			break;
+
+		
+	}
+	a = 2;
 }

@@ -20,7 +20,9 @@ typedef enum node_type {
     BREAK_NODE,
     SWITCH_NODE,
     CASE_NODE,
-    CASE_BODY_NODE
+    CASE_BODY_NODE,
+    CONTINUE_NODE,
+    DEFAULT_NODE
 } node_type;
 
 typedef enum operation_type {
@@ -115,8 +117,10 @@ ASTnode* new_ASTnode_DO(ASTnode* left, ASTnode* right);
 ASTnode* new_ASTnode_FOR(ASTnode* left, ASTnode* right);
 ASTnode* new_ASTnode_LABEL(ASTnode* left, ASTnode* right);
 ASTnode* new_ASTnode_FUNCTION(ASTnode* left, ASTnode* right, int line);
-ASTnode* new_ASTnode_BREAK(ASTnode* left, ASTnode* right);
+ASTnode* new_ASTnode_BREAK(ASTnode* left, ASTnode* right, int line);
+ASTnode* new_ASTnode_CONTINUE(ASTnode* left, ASTnode* right, int line);
 ASTnode* new_ASTnode_SWITCH(ASTnode* left, ASTnode* right);
+ASTnode* new_ASTnode_DEFAULT(ASTnode* left, ASTnode* right);
 ASTnode* new_ASTnode_CASE(ASTnode* left, ASTnode* right, ASTnode *const_exp, int lineno);
 
 // Helper functions

@@ -545,10 +545,8 @@ statement
 
 labeled_statement
 	: IDENTIFIER ':' statement {}
-	| CASE constant_expression ':' statement_list {
-		$$ = new_ASTnode_CASE($4, NULL, $2, lineno);
-	}
-	| DEFAULT ':' statement {}
+	| CASE constant_expression ':' statement_list {$$ = new_ASTnode_CASE($4, NULL, $2, lineno);}
+	| DEFAULT ':' statement_list {$$ = new_ASTnode_DEFAULT($3, NULL);}
 	;
 
 labeled_statements
@@ -558,9 +556,22 @@ labeled_statements
 		$$->right = label_node;
 	}
 	| labeled_statements labeled_statement {
-		$$ = $2;
-		ASTnode *label_node = new_ASTnode_LABEL(NULL, $1);
-		$$->right = label_node;
+		
+		ASTnode *label_node;
+
+		if($1->nodetype == DEFAULT_NODE)
+		{
+			$$ = $1;
+			label_node = new_ASTnode_LABEL(NULL, $1->right->right);
+			$2->right = label_node;
+			$$->right->right = $2;
+		}
+		else
+		{
+			$$ = $2;
+			label_node = new_ASTnode_LABEL(NULL, $1);
+			$$->right = label_node;
+		}	
 	}
 	;
 
@@ -657,10 +668,12 @@ statement_list
 			ASTnode *temp = new_ASTnode_LABEL(NULL, $$->right->right);
 			$$->right->right = temp;
 		}
-		// else if($$->nodetype == CASE_NODE)
-		// {
-			
-		// }
+		else if($1->nodetype == DEFAULT_NODE)
+		{
+			$$ = $1;
+			$2->right = $1->right;
+			$$->right = $2;
+		}
 		else
 		{
 			$$->right = $1;
@@ -699,6 +712,12 @@ selection_statement
 		
 		while(temp != NULL)
 		{
+			if(temp->nodetype == DEFAULT_NODE)
+			{
+				temp = temp->right->right;
+				continue;
+			}
+
 			temp->left->right->left->right = $3->left;
 			
 			if(temp->right->right != NULL)
@@ -731,15 +750,15 @@ iteration_statement
 	}
 	| FOR '(' expression_statement expression_statement expression ')' statement {
 		$4->right = $3;
-		$5->right = $7;
+		$5->right = new_ASTnode_LABEL(NULL, $7);
 		$$ = new_ASTnode_FOR($5, $4);
 	}
 	;
 
 jump_statement
 	: GOTO IDENTIFIER ';' {}
-	| CONTINUE ';' {}
-	| BREAK ';' {$$ = new_ASTnode_BREAK(NULL, NULL);}
+	| CONTINUE ';' {$$ = new_ASTnode_CONTINUE(NULL, NULL, lineno);}
+	| BREAK ';' {$$ = new_ASTnode_BREAK(NULL, NULL, lineno);}
 	| RETURN ';' {}
 	| RETURN expression ';' {}
 	;
