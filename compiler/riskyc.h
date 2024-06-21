@@ -2,10 +2,11 @@
 #define RISKYC
 
 /* Size of data types in bytes */
-#define SIZE_INT    4
-#define SIZE_CHAR   1
-#define SIZE_FLOAT  4
-#define SIZE_DOUBLE 8
+#define SIZE_INT        4
+#define SIZE_CHAR       1
+#define SIZE_FLOAT      4
+#define SIZE_DOUBLE     8
+#define SIZE_POINTER    8
 
 #include "ast.h"
 

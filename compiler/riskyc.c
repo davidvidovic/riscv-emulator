@@ -101,7 +101,7 @@ void type_check(ASTnode *op1, ASTnode *op2)
 
   /* Done over AST node for now, ST stuff doesn't work for some reason... */
 
-	if(op1->nodetype == ID_NODE)
+	if(op1->nodetype == ID_NODE || op1->nodetype == POINTER_NODE)
 	{
     op1_name = op1->name;
 		//temp = get_ht_entry(table, op1_name);
@@ -121,7 +121,7 @@ void type_check(ASTnode *op1, ASTnode *op2)
     sprintf(op1_name, "OPERATION");
   }
 
-  if(op2->nodetype == ID_NODE)
+  if(op2->nodetype == ID_NODE || op2->nodetype == POINTER_NODE)
 	{ 
 		op2_name = op2->name;
 		//temp2 = get_ht_entry(table, op2_name);

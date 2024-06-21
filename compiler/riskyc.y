@@ -13,7 +13,7 @@
 	extern int sp_offset;
     int multiline_declaration_cnt = 0;
 	ASTnode* set_right_init_to_null(ASTnode *root);
-	int calculate_sp_offset(int sp_offset, id_type type);
+	int calculate_sp_offset(int sp_offset, id_type type, int num_of_elements);
 
     void yyerror(const char *s);
     int yylex();
@@ -109,12 +109,15 @@ primary_expression
   	| SCI_CONSTANT {$$ = new_ASTnode_FLOAT($1);} // Should get looked at
   	| FLT_CONSTANT {$$ = new_ASTnode_FLOAT($1);}
 	| STRING_LITERAL {$$ = new_ASTnode_INT($1);}
-	| '(' expression ')' {}
+	| '(' expression ')' {$$ = $2;}
 	;
 
 postfix_expression
 	: primary_expression {$$ = $1;}
-	| postfix_expression '[' expression ']'
+	| postfix_expression '[' expression ']' {
+		$$ = $1;
+		$$->element_number = $3->left->value.value_INT;
+	}
 	| postfix_expression '(' ')'
 	| postfix_expression '(' argument_expression_list ')'
 	| postfix_expression '.' IDENTIFIER
@@ -241,22 +244,37 @@ logical_or_expression
 
 conditional_expression
 	: logical_or_expression {$$ = $1;}
-	| logical_or_expression '?' expression ':' conditional_expression
+	| logical_or_expression '?' expression ':' conditional_expression {
+		ASTnode *exp_node = new_ASTnode_EXPRESSION($1, NULL);		
+		ASTnode *if_node = new_ASTnode_IF($3, exp_node);
+		$$ = new_ASTnode_ELSE($5, if_node);
+	}
 	;
 
 assignment_expression
 	: conditional_expression {$$ = $1;}
 	| unary_expression assignment_operator assignment_expression {
 		/* Type check */
-		if($3->nodetype == OPERATION_NODE)
+		if($3->nodetype == ELSE_NODE)
 		{
-			type_check($1, $3->left);
+			$3->left = new_ASTnode_SCOPE(new_ASTnode_EXPRESSION(new_ASTnode_OPERATION($2, $1, $3->left, lineno), NULL), NULL);
+
+			$3->right->left->left = new_ASTnode_OPERATION($2, $1, $3->right->left->left, lineno);
+			$3->right->left = new_ASTnode_SCOPE($3->right->left, NULL);
+			$$ = $3;
 		}
-		else
+		else 
 		{
-			type_check($1, $3);
-		}
-		$$ = new_ASTnode_OPERATION($2, $1, $3, lineno); // maybe 3,1?		
+			if ($3->nodetype == OPERATION_NODE)
+			{
+				type_check($1, $3->left);
+			}
+			else
+			{
+				type_check($1, $3);
+			}
+			$$ = new_ASTnode_OPERATION($2, $1, $3, lineno); // maybe 3,1?
+		}		
 	}
 	;
 
@@ -276,7 +294,14 @@ assignment_operator
 
 expression
 	: assignment_expression {		
-		$$ = new_ASTnode_EXPRESSION($1, NULL);
+		if($1->nodetype == ELSE_NODE)
+		{
+			$$ = $1;
+		}
+		else
+		{
+			$$ = new_ASTnode_EXPRESSION($1, NULL);
+		}
 	}
 	| expression ',' assignment_expression
 	;
@@ -292,14 +317,20 @@ declaration
 		if($$->nodetype == ID_NODE)
 		{
 			$$->type = $1;
-			sp_offset = calculate_sp_offset(sp_offset, $1);
+			sp_offset = calculate_sp_offset(sp_offset, $1, $2->element_number);
 			ht_set_type_sp_offset($$->name, $1, sp_offset);
 		}
 		else if($$->nodetype == EXPRESSION_NODE)
 		{
 			$$->left->left->type = $1;
-			sp_offset = calculate_sp_offset(sp_offset, $1);
+			sp_offset = calculate_sp_offset(sp_offset, $1, $2->element_number);
 			ht_set_type_sp_offset($$->left->left->name, $1, sp_offset);
+		}
+		else if($$->nodetype == POINTER_NODE)
+		{
+			$$->type = $1;
+			sp_offset = calculate_sp_offset(sp_offset, TYPE_POINTER, $2->element_number);
+			ht_set_type_sp_offset($$->name, $1, sp_offset);
 		}
 		
 		/* 
@@ -318,14 +349,20 @@ declaration
 				if(temp->nodetype == ID_NODE)
 				{
 					temp->type = $1;
-					sp_offset = calculate_sp_offset(sp_offset, $1);
+					sp_offset = calculate_sp_offset(sp_offset, $1, $2->element_number);
 					ht_set_type_sp_offset(temp->name, $1, sp_offset);
 				}
 				else if(temp->nodetype == EXPRESSION_NODE)
 				{
 					temp->left->left->type = $1;
-					sp_offset = calculate_sp_offset(sp_offset, $1);
+					sp_offset = calculate_sp_offset(sp_offset, $1, $2->element_number);
 					ht_set_type_sp_offset(temp->left->left->name, $1, sp_offset);
+				}
+				else if($$->nodetype == POINTER_NODE)
+				{
+					temp->type = $1;
+					sp_offset = calculate_sp_offset(sp_offset, TYPE_POINTER, $2->element_number);
+					ht_set_type_sp_offset(temp->name, $1, sp_offset);
 				}
 				temp = temp->right;
 			}
@@ -449,7 +486,7 @@ type_qualifier
 	;
 
 declarator
-	: pointer direct_declarator {$$ = $2;};
+	: pointer direct_declarator {$$ = $2; $$->nodetype = POINTER_NODE;}
 	| direct_declarator {$$ = $1;}
 	;
 
@@ -460,7 +497,12 @@ direct_declarator
 		multiline_declaration_cnt++;
 	}
 	| '(' declarator ')' {$$ = $2;}
-	| direct_declarator '[' constant_expression ']'
+	| direct_declarator '[' constant_expression ']' {
+		$$ = $1;
+		$$->nodetype = POINTER_NODE;
+		$$->structure = ARRAY;
+		$$->element_number = $3->value.value_INT;
+	}
 	| direct_declarator '[' ']'
 	| direct_declarator '(' parameter_type_list ')' 
 	| direct_declarator '(' identifier_list ')'
@@ -821,20 +863,24 @@ ASTnode* set_right_init_to_null(ASTnode *root)
 	return root;	
 }
 
-int calculate_sp_offset(int sp_offset, id_type type)
+int calculate_sp_offset(int sp_offset, id_type type, int num_of_elements)
 {
 	switch(type)
 	{
 		case TYPE_INT:
-			sp_offset += SIZE_INT;
+			sp_offset += SIZE_INT * (num_of_elements+1);
 		break;
 
 		case TYPE_CHAR:
-			sp_offset += SIZE_CHAR;
+			sp_offset += SIZE_CHAR * (num_of_elements+1);
 		break;
 
 		case TYPE_FLOAT:
-			sp_offset += SIZE_FLOAT;
+			sp_offset += SIZE_FLOAT * (num_of_elements+1);
+		break;
+
+		case TYPE_POINTER:
+			sp_offset += SIZE_POINTER * (num_of_elements+1);
 		break;
 
 		default:

@@ -23,7 +23,8 @@ typedef enum node_type {
     CASE_BODY_NODE,
     CONTINUE_NODE,
     DEFAULT_NODE,
-    RETURN_NODE
+    RETURN_NODE,
+    POINTER_NODE
 } node_type;
 
 typedef enum operation_type {
@@ -69,8 +70,14 @@ typedef enum id_type {
     TYPE_VOID,
     TYPE_LONG,
     TYPE_SIGNED,
-    TYPE_UNSIGNED
+    TYPE_UNSIGNED,
+    TYPE_POINTER
 } id_type;
+
+typedef enum data_structure {
+    VARIABLE,
+    ARRAY
+} data_structure;
 
 
 typedef struct ASTnode {
@@ -81,6 +88,11 @@ typedef struct ASTnode {
     // ID
     id_type type;
     char* name;
+    data_structure structure;
+    int element_number;
+
+    // Arrays
+    
 
     // Constants
     union value {

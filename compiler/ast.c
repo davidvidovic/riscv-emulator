@@ -27,6 +27,8 @@ ASTnode* new_ASTnode_ID(const char* name, id_type type, ASTnode *left, ASTnode *
     //n->name = malloc(len * sizeof(char));
     n->name = name;
     n->type = type;
+    n->structure = VARIABLE;
+    n->element_number = 0;
 
     return (n);
 }
@@ -307,6 +309,10 @@ void print_value(ASTnode* n)
 
     case RETURN_NODE:
         printf("Node RETURN\n");
+        break;
+
+    case POINTER_NODE:
+        printf("Node POINTER\n");
         break;
     }
 }
