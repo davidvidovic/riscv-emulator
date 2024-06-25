@@ -283,3 +283,4 @@ char* get_id_from_register(register_pool* rp, IR_register reg)
     else
         return rp->registers[reg][0];
 }
+

@@ -207,6 +207,16 @@ ASTnode* new_ASTnode_RETURN(ASTnode* left, ASTnode* right, int line)
     return (n);
 }
 
+ASTnode* new_ASTnode_ARRAY_ELEMENT(ASTnode* left, ASTnode* right, int line)
+{
+    ASTnode *n = mkASTnode(left, right);
+    n->nodetype = ARRAY_ELEMENT_NODE;
+    n->line = line;
+    n->name = left->name;
+    return (n);
+}
+
+
 
 void print_value(ASTnode* n)
 {
@@ -313,6 +323,10 @@ void print_value(ASTnode* n)
 
     case POINTER_NODE:
         printf("Node POINTER\n");
+        break;
+
+    case ARRAY_ELEMENT_NODE:
+        printf("Node ARRAY ELEMENT\n");
         break;
     }
 }

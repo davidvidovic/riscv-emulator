@@ -115,8 +115,10 @@ primary_expression
 postfix_expression
 	: primary_expression {$$ = $1;}
 	| postfix_expression '[' expression ']' {
-		$$ = $1;
-		$$->element_number = $3->left->value.value_INT;
+		$$ = new_ASTnode_ARRAY_ELEMENT($1, $3, lineno); 
+		//$$ = $1;
+		//$$->element_number = $3->left->value.value_INT;
+		//$$->left = $3;
 	}
 	| postfix_expression '(' ')'
 	| postfix_expression '(' argument_expression_list ')'
@@ -265,15 +267,23 @@ assignment_expression
 		}
 		else 
 		{
-			if ($3->nodetype == OPERATION_NODE)
+			if($1->nodetype == ARRAY_ELEMENT_NODE)
 			{
-				type_check($1, $3->left);
+				
+				$$ = new_ASTnode_OPERATION($2, $1, $3, lineno);
 			}
 			else
 			{
-				type_check($1, $3);
+				if($3->nodetype == OPERATION_NODE)
+				{
+					type_check($1, $3->left);
+				}
+				else
+				{
+					type_check($1, $3);
+				}
+				$$ = new_ASTnode_OPERATION($2, $1, $3, lineno); // maybe 3,1?
 			}
-			$$ = new_ASTnode_OPERATION($2, $1, $3, lineno); // maybe 3,1?
 		}		
 	}
 	;

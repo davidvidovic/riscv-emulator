@@ -149,6 +149,15 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
             
         break;
 
+        case ARRAY_ELEMENT_NODE:
+            /* Node that represents array element, which is accessed by calculating expression inside [] */
+
+            // Issue a load of a pointer, get it inside some register
+            load_array_element(rp, table, root, &node, &head);
+            
+            
+        break;
+
         case OPERATION_NODE:
             node->line = root->line;
             
@@ -170,6 +179,30 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     * If there is empty register, assign that register.
                     * If not, repeat algoritham for spilling. When register is choosen, store instructions must be issued for all live IDs inside it.
                      */
+       
+                    if(root->left->nodetype == ARRAY_ELEMENT_NODE)
+                    {
+                        if(root->right->nodetype == CONSTANT_NODE)
+                        {
+                            node = get_reg(rp, table, root->right, node, &head);
+                        }
+                        else if(root->right->nodetype == ID_NODE)
+                        {
+                            node = get_reg(rp, table, root, node, &head);
+                        }
+                        else
+                        {
+                            /* Operation to the right */
+                            
+                        }
+
+                        IR_node *temp;
+                        temp = store_array_element(rp, table, root, node, head);
+                        temp->prev = NULL;
+                        temp->next = node;
+                        node->prev = temp;
+                        return temp;
+                    }
 
                     holding_reg = find_ID(rp, root->left->name);
 
@@ -234,9 +267,9 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                             node->line = root->line;
                             update_line_number_IR(&node);
 
-                            if(root->left->nodetype == POINTER_NODE)
+                            if(root->left->nodetype == POINTER_NODE || root->left->nodetype == ARRAY_ELEMENT_NODE)
                             {
-                                node = store_pointer(rp, table, &node, root->left);
+                                node = store_pointer(rp, table, &node, root->left->left);
                             }
                                 
                             return node;
@@ -387,7 +420,11 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
 
                 case ADD_OP:
 
-                    node = get_reg(rp, table, root, node, &head);
+                    node = get_OP_node(rp, table, root, node, &head);
+
+                    node->rd.reg = get_holding_reg(rp, table, node, &head, 0, 0);
+
+                    
                     
                     if(root->right->nodetype == CONSTANT_NODE)
                     {
@@ -1531,7 +1568,7 @@ IR_node* get_reg(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_
                 {
                     node->rd.reg = holding_reg;
                 }
-                if(root->left->nodetype == ID_NODE)
+                if(root->left->nodetype == ID_NODE || root->left->nodetype == POINTER_NODE)
                     add_id_to_register(rp, holding_reg, root->left->name);
                 //ht_set_AD_reg(table, root->left->name, holding_reg);
             }
@@ -1671,11 +1708,12 @@ IR_node* get_reg(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_
         }
         else
         {
-            node->rs2.reg = holding_reg;         
+            node->rs2.reg = holding_reg;    
+
+            if(root->right->nodetype == ID_NODE || root->right->nodetype == POINTER_NODE)
+                add_id_to_register(rp, holding_reg, root->right->name);
         }
     }
-
-
 
     return node;
 }
@@ -1800,8 +1838,7 @@ IR_node* get_OP_node(register_pool *rp, ht *table, ASTnode *root, IR_node *node,
     if((root->left != NULL && root->left->nodetype == ID_NODE) || (root->right != NULL && root->right->nodetype == ID_NODE))
     {     
         if(root->left != NULL && root->left->nodetype == CONSTANT_NODE)
-        {
-            
+        {     
             temp_left = get_reg(rp, table, root->left, temp_left, head);
             node->rs1.reg = temp_left->rd.reg;
             node->next = temp_left;
@@ -1824,7 +1861,12 @@ IR_node* get_OP_node(register_pool *rp, ht *table, ASTnode *root, IR_node *node,
         node = get_reg(rp, table, root, node, &(node->next));    
         node->prev = NULL;
     }
-    else
+    
+    if (root->left->nodetype == OPERATION_NODE)
+    {
+        node->rs1.reg = (*head)->rd.reg;
+    }
+    else if(root->right->nodetype == OPERATION_NODE)
     {
         /* Operation to the right */
         node->rs2.reg = (*head)->rd.reg;     
@@ -1885,6 +1927,51 @@ IR_node* create_BNE_node(register_pool *rp, ht *table, ASTnode *root, IR_node *n
     temp_left->rs2.reg = 0;    
     return temp_left;
 }
+
+
+IR_register get_holding_reg(register_pool *rp, ht *table, IR_node **node, IR_node **head, IR_register without_reg1, IR_register without_reg2)
+{
+    IR_register holding_reg = find_empty_register_without_REGs(rp, without_reg1, without_reg2);
+
+    if(holding_reg == 0)
+    {
+        /* Pick one register for spilling */
+        // For now, I'll do this based on minimum count
+
+        /* WARNING: VERY GREEDY! */         
+        holding_reg = min_count_register_without_REGs(rp, without_reg1, without_reg2);
+
+        IR_node* sw_temp;
+        if(get_register_count(rp, holding_reg) != 0)
+        {             
+            sw_temp = (IR_node*)malloc(sizeof(IR_node)); 	
+            sw_temp->instr_type = SW;
+            sw_temp->ir_type = IR_STORE;
+            sw_temp->instruction = "sw";
+            sw_temp->rs1.name = get_id_from_register(rp, holding_reg);
+            remove_id_from_register(rp, holding_reg, sw_temp->rs1.name);
+            sw_temp->sf_offset = get_sf_offset(table, sw_temp->rs1.name)*(-1);
+            sw_temp->rd.reg = s0;
+            sw_temp->rs1.reg = holding_reg;
+        
+            sw_temp->next = *head;
+            sw_temp->prev = NULL;
+            (*head)->prev = sw_temp;
+            //*head = sw_temp;    
+
+            (*node)->prev = NULL;
+            (*node)->next = sw_temp;
+            sw_temp->prev = (*node);
+        }
+
+        return holding_reg;
+    }
+    else
+    {
+        return holding_reg;
+    }
+}
+
 
 
 IR_node* clean_up(IR_node* head, int line)
@@ -2037,8 +2124,8 @@ IR_node* store_pointer(register_pool *rp, ht *table , IR_node **node, ASTnode *p
         load_node->prev = store_node;
 
         store_node->rs1.reg = (*node)->rd.reg;
-        store_node->sf_offset = pointer_node->element_number * 8; // times 8 because thats SIZE_POINTER
-        store_node->rd.reg = load_node->rd.reg; /* EQU OP on pointers by default */
+        store_node->sf_offset = pointer_node->element_number * 4 * (-1); // times 8 because thats SIZE_POINTER
+        store_node->rd.reg = s0; 
     }
     else
     {
@@ -2054,6 +2141,105 @@ IR_node* store_pointer(register_pool *rp, ht *table , IR_node **node, ASTnode *p
 
     store_node->prev = NULL;
     
+
+    return store_node;
+}
+
+
+void load_array_element(register_pool *rp, ht *table, ASTnode *root, IR_node **node, IR_node **head)
+{
+    /* This function in called from ARRAY_ELEMENT_NODE */
+    /* It is required that root->left is expression that calculates index that is being accessed, 
+     * and that head already contains instruction for such calculation (load, or addi in simple terms).
+     * Firstly it is required to cacluclate relative offset from arrays base in bytes, to do this we need to 
+     * multiply expression's result by 4 - shift left for 2 (SLLI 2)
+     * Later we simply calculate abolute address of element based on array's base address and relative offset in bytes
+    */
+
+    
+
+    IR_node *slli_insert = (IR_node*)malloc(sizeof(IR_node));
+    slli_insert->ir_type = IR_OP_IMM;
+    slli_insert->instr_type = SLLI;
+    slli_insert->instruction = "slli";
+    
+    if(root->right->left->nodetype == CONSTANT_NODE && root->right->right == NULL)
+    {
+        IR_node* temp = (IR_node*)malloc(sizeof(IR_node));
+        temp = get_reg(rp, table, root->right->left, temp, head);
+
+        slli_insert->rd.reg = temp->rd.reg;
+        slli_insert->rs1.reg = temp->rd.reg;
+        slli_insert->rs2.int_constant = 2;
+
+        (*head)->prev = temp;
+        temp->next = (*head);
+        temp->prev = slli_insert;
+        slli_insert->next = temp;
+    }
+    else if(root->right->left->nodetype == ID_NODE && root->right->right == NULL)
+    {
+        IR_node* temp = (IR_node*)malloc(sizeof(IR_node));
+        temp = get_reg_single_ID(rp, table, root->right->left, temp, head);
+        
+        remove_id_from_register(rp, temp->rs1.reg, root->right->left->name);
+
+        slli_insert->rd.reg = temp->rs1.reg;
+        slli_insert->rs1.reg = temp->rs1.reg;
+        slli_insert->rs2.int_constant = 2;
+
+        (*head)->prev = temp;
+        temp->next = (*head);
+        temp->prev = slli_insert;
+        slli_insert->next = temp;
+    }
+    else
+    {
+        slli_insert->rd.reg = (*head)->rd.reg;
+        slli_insert->rs1.reg = (*head)->rd.reg;
+        slli_insert->rs2.int_constant = 2;
+        slli_insert->next = (*head);
+        (*head)->prev = slli_insert;
+    }
+
+    /* Now calculate absolute address of array's base element, by adding it's sp_offset to s0 */
+
+    IR_node *addi_insert = (IR_node*)malloc(sizeof(IR_node));
+    addi_insert->ir_type = IR_OP_IMM;
+    addi_insert->instr_type = ADDI;
+    addi_insert->instruction = "addi";
+    addi_insert->rd.reg = get_holding_reg(rp, table, &addi_insert, &slli_insert, slli_insert->rd.reg, 0);
+    addi_insert->rs1.reg = s0;
+    addi_insert->rs2.int_constant = get_sf_offset(table, root->left->name) * (-1);
+    addi_insert->next = slli_insert;
+    slli_insert->prev = addi_insert;
+
+    /* Simply add thos two togehter */
+
+    IR_node *calc_address = (IR_node*)malloc(sizeof(IR_node));
+    calc_address->ir_type = IR_OP;
+    calc_address->instr_type = ADD;
+    calc_address->instruction = "add";
+    calc_address->rd.reg = get_holding_reg(rp, table, &calc_address, &addi_insert, slli_insert->rd.reg, addi_insert->rd.reg);
+    calc_address->rs1.reg = slli_insert->rd.reg;
+    calc_address->rs2.reg = addi_insert->rd.reg;
+    calc_address->next = addi_insert;
+    addi_insert->prev = calc_address;
+
+    (*node) = calc_address;
+}
+
+
+IR_node* store_array_element(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_node *head)
+{
+    IR_node *store_node = (IR_node*)malloc(sizeof(IR_node));
+
+    store_node->ir_type = IR_STORE;
+    store_node->instr_type = SW;
+    store_node->instruction = "sw";
+    store_node->rd.reg = head->rd.reg;
+    store_node->sf_offset = 0;
+    store_node->rs1.reg = node->rd.reg;
 
     return store_node;
 }

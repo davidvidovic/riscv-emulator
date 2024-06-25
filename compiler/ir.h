@@ -69,5 +69,8 @@ IR_node* clean_up(IR_node* head, int line);
 int get_label_address(char* label, IR_node *IR_head, IR_node *IR_tail);
 void load_imm(ASTnode* root, IR_node** node, IR_node** head);
 IR_node* store_pointer(register_pool *rp, ht *table , IR_node **node, ASTnode *pointer_node);
+IR_register get_holding_reg(register_pool *rp, ht *table, IR_node **node, IR_node **head, IR_register without_reg1, IR_register without_reg2);
+void load_array_element(register_pool *rp, ht *table, ASTnode *root, IR_node **node, IR_node **head);
+IR_node* store_array_element(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_node *head);
 
 #endif

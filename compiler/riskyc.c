@@ -117,8 +117,11 @@ void type_check(ASTnode *op1, ASTnode *op2)
   else
   {
     /* Operation to the right */
-    op1_type = op1->left->type; 
-    sprintf(op1_name, "OPERATION");
+    if(op1->left->nodetype != OPERATION_NODE)
+      op1_type = op1->left->type; 
+    else if(op1->right->nodetype != OPERATION_NODE)
+      op1_type = op1->right->type; 
+    op1_name = "OPERATION";
   }
 
   if(op2->nodetype == ID_NODE || op2->nodetype == POINTER_NODE)
@@ -137,8 +140,11 @@ void type_check(ASTnode *op1, ASTnode *op2)
   else
   {
     /* Operation to the right */
-    op2_type = op2->left->type; 
-    sprintf(op2_name, "OPERATION");
+    if(op2->left->nodetype != OPERATION_NODE)
+      op2_type = op2->left->type; 
+    else if(op2->right->nodetype != OPERATION_NODE)
+      op2_type = op2->right->type; 
+    op2_name = "OPERATION";
   }
 
   if(op1_type != op2_type)
