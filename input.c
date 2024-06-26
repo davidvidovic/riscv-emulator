@@ -3,17 +3,13 @@ int main()
 	int a,b,c;
 	int i;
 	int arr[5];
-	b = 1;
-	c = 2;
-	a = b + 5 + c + 11;
-	arr[a+2] = 999;
-	arr[1] = 888;
+	b = 2;
 
-	for(i = 0; i < 5; i++)
+	for(i = 0; i < 4; ++i)
 	{
-		arr[i] = 1;
+		arr[i+1] = b + i + 9;
 	}
 
-
+	a = 9;
 	return 0;
 }

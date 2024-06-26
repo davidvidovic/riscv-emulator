@@ -256,27 +256,28 @@ int main()
     Stack break_stack;
     Stack continue_stack;
     Stack return_stack;
+    Stack array_element_stack;
     init_stack(&stack);
     init_stack(&secondary_stack);
     init_stack(&break_stack);
     init_stack(&continue_stack);
     init_stack(&return_stack);
+    init_stack(&array_element_stack);
     register_pool *rp = init_register_pool();
   
-    IR_node *IR_tail = populate_IR(root, IR_head, &stack, &secondary_stack, &break_stack, &continue_stack, &return_stack, rp, table);
+    IR_node *IR_tail = populate_IR(root, IR_head, &stack, &secondary_stack, &break_stack, &continue_stack, &return_stack, &array_element_stack, rp, table);
 
     print_IR(IR_head, IR_tail);
     
-    //control_flow_graph *cfg = populate_cfg(IR_head, IR_tail);
-    //basic_block* temp = cfg->leader;
+    // control_flow_graph *cfg = populate_cfg(IR_head, IR_tail);
+    // basic_block* temp = cfg->leader;
   
-/*  
-    do
-    {
-      printf("BLOCK %d: first instruction is %s and last instruction is %s\n", temp->bb_number, temp->leader->instruction, temp->last_instruction->instruction);
-      temp = temp->bb_next;
-    } while(temp != NULL);
-*/
+    // do
+    // {
+    //   printf("BLOCK %d: first instruction is %s and last instruction is %s\n", temp->bb_number, temp->leader->instruction, temp->last_instruction->instruction);
+    //   temp = temp->bb_next;
+    // } while(temp != NULL);
+
 
     assemble_binary_output(IR_head, IR_tail);
 

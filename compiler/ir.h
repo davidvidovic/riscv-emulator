@@ -52,8 +52,8 @@ typedef struct Stack {
 
 
 IR_node* create_IR();
-IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack, Stack *break_stack, Stack *continue_stack, Stack *return_stack, register_pool *rp, ht* table);
-IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack, Stack *break_stack, Stack *continue_stack, Stack *return_stack, register_pool *rp, ht* table);
+IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack, Stack *break_stack, Stack *continue_stack, Stack *return_stack, Stack*, register_pool *rp, ht* table);
+IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack, Stack *break_stack, Stack *continue_stack, Stack *return_stack, Stack*, register_pool *rp, ht* table);
 
 void init_stack(Stack* stack);
 LIFO_node* create_LIFO_node(IR_node *node);
@@ -72,5 +72,7 @@ IR_node* store_pointer(register_pool *rp, ht *table , IR_node **node, ASTnode *p
 IR_register get_holding_reg(register_pool *rp, ht *table, IR_node **node, IR_node **head, IR_register without_reg1, IR_register without_reg2);
 void load_array_element(register_pool *rp, ht *table, ASTnode *root, IR_node **node, IR_node **head);
 IR_node* store_array_element(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_node *head);
+IR_node* store_from_register(register_pool *rp, ht *table, IR_node **head, IR_register reg);
+void store_19(register_pool *rp, ht *table);
 
 #endif

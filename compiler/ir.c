@@ -8,41 +8,45 @@ int register_counter = 1;
 int label_counter = 1;
 extern int sp_offset;
 
-IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack, Stack *break_stack, Stack *continue_stack, Stack *return_stack, register_pool *rp, ht* table)
+IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack, Stack *break_stack, Stack *continue_stack, Stack *return_stack, Stack *array_element_stack, register_pool *rp, ht* table)
 {
     IR_node *this_node = NULL;
 
     if(root->nodetype == FUNCTION_NODE)
     { 
-        this_node = insert_IR(root, head, stack, secondary_stack, break_stack, continue_stack, return_stack, rp, table);
+        this_node = insert_IR(root, head, stack, secondary_stack, break_stack, continue_stack, return_stack, array_element_stack, rp, table);
 
         if(root->right != NULL) 
         {
-            this_node = populate_IR(root->right, this_node, stack, secondary_stack, break_stack, continue_stack, return_stack, rp, table);
+            this_node = populate_IR(root->right, this_node, stack, secondary_stack, break_stack, continue_stack, return_stack, array_element_stack, rp, table);
         }
     }
     else
     {
         if(root->right != NULL) 
         {
-            this_node = populate_IR(root->right, head, stack, secondary_stack, break_stack, continue_stack, return_stack, rp, table);
+            this_node = populate_IR(root->right, head, stack, secondary_stack, break_stack, continue_stack, return_stack, array_element_stack, rp, table);
         }
     }
-
 
 
     /* Prio execution */
 
     if(root->nodetype == IF_NODE || root->nodetype == ELSE_NODE)
     { 
-        this_node = insert_IR(root, this_node, stack, secondary_stack, break_stack, continue_stack, return_stack, rp, table);
+        this_node = insert_IR(root, this_node, stack, secondary_stack, break_stack, continue_stack, return_stack, array_element_stack, rp, table);
+    }
+
+    if(root->nodetype == OPERATION_NODE && root->operation == EQU_OP && root->left != NULL && root->left->nodetype == ARRAY_ELEMENT_NODE && root->right->nodetype == OPERATION_NODE)
+    {
+        push(array_element_stack, this_node);
     }
 
     if(root->right != NULL)
     {
         if((root->nodetype != ELSE_NODE && root->right->nodetype == IF_NODE) ||root->right->nodetype == ELSE_NODE || root->right->nodetype == WHILE_NODE || root->right->nodetype == FOR_NODE)
         {    
-            this_node = insert_IR(root, this_node, stack, secondary_stack, break_stack, continue_stack, return_stack, rp, table);
+            this_node = insert_IR(root, this_node, stack, secondary_stack, break_stack, continue_stack, return_stack, array_element_stack, rp, table);
         }
     }
 
@@ -51,9 +55,9 @@ IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondar
     if(root->left != NULL && root->nodetype != FUNCTION_NODE) // watch out when added parameters to non-main function
     {
         if(this_node == NULL)
-            this_node = populate_IR(root->left, head, stack, secondary_stack, break_stack, continue_stack, return_stack, rp, table);
+            this_node = populate_IR(root->left, head, stack, secondary_stack, break_stack, continue_stack, return_stack, array_element_stack, rp, table);
         else
-            this_node = populate_IR(root->left, this_node, stack, secondary_stack, break_stack, continue_stack, return_stack, rp, table);
+            this_node = populate_IR(root->left, this_node, stack, secondary_stack, break_stack, continue_stack, return_stack, array_element_stack, rp, table);
     }
 
     if(this_node != NULL)
@@ -95,7 +99,7 @@ IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondar
         )
         return this_node;
     else
-        return insert_IR(root, head, stack, secondary_stack, break_stack, continue_stack, return_stack, rp, table);
+        return insert_IR(root, head, stack, secondary_stack, break_stack, continue_stack, return_stack, array_element_stack, rp, table);
 }
 
 /*
@@ -117,7 +121,7 @@ IR_node* create_IR()
 * Create base IR node
 */
 
-IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack, Stack *break_stack, Stack *continue_stack, Stack *return_stack, register_pool *rp, ht* table)
+IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack, Stack *break_stack, Stack *continue_stack, Stack *return_stack, Stack* array_element_stack, register_pool *rp, ht* table)
 { 
     if(root->nodetype == CONSTANT_NODE && root->value.value_INT == 0)
         return head;
@@ -142,7 +146,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
         break;
 
         case ID_NODE:
-      
+            
         break;
 
         case POINTER_NODE:
@@ -179,6 +183,8 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     * If there is empty register, assign that register.
                     * If not, repeat algoritham for spilling. When register is choosen, store instructions must be issued for all live IDs inside it.
                      */
+
+                    store_19(rp, table);
        
                     if(root->left->nodetype == ARRAY_ELEMENT_NODE)
                     {
@@ -189,11 +195,13 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                         else if(root->right->nodetype == ID_NODE)
                         {
                             node = get_reg(rp, table, root, node, &head);
+                            node->rd.reg = node->rs2.reg;
                         }
                         else
                         {
                             /* Operation to the right */
                             
+                            node->rd.reg = pop(array_element_stack)->rd.reg;
                         }
 
                         IR_node *temp;
@@ -422,9 +430,10 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
 
                     node = get_OP_node(rp, table, root, node, &head);
 
-                    node->rd.reg = get_holding_reg(rp, table, node, &head, 0, 0);
+                    node->rd.reg = get_holding_reg(rp, table, node, &head, 0, 0);       
 
-                    
+                    /* Very dirty */
+                    add_id_to_register(rp, node->rd.reg, "19");
                     
                     if(root->right->nodetype == CONSTANT_NODE)
                     {
@@ -433,7 +442,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                         node->instruction = "addi";
 
                         node->rs2.int_constant = root->right->value.value_INT; // INT only
-
+                        return node;
                         // Delete load const IR_node, two nodes ago
                         //node->next->next->next->prev = node->next;
                         //node->next->next = node->next->next->next->next;
@@ -458,6 +467,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                         node->instr_type = ADD;
                         node->instruction = "add";
                     }
+                    return node;
                 break;
 
                 case SUB_OP:
@@ -1410,28 +1420,33 @@ IR_node* get_reg(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_
             /* WARNING: VERY GREEDY! */
             holding_reg = min_count_register(rp);   
     
-            IR_node* sw_temp;
-            if(get_register_count(rp, holding_reg) != 0)
-            {             
-                sw_temp = (IR_node*)malloc(sizeof(IR_node)); 	
-                sw_temp->instr_type = SW;
-                sw_temp->ir_type = IR_STORE;
-                sw_temp->instruction = "sw";
-                sw_temp->rs1.name = get_id_from_register(rp, holding_reg);
-                remove_id_from_register(rp, holding_reg, sw_temp->rs1.name);
-                sw_temp->sf_offset = get_sf_offset(table, sw_temp->rs1.name)*(-1);
-                sw_temp->rd.reg = s0;
-                sw_temp->rs1.reg = holding_reg;
+            // IR_node* sw_temp;
+            // if(get_register_count(rp, holding_reg) != 0)
+            // {             
+            //     sw_temp = (IR_node*)malloc(sizeof(IR_node)); 	
+            //     sw_temp->instr_type = SW;
+            //     sw_temp->ir_type = IR_STORE;
+            //     sw_temp->instruction = "sw";
+            //     sw_temp->rs1.name = get_id_from_register(rp, holding_reg);
+            //     remove_id_from_register(rp, holding_reg, sw_temp->rs1.name);
+            //     sw_temp->sf_offset = get_sf_offset(table, sw_temp->rs1.name)*(-1);
+            //     sw_temp->rd.reg = s0;
+            //     sw_temp->rs1.reg = holding_reg;
             
-                sw_temp->next = *head;
-                sw_temp->prev = NULL;
-                (*head)->prev = sw_temp;
-                //*head = sw_temp;    
+            //     sw_temp->next = *head;
+            //     sw_temp->prev = NULL;
+            //     (*head)->prev = sw_temp;
+            //     //*head = sw_temp;    
 
-                node->prev = NULL;
-                node->next = sw_temp;
-                sw_temp->prev = node;
+            //     node->prev = NULL;
+            //     node->next = sw_temp;
+            //     sw_temp->prev = node;
+            // }
+            while(get_register_count(rp, holding_reg) != 0)
+            {  
+                head = store_from_register(rp, table, &head, holding_reg); 
             }
+            node->next = head;
         }
         
         node->rd.reg = holding_reg; 
@@ -1759,6 +1774,7 @@ IR_node* get_reg_single_ID(register_pool *rp, ht *table, ASTnode *root, IR_node 
                     (*head)->prev = sw_temp;
                     //*head = sw_temp;    
                 }
+               
 
                 /* Issue a load word instruction because operand is ID */
                         
@@ -1941,28 +1957,33 @@ IR_register get_holding_reg(register_pool *rp, ht *table, IR_node **node, IR_nod
         /* WARNING: VERY GREEDY! */         
         holding_reg = min_count_register_without_REGs(rp, without_reg1, without_reg2);
 
-        IR_node* sw_temp;
-        if(get_register_count(rp, holding_reg) != 0)
-        {             
-            sw_temp = (IR_node*)malloc(sizeof(IR_node)); 	
-            sw_temp->instr_type = SW;
-            sw_temp->ir_type = IR_STORE;
-            sw_temp->instruction = "sw";
-            sw_temp->rs1.name = get_id_from_register(rp, holding_reg);
-            remove_id_from_register(rp, holding_reg, sw_temp->rs1.name);
-            sw_temp->sf_offset = get_sf_offset(table, sw_temp->rs1.name)*(-1);
-            sw_temp->rd.reg = s0;
-            sw_temp->rs1.reg = holding_reg;
+        // IR_node* sw_temp;
+        // if(get_register_count(rp, holding_reg) != 0)
+        // {             
+        //     sw_temp = (IR_node*)malloc(sizeof(IR_node)); 	
+        //     sw_temp->instr_type = SW;
+        //     sw_temp->ir_type = IR_STORE;
+        //     sw_temp->instruction = "sw";
+        //     sw_temp->rs1.name = get_id_from_register(rp, holding_reg);
+        //     remove_id_from_register(rp, holding_reg, sw_temp->rs1.name);
+        //     sw_temp->sf_offset = get_sf_offset(table, sw_temp->rs1.name)*(-1);
+        //     sw_temp->rd.reg = s0;
+        //     sw_temp->rs1.reg = holding_reg;
         
-            sw_temp->next = *head;
-            sw_temp->prev = NULL;
-            (*head)->prev = sw_temp;
-            //*head = sw_temp;    
+        //     sw_temp->next = *head;
+        //     sw_temp->prev = NULL;
+        //     (*head)->prev = sw_temp;
+        //     //*head = sw_temp;    
 
-            (*node)->prev = NULL;
-            (*node)->next = sw_temp;
-            sw_temp->prev = (*node);
+        //     (*node)->prev = NULL;
+        //     (*node)->next = sw_temp;
+        //     sw_temp->prev = (*node);
+        // }
+        while(get_register_count(rp, holding_reg) != 0)
+        {  
+            head = store_from_register(rp, table, &head, holding_reg); 
         }
+        (*node)->next = head;
 
         return holding_reg;
     }
@@ -2156,8 +2177,6 @@ void load_array_element(register_pool *rp, ht *table, ASTnode *root, IR_node **n
      * Later we simply calculate abolute address of element based on array's base address and relative offset in bytes
     */
 
-    
-
     IR_node *slli_insert = (IR_node*)malloc(sizeof(IR_node));
     slli_insert->ir_type = IR_OP_IMM;
     slli_insert->instr_type = SLLI;
@@ -2226,7 +2245,17 @@ void load_array_element(register_pool *rp, ht *table, ASTnode *root, IR_node **n
     calc_address->next = addi_insert;
     addi_insert->prev = calc_address;
 
-    (*node) = calc_address;
+    IR_node *srli_node = (IR_node*)malloc(sizeof(IR_node));
+    srli_node->ir_type = IR_OP_IMM;
+    srli_node->instr_type = SRLI;
+    srli_node->instruction = "srli";
+    srli_node->rd.reg = slli_insert->rd.reg;
+    srli_node->rs1.reg = slli_insert->rd.reg;
+    srli_node->rs2.int_constant = 2;
+    srli_node->next = calc_address;
+    calc_address->prev = srli_node;
+
+    (*node) = srli_node;
 }
 
 
@@ -2237,9 +2266,64 @@ IR_node* store_array_element(register_pool *rp, ht *table, ASTnode *root, IR_nod
     store_node->ir_type = IR_STORE;
     store_node->instr_type = SW;
     store_node->instruction = "sw";
-    store_node->rd.reg = head->rd.reg;
+    store_node->rd.reg = head->next->rd.reg;
     store_node->sf_offset = 0;
     store_node->rs1.reg = node->rd.reg;
 
     return store_node;
+}
+
+
+IR_node* store_everything(register_pool *rp, ht *table, IR_node **head)
+{
+    IR_node* temp = head;
+
+    for(int i = t1; i <= t2; i++)
+    {
+        while(get_register_count(rp, i) != 0)
+        {  
+            temp = store_from_register(rp, table, temp, i); 
+        }
+    }
+
+    for(int i = t3; i <= t6; i++)
+    {
+        while(get_register_count(rp, i) != 0)
+        {  
+            temp = store_from_register(rp, table, temp, i); 
+        }
+    }
+
+    return temp;
+}
+
+IR_node* store_from_register(register_pool *rp, ht *table, IR_node **head, IR_register reg)
+{
+    IR_node* sw_temp = (IR_node*)malloc(sizeof(IR_node));
+    if(get_register_count(rp, reg) != 0)
+    {             
+        sw_temp->instr_type = SW;
+        sw_temp->ir_type = IR_STORE;
+        sw_temp->instruction = "sw";
+        sw_temp->rs1.name = get_id_from_register(rp, reg);
+        remove_id_from_register(rp, reg, sw_temp->rs1.name);
+        sw_temp->sf_offset = get_sf_offset(table, sw_temp->rs1.name)*(-1);
+        sw_temp->rd.reg = s0;
+        sw_temp->rs1.reg = reg;
+    
+        sw_temp->next = *head;
+        sw_temp->prev = NULL;
+        (*head)->prev = sw_temp;
+    }
+
+    return sw_temp;
+}
+
+void store_19(register_pool *rp, ht *table)
+{
+    while(find_ID(rp, "19"))
+    {
+        remove_id_from_register(rp, find_ID(rp, "19"), "19");
+    }
+
 }
