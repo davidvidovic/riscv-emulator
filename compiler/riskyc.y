@@ -7,6 +7,7 @@
     #include "symboltable.h"
     #include "ast.h"
 
+	extern ht* HEAD_table;
     extern int lineno;
     extern ASTnode *root;
     int main_counter = 0;
@@ -14,6 +15,9 @@
     int multiline_declaration_cnt = 0;
 	ASTnode* set_right_init_to_null(ASTnode *root);
 	int calculate_sp_offset(int sp_offset, id_type type, int num_of_elements);
+
+	extern ht** ST_vector;
+	extern int ST_cnt;
 
     void yyerror(const char *s);
     int yylex();
@@ -101,7 +105,7 @@
 %%
 
 primary_expression
-	: IDENTIFIER {$$ = check_declaration($1.name);} 
+	: IDENTIFIER {$$ = check_declaration($1.name, HEAD_table);} 
 	| HEX_CONSTANT {$$ = new_ASTnode_INT($1);}
   	| OCT_CONSTANT {$$ = new_ASTnode_INT($1);}
   	| DEC_CONSTANT {$$ = new_ASTnode_INT($1);}
@@ -328,19 +332,19 @@ declaration
 		{
 			$$->type = $1;
 			sp_offset = calculate_sp_offset(sp_offset, $1, $2->element_number);
-			ht_set_type_sp_offset($$->name, $1, sp_offset);
+			ht_set_type_sp_offset($$->name, $1, sp_offset, HEAD_table);
 		}
 		else if($$->nodetype == EXPRESSION_NODE)
 		{
 			$$->left->left->type = $1;
 			sp_offset = calculate_sp_offset(sp_offset, $1, $2->element_number);
-			ht_set_type_sp_offset($$->left->left->name, $1, sp_offset);
+			ht_set_type_sp_offset($$->left->left->name, $1, sp_offset, HEAD_table);
 		}
 		else if($$->nodetype == POINTER_NODE)
 		{
 			$$->type = $1;
 			sp_offset = calculate_sp_offset(sp_offset, TYPE_POINTER, $2->element_number);
-			ht_set_type_sp_offset($$->name, $1, sp_offset);
+			ht_set_type_sp_offset($$->name, $1, sp_offset, HEAD_table);
 		}
 		
 		/* 
@@ -360,19 +364,19 @@ declaration
 				{
 					temp->type = $1;
 					sp_offset = calculate_sp_offset(sp_offset, $1, $2->element_number);
-					ht_set_type_sp_offset(temp->name, $1, sp_offset);
+					ht_set_type_sp_offset(temp->name, $1, sp_offset, HEAD_table);
 				}
 				else if(temp->nodetype == EXPRESSION_NODE)
 				{
 					temp->left->left->type = $1;
 					sp_offset = calculate_sp_offset(sp_offset, $1, $2->element_number);
-					ht_set_type_sp_offset(temp->left->left->name, $1, sp_offset);
+					ht_set_type_sp_offset(temp->left->left->name, $1, sp_offset, HEAD_table);
 				}
 				else if($$->nodetype == POINTER_NODE)
 				{
 					temp->type = $1;
 					sp_offset = calculate_sp_offset(sp_offset, TYPE_POINTER, $2->element_number);
-					ht_set_type_sp_offset(temp->name, $1, sp_offset);
+					ht_set_type_sp_offset(temp->name, $1, sp_offset, HEAD_table);
 				}
 				temp = temp->right;
 			}
@@ -503,7 +507,7 @@ declarator
 direct_declarator
 	: IDENTIFIER {
 		$$ = new_ASTnode_ID($1.name, NO_TYPE, NULL, NULL);
-		declare($1.name, "NULL", lineno, $$);
+		declare($1.name, "NULL", lineno, $$, HEAD_table);
 		multiline_declaration_cnt++;
 	}
 	| '(' declarator ')' {$$ = $2;}
@@ -818,12 +822,29 @@ jump_statement
 	;
 
 translation_unit
-	: external_declaration {$$ = $1; root = $$;}
-	| translation_unit external_declaration {}
+	: external_declaration {
+		$$ = $1; 
+		root = $$;
+		ST_vector[ST_cnt-1]->sum_offset = sp_offset;
+		sp_offset = 0;
+		ST_vector = realloc(ST_vector, sizeof(ht) * ++ST_cnt);
+		HEAD_table = ht_create();
+		ST_vector[ST_cnt-1] = HEAD_table;
+	}
+	| translation_unit external_declaration {
+		$$ = $2; 
+		$$->right = $1; 
+		root = $$;
+		ST_vector[ST_cnt-1]->sum_offset = sp_offset;
+		sp_offset = 0;
+		ST_vector = realloc(ST_vector, sizeof(ht) * ++ST_cnt);
+		HEAD_table = ht_create();
+		ST_vector[ST_cnt-1] = HEAD_table;
+	}
 	;
 
 external_declaration
-	: function_definition {$$ = $1;}
+	: function_definition {$$ = new_ASTnode_FUNCTION_HEAD($1, NULL, lineno);}
 	| declaration {$$ = $1;}
 	;
 

@@ -6,7 +6,9 @@
 
 int register_counter = 1;
 int label_counter = 1;
-extern int sp_offset;
+int ST_pointer = 0;
+
+extern ht** ST_vector;
 
 IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack, Stack *break_stack, Stack *continue_stack, Stack *return_stack, Stack *array_element_stack, register_pool *rp, ht* table)
 {
@@ -52,6 +54,12 @@ IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondar
 
 
     /* Normal execution */
+    if(root->nodetype == FUNCTION_HEAD_NODE)
+    {
+        table = ST_vector[ST_pointer++];
+    }
+
+
     if(root->left != NULL && root->nodetype != FUNCTION_NODE) // watch out when added parameters to non-main function
     {
         if(this_node == NULL)
@@ -85,7 +93,7 @@ IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondar
                 help->rd.label = ls;
         }
 
-        return clean_up(this_node, root->line);
+        return clean_up(this_node, root->line, table->sum_offset);
     }
 
     if(root->nodetype == IF_NODE
@@ -1032,8 +1040,8 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
             stack_allocation_node->rs1.reg = sp;
 
             // stack pointer is always 16-byte aligned
-            sp_offset += sp_offset % 16;
-            stack_allocation_node->rs2.int_constant = sp_offset*(-1);
+            table->sum_offset += table->sum_offset % 16;
+            stack_allocation_node->rs2.int_constant = table->sum_offset*(-1);
 
             node->prev = stack_allocation_node;
             stack_allocation_node->next = node;
@@ -1045,7 +1053,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
             save_ra->instr_type = SD;
             save_ra->instruction = "sd";
             save_ra->rs1.reg = ra;
-            save_ra->sf_offset = (sp_offset - 8);
+            save_ra->sf_offset = (table->sum_offset - 8);
             save_ra->rd.reg = sp;
 
             stack_allocation_node->prev = save_ra;
@@ -1058,7 +1066,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
             save_s0->instr_type = SD;
             save_s0->instruction = "sd";
             save_s0->rs1.reg = s0;
-            save_s0->sf_offset = (sp_offset - 16);
+            save_s0->sf_offset = (table->sum_offset - 16);
             save_s0->rd.reg = sp;
 
             save_ra->prev = save_s0;
@@ -1072,7 +1080,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
             allocate_s0->instruction = "addi";
             allocate_s0->rd.reg = s0;
             allocate_s0->rs1.reg = sp;
-            allocate_s0->rs2.int_constant = sp_offset;
+            allocate_s0->rs2.int_constant = table->sum_offset;
 
             save_s0->prev = allocate_s0;
             allocate_s0->next = save_s0;
@@ -1995,7 +2003,7 @@ IR_register get_holding_reg(register_pool *rp, ht *table, IR_node **node, IR_nod
 
 
 
-IR_node* clean_up(IR_node* head, int line)
+IR_node* clean_up(IR_node* head, int line, int sp_offset)
 {
     /* By C convention, main function will always return int and will always return 0 on clean exit */
     // IR_node *load_zero = (IR_node*)malloc(sizeof(IR_node));

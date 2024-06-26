@@ -44,6 +44,7 @@ struct ht {
     ht_entry* entries;
     size_t capacity;
     size_t length;
+    int sum_offset;
 };
 
 // Symboltable struct that will be implemented as a hash table

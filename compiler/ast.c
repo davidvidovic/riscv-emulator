@@ -157,6 +157,16 @@ ASTnode* new_ASTnode_FUNCTION(ASTnode* left, ASTnode* right, int line)
     return (n);
 }
 
+ASTnode* new_ASTnode_FUNCTION_HEAD(ASTnode* left, ASTnode* right, int line)
+{
+    ASTnode *n = mkASTnode(left, right);
+    n->nodetype = FUNCTION_HEAD_NODE;
+    n->name = left->name;
+    n->line = line;
+
+    return (n);
+}
+
 ASTnode* new_ASTnode_BREAK(ASTnode* left, ASTnode* right, int line)
 {
     ASTnode *n = mkASTnode(left, right);
@@ -213,6 +223,13 @@ ASTnode* new_ASTnode_ARRAY_ELEMENT(ASTnode* left, ASTnode* right, int line)
     n->nodetype = ARRAY_ELEMENT_NODE;
     n->line = line;
     n->name = left->name;
+    return (n);
+}
+
+ASTnode* new_ASTnode_PROGRAM(ASTnode* left, ASTnode* right)
+{
+    ASTnode *n = mkASTnode(left, right);
+    n->nodetype = PROGRAM_NODE;
     return (n);
 }
 
@@ -327,6 +344,10 @@ void print_value(ASTnode* n)
 
     case ARRAY_ELEMENT_NODE:
         printf("Node ARRAY ELEMENT\n");
+        break;
+
+    case FUNCTION_HEAD_NODE:
+        printf("Node FUNCTION_HEAD_NODE\n");
         break;
     }
 }

@@ -1,3 +1,15 @@
+int foo()
+{
+	int b, a = 19;
+	return a;
+}
+
+int foo1()
+{
+	int a = 1919;
+	return a;
+}
+
 int main()
 {
 	int a,b,c;

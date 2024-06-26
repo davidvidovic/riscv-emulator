@@ -25,7 +25,9 @@ typedef enum node_type {
     DEFAULT_NODE,
     RETURN_NODE,
     POINTER_NODE,
-    ARRAY_ELEMENT_NODE
+    ARRAY_ELEMENT_NODE,
+    PROGRAM_NODE,
+    FUNCTION_HEAD_NODE
 } node_type;
 
 typedef enum operation_type {
@@ -138,6 +140,8 @@ ASTnode* new_ASTnode_DEFAULT(ASTnode* left, ASTnode* right);
 ASTnode* new_ASTnode_CASE(ASTnode* left, ASTnode* right, ASTnode *const_exp, int lineno);
 ASTnode* new_ASTnode_RETURN(ASTnode* left, ASTnode* right, int line);
 ASTnode* new_ASTnode_ARRAY_ELEMENT(ASTnode* left, ASTnode* right, int line);
+ASTnode* new_ASTnode_FUNCTION_HEAD(ASTnode* left, ASTnode* right, int line);
+ASTnode* new_ASTnode_PROGRAM(ASTnode* left, ASTnode* right);
 
 // Helper functions
 void print_value(ASTnode* n);

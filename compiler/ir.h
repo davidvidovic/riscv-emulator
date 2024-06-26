@@ -65,7 +65,7 @@ IR_node* get_reg_single_ID(register_pool *rp, ht *table, ASTnode *root, IR_node 
 IR_node* get_OP_node(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_node **head);
 IR_node* create_BEQ_node(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_node **head);
 IR_node* create_BNE_node(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_node **head);
-IR_node* clean_up(IR_node* head, int line);
+IR_node* clean_up(IR_node* head, int line, int);
 int get_label_address(char* label, IR_node *IR_head, IR_node *IR_tail);
 void load_imm(ASTnode* root, IR_node** node, IR_node** head);
 IR_node* store_pointer(register_pool *rp, ht *table , IR_node **node, ASTnode *pointer_node);

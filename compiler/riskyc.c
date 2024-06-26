@@ -3,18 +3,15 @@
 #include <stdlib.h>
 #include "riskyc.h"
 #include "y.tab.h"
-#include "symboltable.h"
-#include "ir.h"
-#include "ast.h"
-#include "control_flow.h"
-#include "register_allocation.h"
 
 extern int lineno;
 extern FILE *yyin;
 extern char *yytext;
-ht* table;
+ht* HEAD_table;
 ASTnode *root;
 int sp_offset;
+ht** ST_vector;
+int ST_cnt;
 
 void exit_nomem(void) {
     fprintf(stderr, "out of memory\n");
@@ -22,7 +19,7 @@ void exit_nomem(void) {
 }
 
 
-int declare(const char* name, const char* datatype, int line, ASTnode* node)
+int declare(const char* name, const char* datatype, int line, ASTnode* node, ht* table)
 {
   if(ht_get_key(table, name) != NULL) 
   {
@@ -57,7 +54,7 @@ int declare(const char* name, const char* datatype, int line, ASTnode* node)
   return 0;
 }
 
-ASTnode* check_declaration(const char* name)
+ASTnode* check_declaration(const char* name, ht *table)
 {
   if(ht_get_key(table, name) == NULL) 
   {
@@ -75,7 +72,7 @@ ASTnode* check_declaration(const char* name)
 }
 
 
-void ht_set_type_sp_offset(const char* key, id_type type, int sp_offset)
+void ht_set_type_sp_offset(const char* key, id_type type, int sp_offset, ht* table)
 {
   ht_entry *temp = get_ht_entry(table, key);
   if(temp == NULL)
@@ -203,53 +200,27 @@ void freeAST(ASTnode *root)
 
 int main()
 {
-    table = ht_create();
-    if (table == NULL) 
+    HEAD_table = ht_create();
+    if (HEAD_table == NULL) 
     {
         exit_nomem();
     }
+
+    ST_cnt = 1;
+    ST_vector = realloc(ST_vector, sizeof(ht));
+    ST_vector[0] = HEAD_table;
 
     root = mkASTnode(NULL, NULL);
 
     sp_offset = 0;
     yyin = fopen("../input.c", "r");
     yyparse();
-
-    for(int i = 0; i < table->capacity; i++) 
-    { 
-        if(table->entries[i].key != NULL) 
-        {
-            //printf("index %d:\t%s, ", i, table->entries[i].key);
-
-            int* adr = table->entries[i].value;
-            int off = 0;
-            while(*adr != NULL) 
-            {
-            //printf("%c", (char)*adr);
-            adr = table->entries[i].value + (++off);
-            }
-
-            //printf("\tat line %d", table->entries[i].line);
-            //printf("\n");
-        } 
-        else
-        {
-            //printf("Index %d: Empty\n", i);
-        } 
-    }
     fclose(yyin);
-
     
-    // Walk the AST
-    
-    /* Small bug, ID stays on the right if no init declarations are made */ 
-    //if(root->right->right != EXPRESSION_NODE)
-     // root->right->right = NULL;
-    
+    /* Walk the AST */
     walkAST(root, depth);
-
-
     
+    /* Code generation */
     IR_node *IR_head = create_IR();
     Stack stack;
     Stack secondary_stack;
@@ -265,7 +236,7 @@ int main()
     init_stack(&array_element_stack);
     register_pool *rp = init_register_pool();
   
-    IR_node *IR_tail = populate_IR(root, IR_head, &stack, &secondary_stack, &break_stack, &continue_stack, &return_stack, &array_element_stack, rp, table);
+    IR_node *IR_tail = populate_IR(root, IR_head, &stack, &secondary_stack, &break_stack, &continue_stack, &return_stack, &array_element_stack, rp, ST_vector[0]);
 
     print_IR(IR_head, IR_tail);
     
@@ -281,7 +252,7 @@ int main()
 
     assemble_binary_output(IR_head, IR_tail);
 
-    ht_destroy(table);
+    ht_destroy(HEAD_table);
     freeAST(root);
 
     return 0;
