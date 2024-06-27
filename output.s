@@ -22,35 +22,50 @@
 0054:		sd x8,-8(x2)
 0058:		addi x8,x2,8
 005c:		addi x5,x10,0
-0060:		addi x6,x0,1919
-0064:		addi x5,x5,1919
-0068:		addi x15,x5,0
-006c:		jal x0,.L2
+0060:		addi x6,x0,100
+0064:		addi x5,x5,100
+0068:		addi x6,x0,1000
+006c:		bge x6,x5,.L3
 0070:	.L2:
-0074:		ld x1,0(x2)
-0078:		ld x8,-8(x2)
-007c:		addi x2,x2,8
-0080:		jalr x0,0(x1)
-0084:	.main:
-0088:		addi x2,x2,-64
-008c:		sd x1,56(x2)
-0090:		sd x8,48(x2)
-0094:		addi x8,x2,64
-0098:		addi x5,x0,2
-009c:		addi x6,x0,99
-00a0:		addi x10,x6,0
-00a4:		addi x11,x5,0
-00a8:		addi x7,x0,19
-00ac:		addi x12,x7,0
-00b0:		call foo
-00b4:		lw x5,-8(x8)
-00b8:		addi x13,x5,0
-00bc:		call foo1
-00c0:		addi x5,x0,9
-00c4:		addi x15,x0,0
-00c8:		jal x0,.L3
-00cc:	.L3:
-00d0:		ld x1,56(x2)
-00d4:		ld x8,48(x2)
-00d8:		addi x2,x2,64
-00dc:		jalr x0,0(x1)
+0074:		addi x15,x5,0
+0078:		jal x0,.L4
+007c:	.L3:
+0080:		addi x10,x5,0
+0084:		sw x5,-4(x8)
+0088:		sw x5,-4(x8)
+008c:		jal x1,.foo1
+0090:	.L4:
+0094:		ld x1,0(x2)
+0098:		ld x8,-8(x2)
+009c:		addi x2,x2,8
+00a0:		jalr x0,0(x1)
+00a4:	.main:
+00a8:		addi x2,x2,-64
+00ac:		sd x1,56(x2)
+00b0:		sd x8,48(x2)
+00b4:		addi x8,x2,64
+00b8:		addi x5,x0,2
+00bc:		addi x6,x0,99
+00c0:		addi x10,x6,0
+00c4:		addi x11,x5,0
+00c8:		addi x7,x0,19
+00cc:		addi x12,x7,0
+00d0:		sw x5,-8(x8)
+00d4:		sw x6,-12(x8)
+00d8:		jal x1,.foo
+00dc:		addi x5,x10,0
+00e0:		lw x6,-12(x8)
+00e4:		addi x10,x6,0
+00e8:		sw x5,-4(x8)
+00ec:		sw x6,-12(x8)
+00f0:		jal x1,.foo1
+00f4:		addi x5,x0,199
+00f8:		sub x5,x5,x10
+00fc:		addi x6,x0,9
+0100:		addi x15,x0,0
+0104:		jal x0,.L5
+0108:	.L5:
+010c:		ld x1,56(x2)
+0110:		ld x8,48(x2)
+0114:		addi x2,x2,64
+0118:		jalr x0,0(x1)

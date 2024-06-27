@@ -7,8 +7,13 @@ int foo(int g, int par1, int par2)
 
 int foo1(int a)
 {
-	a = a + 1919;
-	return a;
+	a = a + 100;
+	if(a > 1000)
+	{
+		return a;
+	}
+
+	foo1(a);
 }
 
 int main()
@@ -19,8 +24,8 @@ int main()
 	b = 2;
 	a = 99;
 
-	foo(a, b, 19);
-	foo1(b);
+	c = foo(a, b, 19);
+	b = 199 - foo1(a);
 
 	a = 9;
 	return 0;

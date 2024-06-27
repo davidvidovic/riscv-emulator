@@ -73,7 +73,6 @@ IR_register get_holding_reg(register_pool *rp, ht *table, IR_node **node, IR_nod
 void load_array_element(register_pool *rp, ht *table, ASTnode *root, IR_node **node, IR_node **head);
 IR_node* store_array_element(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_node *head);
 IR_node* store_from_register(register_pool *rp, ht *table, IR_node **head, IR_register reg);
-void store_19(register_pool *rp, ht *table);
 void store_argument(register_pool *rp, ht *table, IR_node **node, IR_node **head, IR_register holding_reg);
 IR_node* load_parameter(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_node **head);
 

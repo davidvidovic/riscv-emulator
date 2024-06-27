@@ -193,7 +193,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     * If not, repeat algoritham for spilling. When register is choosen, store instructions must be issued for all live IDs inside it.
                      */
 
-                    store_19(rp, table);
+                    store_19(rp);
        
                     if(root->left->nodetype == ARRAY_ELEMENT_NODE)
                     {
@@ -220,6 +220,19 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                         node->prev = temp;
                         return temp;
                     }
+
+                    if(root->right->nodetype == FUNCTION_CALL_NODE)
+                    {
+                        node = get_reg(rp, table, root, node, &head);
+                        node->ir_type = IR_OP_IMM;
+                        node->instr_type = ADDI;
+                        node->instruction = "addi";
+                        node->rs1.reg = a0;
+                        node->rs2.int_constant = 0;
+                        return node;
+                    }
+
+
 
                     holding_reg = find_ID(rp, root->left->name);
 
@@ -330,6 +343,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                             update_line_number_IR(&head);
                             return head;
                         }
+
                         
                 	    /* Assign new register to hold resulting value of past OPERATION */
                         
@@ -451,6 +465,12 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                         node->instruction = "addi";
 
                         node->rs2.int_constant = root->right->value.value_INT; // INT only
+
+                        if(root->left->nodetype == FUNCTION_CALL_NODE)
+                        {
+                            node->rs1.reg = a0;
+                        }
+                
                         return node;
                         // Delete load const IR_node, two nodes ago
                         //node->next->next->next->prev = node->next;
@@ -468,13 +488,28 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                             node->rs1.reg = node->rs2.reg;
                         }
 
-                        node->rs2.int_constant = root->left->value.value_INT; // INT only    
+                        node->rs2.int_constant = root->left->value.value_INT; // INT only 
+
+                        
+                        if(root->right->nodetype == FUNCTION_CALL_NODE)
+                        {
+                            node->rs1.reg = a0;
+                        }   
                     }
                     else
                     {
                         node->ir_type = IR_OP;
                         node->instr_type = ADD;
                         node->instruction = "add";
+
+                        if(root->left->nodetype == FUNCTION_CALL_NODE)
+                        {
+                            node->rs1.reg = a0;
+                        }
+                        if(root->right->nodetype == FUNCTION_CALL_NODE)
+                        {
+                            node->rs2.reg = a0;
+                        }
                     }
                     return node;
                 break;
@@ -485,6 +520,15 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     node->instr_type = SUB;
                     node->ir_type = IR_OP;
                     node->instruction = "sub";
+
+                    if(root->left->nodetype == FUNCTION_CALL_NODE)
+                    {
+                        node->rs1.reg = a0;
+                    }
+                    if(root->right->nodetype == FUNCTION_CALL_NODE)
+                    {
+                        node->rs2.reg = a0;
+                    }
                 break;
 
                 /*
@@ -1244,11 +1288,37 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
         break;
 
         case FUNCTION_CALL_NODE:
-            node->ir_type = IR_CALL;
-            node->instruction = "call";
-            node->rd.name = root->left->name;
+            /* Save everything from register on stack */
+            store_19(rp);
+
+            IR_node *temp;
+
+            for(int i = t0; i <= t2; i++)
+            {
+                while(get_register_count(rp, i) != 0)
+                {
+                    temp = store_from_register(rp, table, &head, i);
+                    head = temp;
+                }
+            }
+            for(int i = t3; i <= t6; i++)
+            {
+                while(get_register_count(rp, i) != 0)
+                {
+                    temp = store_from_register(rp, table, &head, i);
+                    head = temp;
+                }
+            }
+            node->next = head;
+            head->prev = node;
+
+            node->ir_type = IR_JUMP;
+            node->instr_type = JAL;
+            node->instruction = "jal";
+            node->rd.reg = ra;
+            node->rs1.label = root->left->name;
             
-            store_19(rp, table);
+            
             remove_register_allocation_ALL(rp);
         break;
 
@@ -1912,7 +1982,7 @@ IR_node* get_OP_node(register_pool *rp, ht *table, ASTnode *root, IR_node *node,
 {
     IR_node *temp_left = (IR_node*)malloc(sizeof(IR_node));
     IR_node *temp_right = (IR_node*)malloc(sizeof(IR_node));
-    if((root->left != NULL && root->left->nodetype == ID_NODE) || (root->right != NULL && root->right->nodetype == ID_NODE))
+    if(1)
     {     
         if(root->left != NULL && root->left->nodetype == CONSTANT_NODE)
         {     
@@ -1924,7 +1994,7 @@ IR_node* get_OP_node(register_pool *rp, ht *table, ASTnode *root, IR_node *node,
             (*head)->prev = temp_left;
             
         }
-        else if(root->right != NULL && root->right->nodetype == CONSTANT_NODE)
+        if(root->right != NULL && root->right->nodetype == CONSTANT_NODE)
         {
             
             temp_right = get_reg(rp, table, root->right, temp_right, head);
@@ -2381,14 +2451,7 @@ IR_node* store_from_register(register_pool *rp, ht *table, IR_node **head, IR_re
     return sw_temp;
 }
 
-void store_19(register_pool *rp, ht *table)
-{
-    while(find_ID(rp, "19"))
-    {
-        remove_id_from_register(rp, find_ID(rp, "19"), "19");
-    }
 
-}
 
 void store_argument(register_pool *rp, ht *table, IR_node **node, IR_node **head, IR_register holding_reg)
 {

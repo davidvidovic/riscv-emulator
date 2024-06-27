@@ -37,5 +37,6 @@ char* get_id_from_register(register_pool* rp, IR_register reg);
 /* a0-a7 regs */
 IR_register find_empty_argument_register(register_pool *rp);
 IR_register find_non_empty_argument_register(register_pool *rp);
+void store_19(register_pool *rp);
 
 #endif

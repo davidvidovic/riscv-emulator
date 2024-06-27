@@ -115,7 +115,12 @@ void type_check(ASTnode *op1, ASTnode *op2)
   {
     /* Constant node */
     op1_type = op1->type; 
-    sprintf(op1_name, "%d", op1->value.value_INT);
+    //sprintf(op1_name, "%d", op1->value.value_INT);
+  }
+  else if(op1->nodetype == FUNCTION_CALL_NODE)
+  {
+    op1_type = op1->left->type; 
+    op1_name = op1->left->name;
   }
   else
   {
@@ -138,7 +143,12 @@ void type_check(ASTnode *op1, ASTnode *op2)
   {
     /* Constant node */
     op2_type = op2->type; 
-    sprintf(op2_name, "%d", op2->value.value_INT);
+    //sprintf(op2_name, "%d", op2->value.value_INT);
+  }
+  else if(op2->nodetype == FUNCTION_CALL_NODE)
+  {
+    op2_type = op2->left->type; 
+    op2_name = op2->left->name;
   }
   else
   {

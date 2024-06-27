@@ -116,6 +116,42 @@ IR_register find_ID(register_pool *rp, const char* id)
     return 0;
 }
 
+void store_19(register_pool *rp)
+{
+    // For now I work only with t0-t6 registers
+    for(int i = t0; i <= t2; i++)
+    {
+        for(int j = 0; j < rp->count[i]; j++)
+        {
+            if(strcmp("19", rp->registers[i][j]) == 0)
+            {
+                remove_id_from_register(rp, i, "19");
+            }
+        }
+    }
+    for(int i = t3; i <= t6; i++)
+    {
+        for(int j = 0; j < rp->count[i]; j++)
+        {
+            if(strcmp("19", rp->registers[i][j]) == 0)
+            {
+                remove_id_from_register(rp, i, "19");
+            }
+        }
+    }
+    for(int i = a0; i <= a7; i++)
+    {
+        for(int j = 0; j < rp->count[i]; j++)
+        {
+            if(strcmp("19", rp->registers[i][j]) == 0)
+            {
+                remove_id_from_register(rp, i, "19");
+            }
+        }
+    }
+
+}
+
 
 IR_register find_empty_register(register_pool *rp)
 {
