@@ -22,6 +22,7 @@ void add_id_to_register(register_pool *rp, IR_register reg, char *id);
 void print_register_allocation(register_pool *rp, IR_register reg);
 void print_register_allocation_ALL(register_pool *rp);
 void remove_id_from_register(register_pool *rp, IR_register reg, char *id);
+void remove_register_allocation_ALL(register_pool *rp);
 IR_register find_ID(register_pool *rp, const char* id);
 IR_register find_empty_register(register_pool *rp);
 IR_register find_empty_register_without_REGs(register_pool *rp, IR_register reg1, IR_register reg2);
@@ -33,5 +34,8 @@ int ht_find_id_elsewhere(register_pool *rp, ht* table, const char* id);
 int get_register_count(register_pool* rp, IR_register reg);
 char* get_id_from_register(register_pool* rp, IR_register reg);
 
+/* a0-a7 regs */
+IR_register find_empty_argument_register(register_pool *rp);
+IR_register find_non_empty_argument_register(register_pool *rp);
 
 #endif

@@ -226,10 +226,27 @@ ASTnode* new_ASTnode_ARRAY_ELEMENT(ASTnode* left, ASTnode* right, int line)
     return (n);
 }
 
-ASTnode* new_ASTnode_PROGRAM(ASTnode* left, ASTnode* right)
+ASTnode* new_ASTnode_FUNCTION_CALL_NODE(ASTnode* left, ASTnode* right, int line)
 {
     ASTnode *n = mkASTnode(left, right);
-    n->nodetype = PROGRAM_NODE;
+    n->nodetype = FUNCTION_CALL_NODE;
+    n->line = line;
+    return (n);
+}
+
+ASTnode* new_ASTnode_ARGUMENT_NODE(ASTnode* left, ASTnode* right, int line)
+{
+    ASTnode *n = mkASTnode(left, right);
+    n->nodetype = ARGUMENT_NODE;
+    n->line = line;
+    return (n);
+}
+
+ASTnode* new_ASTnode_PARAMETER_NODE(ASTnode* left, ASTnode* right, int line)
+{
+    ASTnode *n = mkASTnode(left, right);
+    n->nodetype = PARAMETER_NODE;
+    n->line = line;
     return (n);
 }
 
@@ -348,6 +365,18 @@ void print_value(ASTnode* n)
 
     case FUNCTION_HEAD_NODE:
         printf("Node FUNCTION_HEAD_NODE\n");
+        break;
+
+    case FUNCTION_CALL_NODE:
+        printf("Node FUNCTION_CALL_NODE\n");
+        break;
+
+    case ARGUMENT_NODE:
+        printf("Node ARGUMENT_NODE\n");
+        break;
+
+    case PARAMETER_NODE:
+        printf("Node PARAMETER_NODE\n");
         break;
     }
 }

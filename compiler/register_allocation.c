@@ -37,6 +37,26 @@ void remove_id_from_register(register_pool *rp, IR_register reg, char *id)
     printf("Element %s was not found in register %d.\n", id, reg);
 }
 
+void remove_register_allocation_ALL(register_pool *rp)
+{
+    for(int i = t0; i <= t2; i++)
+    {
+        while(get_register_count(rp, i) != 0)
+        {
+            char* id = get_id_from_register(rp, i);
+            remove_id_from_register(rp, i, id);
+        }
+    }
+    for(int i = t3; i <= t6; i++)
+    {
+        while(get_register_count(rp, i) != 0)
+        {
+            char* id = get_id_from_register(rp, i);
+            remove_id_from_register(rp, i, id);
+        }
+    }
+}
+
 
 void print_register_allocation(register_pool *rp, IR_register reg)
 {
@@ -284,3 +304,24 @@ char* get_id_from_register(register_pool* rp, IR_register reg)
         return rp->registers[reg][0];
 }
 
+IR_register find_empty_argument_register(register_pool *rp)
+{
+    for(int i = a0; i <= a7; i++)
+    {
+        if(rp->count[i] == 0)
+            return i;
+    }
+
+    return 0;
+}
+
+IR_register find_non_empty_argument_register(register_pool *rp)
+{
+    for(int i = a0; i <= a7; i++)
+    {
+        if(rp->count[i] != 0)
+            return i;
+    }
+
+    return 0;
+}

@@ -7,7 +7,8 @@
     #include "symboltable.h"
     #include "ast.h"
 
-	extern ht* HEAD_table;
+	extern ht* HEAD_table; 
+	extern ht* global_table;
     extern int lineno;
     extern ASTnode *root;
     int main_counter = 0;
@@ -96,6 +97,10 @@
 %type <ast> constant_expression
 %type <ast> labeled_statement
 %type <ast> labeled_statements
+%type <ast> argument_expression_list
+%type <ast> parameter_type_list
+%type <ast> parameter_list
+%type <ast> parameter_declaration
 
 %type <op> assignment_operator
 %type <op> unary_operator
@@ -120,12 +125,13 @@ postfix_expression
 	: primary_expression {$$ = $1;}
 	| postfix_expression '[' expression ']' {
 		$$ = new_ASTnode_ARRAY_ELEMENT($1, $3, lineno); 
-		//$$ = $1;
-		//$$->element_number = $3->left->value.value_INT;
-		//$$->left = $3;
 	}
-	| postfix_expression '(' ')'
-	| postfix_expression '(' argument_expression_list ')'
+	| postfix_expression '(' ')' {
+		$$ = new_ASTnode_FUNCTION_CALL_NODE($1, NULL, lineno);
+	}
+	| postfix_expression '(' argument_expression_list ')' {
+		$$ = new_ASTnode_FUNCTION_CALL_NODE($1, $3, lineno);
+	}
 	| postfix_expression '.' IDENTIFIER
 	| postfix_expression PTR_OP IDENTIFIER
 	| postfix_expression INC_OP
@@ -133,8 +139,8 @@ postfix_expression
 	;
 
 argument_expression_list
-	: assignment_expression
-	| argument_expression_list ',' assignment_expression
+	: assignment_expression {$$ = new_ASTnode_ARGUMENT_NODE($1, NULL, lineno);}
+	| argument_expression_list ',' assignment_expression {$$ = new_ASTnode_ARGUMENT_NODE($3, $1, lineno);}
 	;
 
 unary_expression 
@@ -518,7 +524,10 @@ direct_declarator
 		$$->element_number = $3->value.value_INT;
 	}
 	| direct_declarator '[' ']'
-	| direct_declarator '(' parameter_type_list ')' 
+	| direct_declarator '(' parameter_type_list ')' {
+		$$ = $1; 
+		$$->right = $3;
+	}
 	| direct_declarator '(' identifier_list ')'
 	| direct_declarator '(' ')' {$$ = $1;}
 	;
@@ -537,19 +546,70 @@ type_qualifier_list
 
 
 parameter_type_list
-	: parameter_list
-	| parameter_list ',' ELLIPSIS
+	: parameter_list {$$ = $1;}
+	| parameter_list ',' ELLIPSIS {$$ = $1;}
 	;
 
 parameter_list
-	: parameter_declaration
-	| parameter_list ',' parameter_declaration
+	: parameter_declaration {$$ = new_ASTnode_PARAMETER_NODE($1, NULL, lineno);}
+	| parameter_list ',' parameter_declaration {$$ = new_ASTnode_PARAMETER_NODE($3, $1, lineno);}
 	;
 
 parameter_declaration
-	: declaration_specifiers declarator
-	| declaration_specifiers abstract_declarator
-	| declaration_specifiers
+	: declaration_specifiers declarator {
+		$$ = $2; 
+		if($$->nodetype == ID_NODE)
+		{
+			$$->type = $1;
+			sp_offset = calculate_sp_offset(sp_offset, $1, $2->element_number);
+			ht_set_type_sp_offset($$->name, $1, sp_offset, HEAD_table);
+		}
+		else if($$->nodetype == EXPRESSION_NODE)
+		{
+			$$->left->left->type = $1;
+			sp_offset = calculate_sp_offset(sp_offset, $1, $2->element_number);
+			ht_set_type_sp_offset($$->left->left->name, $1, sp_offset, HEAD_table);
+		}
+		else if($$->nodetype == POINTER_NODE)
+		{
+			$$->type = $1;
+			sp_offset = calculate_sp_offset(sp_offset, TYPE_POINTER, $2->element_number);
+			ht_set_type_sp_offset($$->name, $1, sp_offset, HEAD_table);
+		}
+
+		if($$->right != NULL)
+		{
+			ASTnode *temp = $$->right;
+			for(int i = 0; i < multiline_declaration_cnt; i++)
+			{
+				if(temp->nodetype == ID_NODE)
+				{
+					temp->type = $1;
+					sp_offset = calculate_sp_offset(sp_offset, $1, $2->element_number);
+					ht_set_type_sp_offset(temp->name, $1, sp_offset, HEAD_table);
+				}
+				else if(temp->nodetype == EXPRESSION_NODE)
+				{
+					temp->left->left->type = $1;
+					sp_offset = calculate_sp_offset(sp_offset, $1, $2->element_number);
+					ht_set_type_sp_offset(temp->left->left->name, $1, sp_offset, HEAD_table);
+				}
+				else if($$->nodetype == POINTER_NODE)
+				{
+					temp->type = $1;
+					sp_offset = calculate_sp_offset(sp_offset, TYPE_POINTER, $2->element_number);
+					ht_set_type_sp_offset(temp->name, $1, sp_offset, HEAD_table);
+				}
+				temp = temp->right;
+			}
+			multiline_declaration_cnt = 0;
+
+			$$ = set_right_init_to_null($$);
+			free(temp);
+		}
+	}
+	| declaration_specifiers abstract_declarator {}
+	| declaration_specifiers {}
 	;
 
 identifier_list
@@ -851,7 +911,13 @@ external_declaration
 function_definition
 	: declaration_specifiers declarator declaration_list compound_statement {$$ = $4;}
 	| declaration_specifiers declarator compound_statement {
+		declare($2->name, "NULL", lineno, $2, global_table);
 		$2->type = $1; 
+		if($2->right != NULL)
+		{
+			$3->right = $2->right;
+			$2->right = NULL;
+		}
 		$$ = new_ASTnode_FUNCTION($2, new_ASTnode_LABEL(NULL, $3), lineno); 
 		$$->type = $1;
 	}

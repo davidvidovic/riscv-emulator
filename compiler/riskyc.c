@@ -8,6 +8,7 @@ extern int lineno;
 extern FILE *yyin;
 extern char *yytext;
 ht* HEAD_table;
+ht* global_table;
 ASTnode *root;
 int sp_offset;
 ht** ST_vector;
@@ -58,6 +59,11 @@ ASTnode* check_declaration(const char* name, ht *table)
 {
   if(ht_get_key(table, name) == NULL) 
   {
+    if(ht_get_key(global_table, name) != NULL)
+    {
+      return ht_get_ASTnode(global_table, name);
+    }
+
     char error[100];
     strcpy(error, "\033[31mERROR \t\tIdentifier ");
     strcat(error, name);
@@ -200,6 +206,7 @@ void freeAST(ASTnode *root)
 
 int main()
 {
+    global_table = ht_create();
     HEAD_table = ht_create();
     if (HEAD_table == NULL) 
     {

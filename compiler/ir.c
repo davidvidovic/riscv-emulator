@@ -7,6 +7,7 @@
 int register_counter = 1;
 int label_counter = 1;
 int ST_pointer = 0;
+IR_register argument_register_usage = a0;
 
 extern ht** ST_vector;
 
@@ -93,7 +94,7 @@ IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondar
                 help->rd.label = ls;
         }
 
-        return clean_up(this_node, root->line, table->sum_offset);
+        return clean_up(rp, this_node, root->line, table->sum_offset);
     }
 
     if(root->nodetype == IF_NODE
@@ -978,6 +979,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
         break;
 
         case SCOPE_NODE:
+            argument_register_usage = a0;
             if(root->left != NULL)
             {
                 if(root->left->nodetype != EXPRESSION_NODE && root->left->nodetype != RETURN_NODE) // when something other than exp is to the left of scope
@@ -1085,6 +1087,8 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
             save_s0->prev = allocate_s0;
             allocate_s0->next = save_s0;
             allocate_s0->prev = NULL;
+
+            
 
             allocate_s0->line = ht_get_line(table, root->left->name);
             update_line_number_IR(&allocate_s0);
@@ -1211,16 +1215,23 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
 
         case RETURN_NODE:
             /* Save return exp into a5 */
-            // Limit return statement to only CONST INT as a parameter
+
             if(root->left != NULL)
             {
                 IR_node *save_return = (IR_node*)malloc(sizeof(IR_node));
+                
+                load_imm(root->left->left, &save_return, &head);
+                
+                if(root->left->left->nodetype == ID_NODE)
+                {
+                    save_return->rs1.reg = get_reg_single_ID(rp, table, root->left->left, save_return, &head)->rs1.reg;
+                }
+
                 save_return->next = head;
                 head->prev = save_return;
-                load_imm(root->left->left, &save_return, &head);
                 save_return->rd.reg = a5;
                 save_return->prev = node;
-                node->next = save_return;
+                node->next = save_return;       
             }
 
             node->ir_type = IR_JUMP;
@@ -1230,6 +1241,43 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
             push(return_stack, node);
             node->line = root->line;
             update_line_number_IR(&node);
+        break;
+
+        case FUNCTION_CALL_NODE:
+            node->ir_type = IR_CALL;
+            node->instruction = "call";
+            node->rd.name = root->left->name;
+            
+            store_19(rp, table);
+            remove_register_allocation_ALL(rp);
+        break;
+
+        case ARGUMENT_NODE:
+
+            /* Store arguments on function call in a0-a1 | a2-a7 regs */
+            if(root->left->nodetype == CONSTANT_NODE)
+            {
+                IR_node *temp = (IR_node*)malloc(sizeof(IR_node));
+                temp = get_reg(rp, table, root->left, temp, &head);
+                temp->prev = node;
+                temp->next = head;
+                head->prev = temp;
+                node->next = temp;
+                store_argument(rp, table, &node, &temp, temp->rd.reg);
+            }
+            else if(root->left->nodetype == ID_NODE)
+            {
+                node = get_reg(rp, table, root, node, &head);
+                store_argument(rp, table, &node, &head, node->rs1.reg);
+            }
+            {
+                /* Opeartion as an argument */
+            }
+        break;
+
+        case PARAMETER_NODE:
+            /* Load value from a0-a7 regs */
+            node = load_parameter(rp, table, root, node, &head);
         break;
     }
 
@@ -1398,6 +1446,11 @@ void print_IR(IR_node *IR_head, IR_node *IR_tail)
                 printf("%.4x:\t\t%s x%d,%d(x%d)\n", IR_head->ir_address, IR_head->instruction, IR_head->rd.reg, IR_head->sf_offset, IR_head->rs1.reg);
                 fprintf(asm_file, "%.4x:\t\t%s x%d,%d(x%d)\n", IR_head->ir_address, IR_head->instruction, IR_head->rd.reg, IR_head->sf_offset, IR_head->rs1.reg);
             }
+        break;
+
+        case IR_CALL:
+          printf("%.4x:\t\t%s %s\n", IR_head->ir_address, IR_head->instruction, IR_head->rd.name);
+          fprintf(asm_file, "%.4x:\t\t%s %s\n", IR_head->ir_address, IR_head->instruction, IR_head->rd.name);
         break;
 
         case NONE:
@@ -2003,7 +2056,7 @@ IR_register get_holding_reg(register_pool *rp, ht *table, IR_node **node, IR_nod
 
 
 
-IR_node* clean_up(IR_node* head, int line, int sp_offset)
+IR_node* clean_up(register_pool *rp, IR_node* head, int line, int sp_offset)
 {
     /* By C convention, main function will always return int and will always return 0 on clean exit */
     // IR_node *load_zero = (IR_node*)malloc(sizeof(IR_node));
@@ -2016,6 +2069,7 @@ IR_node* clean_up(IR_node* head, int line, int sp_offset)
     // load_zero->rs2.int_constant = 0;
     // load_zero->next = head;
     // head->prev = load_zero;
+    remove_register_allocation_ALL(rp);
 
     IR_node *load_ra = (IR_node*)malloc(sizeof(IR_node));
 
@@ -2334,4 +2388,41 @@ void store_19(register_pool *rp, ht *table)
         remove_id_from_register(rp, find_ID(rp, "19"), "19");
     }
 
+}
+
+void store_argument(register_pool *rp, ht *table, IR_node **node, IR_node **head, IR_register holding_reg)
+{
+    /* Find empty a0-a7 reg */
+    IR_register empty_reg = find_empty_argument_register(rp);
+
+    if(empty_reg == 0)
+    {
+        /* Deal with it later */
+    }
+    else
+    {
+        /* Store contents of holding_reg into empty_reg */
+        (*node)->ir_type = IR_OP_IMM;
+        (*node)->instr_type = ADDI;
+        (*node)->instruction = "addi";
+        (*node)->rd.reg = empty_reg;
+        (*node)->rs1.reg = holding_reg;
+        (*node)->rs2.int_constant = 0;
+
+        add_id_to_register(rp, empty_reg, "19");
+    }
+}
+
+IR_node* load_parameter(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_node **head)
+{
+    /* Load argument from argument reg into allocated register for said ID */
+    node = get_reg(rp, table, root, node, &head);
+    node->ir_type = IR_OP_IMM;
+    node->instr_type = ADDI;
+    node->instruction = "addi";
+    node->rd.reg = node->rs1.reg;
+    node->rs1.reg = argument_register_usage++;
+    node->rs2.int_constant = 0;
+    
+    return node;
 }

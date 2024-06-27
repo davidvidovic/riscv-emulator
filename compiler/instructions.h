@@ -10,7 +10,7 @@ typedef enum IR_instruction_type {
     IR_OP, // REG, REG, REG
     IR_OP_IMM, // REG, REG, CONST
     IR_BRANCH,
-    IR_JUMP
+    IR_JUMP, IR_CALL
 } IR_instruction_type;
 
 typedef enum instruction_type {
