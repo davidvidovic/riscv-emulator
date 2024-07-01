@@ -32,6 +32,8 @@ MainWindow::~MainWindow()
 
 int MainWindow::on_pushButton_pressed()
 {
+    ui->asm_textbox->clear();
+
     QString text = ui->code_textbox->toPlainText();
 
     QFile file(QStringLiteral("../input.c")); // define the file to write
@@ -54,29 +56,20 @@ int MainWindow::on_pushButton_pressed()
     // Call the bash script
     int ret = system(script);
 
-    // Check if the script executed successfully
-    if (ret == -1) {
-        // system() failed
-        //std::cerr << "System call failed" << std::endl;
-        return 1;
-    } else {
-        // system() succeeded, check return status of script
-        if (WIFEXITED(ret) && WEXITSTATUS(ret) == 0) {
-            // Script executed and exited successfully
-            //std::cout << "Script executed successfully" << std::endl;
-            //return 0;
-        } else {
-            // Script executed but failed
-            //std::cerr << "Script execution failed with status " << WEXITSTATUS(ret) << std::endl;
-            return 1;
-        }
-    }
-
 
     if (chdir(original_dir) != 0) {
         //std::cerr << "Failed to change back to original directory" << std::endl;
         return 1;
     }
+
+    // Print terminal_output
+    QFile terminal_file(QStringLiteral("../compiler/terminal_output.txt"));
+    terminal_file.open(QIODevice::ReadOnly);
+    QTextStream terminal_stream(&terminal_file);
+    QString terminal_content = terminal_stream.readAll();
+    terminal_file.close();
+    ui->terminal_output->setText(terminal_content);
+
 
     // Print output.asm into asm_textbox
     QFile asm_file(QStringLiteral("../output.s"));

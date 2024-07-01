@@ -25,9 +25,9 @@ int declare(const char* name, const char* datatype, int line, ASTnode* node, ht*
   if(ht_get_key(table, name) != NULL) 
   {
     char error[100];
-    strcpy(error, "\033[31mERROR \t\tIdentifier ");
+    strcpy(error, "\t\tIdentifier ");
     strcat(error, name);
-    strcat(error, " already declared.\033[0m");
+    strcat(error, " already declared.");
 
     strcat(error, "\nPrevious declaration at line ");
     int error_line = ht_get_line(table, name);
@@ -65,9 +65,9 @@ ASTnode* check_declaration(const char* name, ht *table)
     }
 
     char error[100];
-    strcpy(error, "\033[31mERROR \t\tIdentifier ");
+    strcpy(error, "ERROR \t\tIdentifier ");
     strcat(error, name);
-    strcat(error, " not declared.\033[0m");
+    strcat(error, " not declared.");
     strcat(error, "\nError");
     yyerror(error);
 
@@ -163,11 +163,11 @@ void type_check(ASTnode *op1, ASTnode *op2)
   if(op1_type != op2_type)
   {
     char error[100];
-    strcpy(error, "\033[31mERROR \t\tTypes of operators ");
+    strcpy(error, "ERROR \t\tTypes of operators ");
     strcat(error, op1_name);
     strcat(error, " and ");
     strcat(error, op2_name);
-    strcat(error, " do not match.\n\t\t\033[0m");
+    strcat(error, " do not match.\n\t\t");
     yyerror(error);
     
     exit(1);
@@ -256,6 +256,10 @@ int main()
     IR_node *IR_tail = populate_IR(root, IR_head, &stack, &secondary_stack, &break_stack, &continue_stack, &return_stack, &array_element_stack, rp, ST_vector[0]);
 
     print_IR(IR_head, IR_tail);
+
+    FILE *terminal_output = fopen("terminal_output.txt", "w");
+    fprintf(terminal_output, "Compile success\n");
+    fclose(terminal_output);
     
     // control_flow_graph *cfg = populate_cfg(IR_head, IR_tail);
     // basic_block* temp = cfg->leader;
@@ -265,7 +269,6 @@ int main()
     //   printf("BLOCK %d: first instruction is %s and last instruction is %s\n", temp->bb_number, temp->leader->instruction, temp->last_instruction->instruction);
     //   temp = temp->bb_next;
     // } while(temp != NULL);
-
 
     assemble_binary_output(IR_head, IR_tail);
 

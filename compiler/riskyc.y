@@ -929,7 +929,11 @@ function_definition
 %%
 
 void yyerror(const char* msg) {
-    fprintf(stderr, "%s at line %d\n", msg, lineno);
+    fprintf(stderr, "\033[31mERROR %s at line %d\033[0m\n", msg, lineno);
+
+	FILE *terminal_output = fopen("terminal_output.txt", "w");
+    fprintf(terminal_output, "%s at line %d\n", msg, lineno);
+    fclose(terminal_output);
 }
 
 ASTnode* set_right_init_to_null(ASTnode *root)
