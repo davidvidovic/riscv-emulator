@@ -257,9 +257,9 @@ logical_or_expression
 conditional_expression
 	: logical_or_expression {$$ = $1;}
 	| logical_or_expression '?' expression ':' conditional_expression {
-		ASTnode *exp_node = new_ASTnode_EXPRESSION($1, NULL);		
-		ASTnode *if_node = new_ASTnode_IF($3, exp_node);
-		$$ = new_ASTnode_ELSE($5, if_node);
+		ASTnode *exp_node = new_ASTnode_EXPRESSION($1, NULL, lineno);		
+		ASTnode *if_node = new_ASTnode_IF($3, exp_node, lineno);
+		$$ = new_ASTnode_ELSE($5, if_node, lineno);
 	}
 	;
 
@@ -269,10 +269,10 @@ assignment_expression
 		/* Type check */
 		if($3->nodetype == ELSE_NODE)
 		{
-			$3->left = new_ASTnode_SCOPE(new_ASTnode_EXPRESSION(new_ASTnode_OPERATION($2, $1, $3->left, lineno), NULL), NULL);
+			$3->left = new_ASTnode_SCOPE(new_ASTnode_EXPRESSION(new_ASTnode_OPERATION($2, $1, $3->left, lineno), NULL, lineno), NULL, lineno);
 
 			$3->right->left->left = new_ASTnode_OPERATION($2, $1, $3->right->left->left, lineno);
-			$3->right->left = new_ASTnode_SCOPE($3->right->left, NULL);
+			$3->right->left = new_ASTnode_SCOPE($3->right->left, NULL, lineno);
 			$$ = $3;
 		}
 		else 
@@ -320,7 +320,7 @@ expression
 		}
 		else
 		{
-			$$ = new_ASTnode_EXPRESSION($1, NULL);
+			$$ = new_ASTnode_EXPRESSION($1, NULL, lineno);
 		}
 	}
 	| expression ',' assignment_expression
@@ -419,7 +419,7 @@ init_declarator
 	: declarator {$$ = $1;}
 	| declarator '=' initializer {
 		ASTnode *temp = new_ASTnode_OPERATION(EQU_OP, $1, $3, lineno);
-		$$ = new_ASTnode_EXPRESSION(temp, NULL);
+		$$ = new_ASTnode_EXPRESSION(temp, NULL, lineno);
 	}
 	;
 
@@ -662,13 +662,13 @@ statement
 labeled_statement
 	: IDENTIFIER ':' statement {}
 	| CASE constant_expression ':' statement_list {$$ = new_ASTnode_CASE($4, NULL, $2, lineno);}
-	| DEFAULT ':' statement_list {$$ = new_ASTnode_DEFAULT($3, NULL);}
+	| DEFAULT ':' statement_list {$$ = new_ASTnode_DEFAULT($3, NULL, lineno);}
 	;
 
 labeled_statements
 	: labeled_statement {
 		$$ = $1;
-		ASTnode *label_node = new_ASTnode_LABEL(NULL, NULL);
+		ASTnode *label_node = new_ASTnode_LABEL(NULL, NULL, lineno);
 		$$->right = label_node;
 	}
 	| labeled_statements labeled_statement {
@@ -678,14 +678,14 @@ labeled_statements
 		if($1->nodetype == DEFAULT_NODE)
 		{
 			$$ = $1;
-			label_node = new_ASTnode_LABEL(NULL, $1->right->right);
+			label_node = new_ASTnode_LABEL(NULL, $1->right->right, lineno);
 			$2->right = label_node;
 			$$->right->right = $2;
 		}
 		else
 		{
 			$$ = $2;
-			label_node = new_ASTnode_LABEL(NULL, $1);
+			label_node = new_ASTnode_LABEL(NULL, $1, lineno);
 			$$->right = label_node;
 		}	
 	}
@@ -693,10 +693,10 @@ labeled_statements
 
 compound_statement
 	: '{' '}' {}
-	| '{' statement_list '}' {$$ = new_ASTnode_SCOPE($2, NULL);} 
+	| '{' statement_list '}' {$$ = new_ASTnode_SCOPE($2, NULL, lineno);} 
 	| '{' declaration_list '}' {$$ = $2;} 
-	| '{' declaration_list statement_list '}' {$$ = new_ASTnode_SCOPE($3, $2);}
-	| '{' labeled_statements '}' {$$ = new_ASTnode_SCOPE($2, NULL);}
+	| '{' declaration_list statement_list '}' {$$ = new_ASTnode_SCOPE($3, $2, lineno);}
+	| '{' labeled_statements '}' {$$ = new_ASTnode_SCOPE($2, NULL, lineno);}
 	;
 
 declaration_list
@@ -729,23 +729,23 @@ statement_list
 			if($$->right->right->nodetype == DO_NODE)
 			{ 
 				$$->right->right->right = NULL;
-				ASTnode *temp = new_ASTnode_LABEL(NULL, $$->right->right);
+				ASTnode *temp = new_ASTnode_LABEL(NULL, $$->right->right, lineno);
 				$$->right->right = temp;
-				ASTnode *temp1 = new_ASTnode_LABEL(NULL, $$->right);
+				ASTnode *temp1 = new_ASTnode_LABEL(NULL, $$->right, lineno);
 				$$->right = temp1;
 			}
 			else
 			{
-				ASTnode *temp = new_ASTnode_LABEL(NULL, NULL);
+				ASTnode *temp = new_ASTnode_LABEL(NULL, NULL, lineno);
 				$$->right->right = temp;
-				ASTnode *temp1 = new_ASTnode_LABEL(NULL, $$->right);
+				ASTnode *temp1 = new_ASTnode_LABEL(NULL, $$->right, lineno);
 				$$->right = temp1;
 			}
 		}
 		else if($$->nodetype == FOR_NODE) 
 		{	
 			/* Inserting label node between init_exp and bool_exp in for statement */
-			ASTnode *temp = new_ASTnode_LABEL(NULL, $$->right->right);
+			ASTnode *temp = new_ASTnode_LABEL(NULL, $$->right->right, lineno);
 			$$->right->right = temp;
 		}
 	}
@@ -764,16 +764,16 @@ statement_list
 			if($$->right->right->nodetype == DO_NODE)
 			{ 
 				$$->right->right->right = $1;
-				ASTnode *temp = new_ASTnode_LABEL(NULL, $$->right->right);
+				ASTnode *temp = new_ASTnode_LABEL(NULL, $$->right->right, lineno);
 				$$->right->right = temp;
-				ASTnode *temp1 = new_ASTnode_LABEL(NULL, $$->right);
+				ASTnode *temp1 = new_ASTnode_LABEL(NULL, $$->right, lineno);
 				$$->right = temp1;
 			}
 			else
 			{
-				ASTnode *temp = new_ASTnode_LABEL(NULL, $1);
+				ASTnode *temp = new_ASTnode_LABEL(NULL, $1, lineno);
 				$$->right->right = temp;
-				ASTnode *temp1 = new_ASTnode_LABEL(NULL, $$->right);
+				ASTnode *temp1 = new_ASTnode_LABEL(NULL, $$->right, lineno);
 				$$->right = temp1;
 			}
 		}
@@ -781,7 +781,7 @@ statement_list
 		{
 			$$->right->right->right = $1;
 			/* Inserting label node between init_exp and bool_exp in for statement */
-			ASTnode *temp = new_ASTnode_LABEL(NULL, $$->right->right);
+			ASTnode *temp = new_ASTnode_LABEL(NULL, $$->right->right, lineno);
 			$$->right->right = temp;
 		}
 		else if($1->nodetype == DEFAULT_NODE)
@@ -814,14 +814,14 @@ expression_statement
 
 selection_statement
 	: IF '(' expression ')' statement {
-		$$ = new_ASTnode_IF($5, $3);
+		$$ = new_ASTnode_IF($5, $3, lineno);
 	}
 	| IF '(' expression ')' statement ELSE statement {
-		ASTnode* temp = new_ASTnode_IF($5, $3);
-		$$ = new_ASTnode_ELSE($7, temp);
+		ASTnode* temp = new_ASTnode_IF($5, $3, lineno);
+		$$ = new_ASTnode_ELSE($7, temp, lineno);
 	}
 	| SWITCH '(' expression ')' compound_statement {
-		$$ = new_ASTnode_SWITCH($5, NULL);
+		$$ = new_ASTnode_SWITCH($5, NULL, lineno);
 
 		/* Traverse SWITCH subtree and insert expression into every CASE BODY right operation as left operand */
 		ASTnode *temp = $$->left->left;
@@ -853,21 +853,21 @@ selection_statement
 
 iteration_statement
 	: WHILE '(' expression ')' statement {
-		$$ = new_ASTnode_WHILE($5, $3);
+		$$ = new_ASTnode_WHILE($5, $3, lineno);
 	}
 	| DO statement WHILE '(' expression ')' ';' {
-		ASTnode *do_node = new_ASTnode_DO($2, NULL);
+		ASTnode *do_node = new_ASTnode_DO($2, NULL, lineno);
 		$5->right = do_node;
-		$$ = new_ASTnode_WHILE($2, $5);
+		$$ = new_ASTnode_WHILE($2, $5, lineno);
 	}
 	| FOR '(' expression_statement expression_statement ')' statement {
 		$4->right = $3;
-		$$ = new_ASTnode_FOR($6, $4);
+		$$ = new_ASTnode_FOR($6, $4, lineno);
 	}
 	| FOR '(' expression_statement expression_statement expression ')' statement {
 		$4->right = $3;
-		$5->right = new_ASTnode_LABEL(NULL, $7);
-		$$ = new_ASTnode_FOR($5, $4);
+		$5->right = new_ASTnode_LABEL(NULL, $7, lineno);
+		$$ = new_ASTnode_FOR($5, $4, lineno);
 	}
 	;
 
@@ -918,7 +918,7 @@ function_definition
 			$3->right = $2->right;
 			$2->right = NULL;
 		}
-		$$ = new_ASTnode_FUNCTION($2, new_ASTnode_LABEL(NULL, $3), lineno); 
+		$$ = new_ASTnode_FUNCTION($2, new_ASTnode_LABEL(NULL, $3, lineno), lineno); 
 		$$->type = $1;
 	}
 	| declarator declaration_list compound_statement {$$ = $3;}

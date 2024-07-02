@@ -167,8 +167,8 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
 
             // Issue a load of a pointer, get it inside some register
             load_array_element(rp, table, root, &node, &head);
-            
-            
+            node->line = root->line;
+            update_line_number_IR(&node);
         break;
 
         case OPERATION_NODE:
@@ -194,6 +194,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                      */
 
                     store_19(rp);
+                    
        
                     if(root->left->nodetype == ARRAY_ELEMENT_NODE)
                     {
@@ -218,6 +219,10 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                         temp->prev = NULL;
                         temp->next = node;
                         node->prev = temp;
+
+                        temp->line = root->line;
+                        update_line_number_IR(&temp);
+
                         return temp;
                     }
 
@@ -229,6 +234,10 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                         node->instruction = "addi";
                         node->rs1.reg = a0;
                         node->rs2.int_constant = 0;
+
+                        node->line = root->line;
+                        update_line_number_IR(&node);
+
                         return node;
                     }
 
@@ -294,13 +303,13 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
 
                             load_imm(root->right, &node, &head);                           
 
-                            node->line = root->line;
-                            update_line_number_IR(&node);
-
                             if(root->left->nodetype == POINTER_NODE || root->left->nodetype == ARRAY_ELEMENT_NODE)
                             {
                                 node = store_pointer(rp, table, &node, root->left->left);
                             }
+
+                            node->line = root->line;
+                            update_line_number_IR(&node);
                                 
                             return node;
                         }
@@ -311,9 +320,9 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                             
                             load_imm(root->left, &node, &head);
                               
-
                             node->line = root->line;
                             update_line_number_IR(&node);
+
                             return node;
                         }
 
@@ -324,6 +333,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
 
                             head->line = root->line;
                             update_line_number_IR(&head);
+
                             return head;
                         }
 
@@ -349,13 +359,13 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                         
                 	    temp = get_reg(rp, table, root, head, &(head->next));   
 
-                        temp->line = root->line;
-                        update_line_number_IR(&temp); 
-
                         if(root->left->nodetype == POINTER_NODE)
                         {
                             temp = store_pointer(rp, table, &temp, root->left);
                         }
+
+                        temp->line = root->line;
+                        update_line_number_IR(&temp); 
 
 		                return temp;
                     }
@@ -367,13 +377,13 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                             head->prev = NULL;
                             head->rd.reg = holding_reg;
 
-                            head->line = root->line;
-                            update_line_number_IR(&head);
-
                             if(root->left->nodetype == POINTER_NODE)
                             {
                                 head = store_pointer(rp, table, &head, root->left);
                             }
+
+                            head->line = root->line;
+                            update_line_number_IR(&head);
 
                             return head;
                         }
@@ -427,6 +437,9 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                                     head = store_pointer(rp, table, &head, root->left);
                                 }
 
+                                head->line = root->line;
+                                update_line_number_IR(&head);
+
                                 return head;
                             }
                         }
@@ -470,12 +483,11 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                         {
                             node->rs1.reg = a0;
                         }
+
+                        node->line = root->line;
+                        update_line_number_IR(&node);
                 
-                        return node;
-                        // Delete load const IR_node, two nodes ago
-                        //node->next->next->next->prev = node->next;
-                        //node->next->next = node->next->next->next->next;
-                        
+                        return node;                   
                     }
                     else if(root->left->nodetype == CONSTANT_NODE)
                     {
@@ -511,6 +523,9 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                             node->rs2.reg = a0;
                         }
                     }
+
+                    node->line = root->line;
+                    update_line_number_IR(&node);
                     return node;
                 break;
 
@@ -529,6 +544,9 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     {
                         node->rs2.reg = a0;
                     }
+
+                    node->line = root->line;
+                    update_line_number_IR(&node);
                 break;
 
                 /*
@@ -542,6 +560,15 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     node->ir_type = IR_BRANCH;
                     node->instruction = "bne";         
                     push(stack, node);       
+
+                    if(root->left->nodetype == FUNCTION_CALL_NODE)
+                    {
+                        node->rs1.reg = a0;
+                    }
+                    if(root->right->nodetype == FUNCTION_CALL_NODE)
+                    {
+                        node->rs2.reg = a0;
+                    }
                 break;
 
                 case LOGIC_GET_OP:
@@ -551,30 +578,57 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     node->ir_type = IR_BRANCH;
                     node->instruction = "blt";
                     push(stack, node); 
+
+                    if(root->left->nodetype == FUNCTION_CALL_NODE)
+                    {
+                        node->rs1.reg = a0;
+                    }
+                    if(root->right->nodetype == FUNCTION_CALL_NODE)
+                    {
+                        node->rs2.reg = a0;
+                    }
                 break;
 
                 case LOGIC_GT_OP:
                     node = get_OP_node(rp, table, root, node, &head);
                     
-                /*
-                * BLE - branch if less or equal => is BGE when operand are reversed
-                */
+                    /*
+                    * BLE - branch if less or equal => is BGE when operand are reversed
+                    */
                     node->instr_type = BGE;
                     node->ir_type = IR_BRANCH;
                     node->instruction = "bge";
                     push(stack, node); 
+
+                    if(root->left->nodetype == FUNCTION_CALL_NODE)
+                    {
+                        node->rs1.reg = a0;
+                    }
+                    if(root->right->nodetype == FUNCTION_CALL_NODE)
+                    {
+                        node->rs2.reg = a0;
+                    }
                 break;
 
                 case LOGIC_LET_OP:
                     node = get_OP_node(rp, table, root, node, &head);
                     
-                /*
-                * BGT - branch if greater than => is BLT when operand are reversed
-                */
+                    /*
+                    * BGT - branch if greater than => is BLT when operand are reversed
+                    */
                     node->instr_type = BLT;
                     node->ir_type = IR_BRANCH;
                     node->instruction = "blt";
                     push(stack, node); 
+
+                    if(root->left->nodetype == FUNCTION_CALL_NODE)
+                    {
+                        node->rs1.reg = a0;
+                    }
+                    if(root->right->nodetype == FUNCTION_CALL_NODE)
+                    {
+                        node->rs2.reg = a0;
+                    }
                 break;
 
                 case LOGIC_LT_OP:
@@ -585,7 +639,15 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     node->ir_type = IR_BRANCH;
                     node->instruction = "bge";
                     push(stack, node);  
-                    
+
+                    if(root->left->nodetype == FUNCTION_CALL_NODE)
+                    {
+                        node->rs1.reg = a0;
+                    }
+                    if(root->right->nodetype == FUNCTION_CALL_NODE)
+                    {
+                        node->rs2.reg = a0;
+                    }
                 break;
 
                 case LOGIC_NEQU_OP:
@@ -595,6 +657,15 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     node->ir_type = IR_BRANCH;
                     node->instruction = "beq";
                     push(stack, node); 
+
+                    if(root->left->nodetype == FUNCTION_CALL_NODE)
+                    {
+                        node->rs1.reg = a0;
+                    }
+                    if(root->right->nodetype == FUNCTION_CALL_NODE)
+                    {
+                        node->rs2.reg = a0;
+                    }
                 break;
 
                 case LOGIC_NOT_OP:
@@ -605,8 +676,17 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     node->instruction = "sltiu";
                     node->rd.reg = node->rs1.reg;
                     node->rs2.int_constant = 1;
+
+                    if(root->left->nodetype == FUNCTION_CALL_NODE)
+                    {
+                        node->rs1.reg = a0;
+                    }
+                    if(root->right->nodetype == FUNCTION_CALL_NODE)
+                    {
+                        node->rs2.reg = a0;
+                    }
                     
-                    //push(stack, node); // no need to push anything on stack, but resolves "stack empty" bug the easiest way
+                    //push(stack, node); // no need to push anything on stack, but this resolves "stack empty" bug the easiest way
 
                     IR_node *nxt = (IR_node *)malloc(sizeof(IR_node));
                     nxt->next = node;
@@ -734,6 +814,15 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     node->instruction = "xori";
 
                     node->rs2.int_constant = -1;
+
+                    if(root->left->nodetype == FUNCTION_CALL_NODE)
+                    {
+                        node->rs1.reg = a0;
+                    }
+                    if(root->right->nodetype == FUNCTION_CALL_NODE)
+                    {
+                        node->rs2.reg = a0;
+                    }
                 break;
             }
 
@@ -1132,8 +1221,6 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
             allocate_s0->next = save_s0;
             allocate_s0->prev = NULL;
 
-            
-
             allocate_s0->line = ht_get_line(table, root->left->name);
             update_line_number_IR(&allocate_s0);
             
@@ -1226,8 +1313,8 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     help->rd.label = tmp;
             }
 
-            //node->line = root->line;
-            //update_line_number_IR(&node);
+            node->line = root->line;
+            update_line_number_IR(&node);
         break;
 
         case DEFAULT_NODE:
@@ -1243,6 +1330,9 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                 else if(help->ir_type == IR_BRANCH)
                     help->rd.label = tmp;
             }
+
+            node->line = root->line;
+            update_line_number_IR(&node);
         break;
 
 
@@ -1317,9 +1407,10 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
             node->instruction = "jal";
             node->rd.reg = ra;
             node->rs1.label = root->left->name;
-            
-            
+              
             remove_register_allocation_ALL(rp);
+            node->line = root->line;
+            update_line_number_IR(&node);
         break;
 
         case ARGUMENT_NODE:
@@ -1343,11 +1434,17 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
             {
                 /* Opeartion as an argument */
             }
+
+            node->line = root->line;
+            update_line_number_IR(&node);
         break;
 
         case PARAMETER_NODE:
             /* Load value from a0-a7 regs */
             node = load_parameter(rp, table, root, node, &head);
+
+            node->line = root->line;
+            update_line_number_IR(&node);
         break;
     }
 
@@ -2214,13 +2311,14 @@ int get_label_address(char* label, IR_node *IR_head, IR_node *IR_tail)
 
 void update_line_number_IR(IR_node** node)
 {   
+    printf("\n");
     int line = (*node)->line;
     IR_node *temp = *node;
     while(temp->next != HEAD && temp->next->line == 0)
     {  
         temp = temp->next;
         temp->line = line;
-    }
+    } 
 }
 
 void load_imm(ASTnode* root, IR_node** node, IR_node** head)
@@ -2388,6 +2486,8 @@ void load_array_element(register_pool *rp, ht *table, ASTnode *root, IR_node **n
     calc_address->prev = srli_node;
 
     (*node) = srli_node;
+
+    
 }
 
 

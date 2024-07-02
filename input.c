@@ -1,6 +1,33 @@
+int foo(int par1)
+{
+	return ++par1;
+}
+
 int main()
 {
-	int a, b;
-	int c;
-	a = b + c;
+	int a, b, c, i;
+	int arr[5];
+	b = 1;
+	a = 4097;
+	a = a + b;
+	c = 19 + b - a;
+	for(i = 0; i < 10; i++)
+	{
+		arr[i] = c + i;
+	}
+	
+	b = foo(b);
+
+	if(b < 19)
+	{
+		a = 999;
+	}
+	else
+	{
+		c = 0;
+	}
+
+	i = 0;
+	
+	return 0;
 }

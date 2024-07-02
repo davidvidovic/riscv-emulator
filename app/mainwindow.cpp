@@ -62,12 +62,22 @@ int MainWindow::on_pushButton_pressed()
         return 1;
     }
 
+
     // Print terminal_output
     QFile terminal_file(QStringLiteral("../compiler/terminal_output.txt"));
     terminal_file.open(QIODevice::ReadOnly);
     QTextStream terminal_stream(&terminal_file);
     QString terminal_content = terminal_stream.readAll();
     terminal_file.close();
+
+    if(terminal_content.compare("Compile success\n") == 0)
+    {
+        ui->terminal_output->setTextBackgroundColor(QColor(124, 232, 123));
+    }
+    else
+    {
+        ui->terminal_output->setTextBackgroundColor(QColor(254, 126, 120));
+    }
     ui->terminal_output->setText(terminal_content);
 
 

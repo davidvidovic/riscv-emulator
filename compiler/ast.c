@@ -73,7 +73,7 @@ ASTnode* new_ASTnode_OPERATION(operation_type operation, ASTnode *left, ASTnode 
 
 int expression_counter = 0;
 
-ASTnode* new_ASTnode_EXPRESSION(ASTnode* left, ASTnode* right)
+ASTnode* new_ASTnode_EXPRESSION(ASTnode* left, ASTnode* right, int line)
 {
     ASTnode *n = mkASTnode(left, right);
     n->nodetype = EXPRESSION_NODE;
@@ -83,6 +83,7 @@ ASTnode* new_ASTnode_EXPRESSION(ASTnode* left, ASTnode* right)
 
     n->name = malloc(10 * sizeof(char));
     snprintf((n->name), 10, "exp%d", expression_counter++);    
+    n->line = line;
 
     return (n);
 }
@@ -90,60 +91,67 @@ ASTnode* new_ASTnode_EXPRESSION(ASTnode* left, ASTnode* right)
 
 int scope_counter = 0;
 
-ASTnode* new_ASTnode_SCOPE(ASTnode* left, ASTnode* right)
+ASTnode* new_ASTnode_SCOPE(ASTnode* left, ASTnode* right, int line)
 {
     ASTnode *n = mkASTnode(left, right);
     n->nodetype = SCOPE_NODE;
 
     n->name = malloc(12 * sizeof(char));
     snprintf((n->name), 10, "scope%d", scope_counter++);    
+    n->line = line;
 
     return (n);
 }
 
 
 
-ASTnode* new_ASTnode_IF(ASTnode* left, ASTnode* right)
+ASTnode* new_ASTnode_IF(ASTnode* left, ASTnode* right, int line)
 {
     ASTnode *n = mkASTnode(left, right);
     n->nodetype = IF_NODE;
     //n->value.label_count = label_counter++;
+    n->line = line;
     return (n);
 }
 
 
-ASTnode* new_ASTnode_ELSE(ASTnode* left, ASTnode* right)
+ASTnode* new_ASTnode_ELSE(ASTnode* left, ASTnode* right, int line)
 {
     ASTnode *n = mkASTnode(left, right);
     n->nodetype = ELSE_NODE;
+    n->line = line;
     return (n);
 }
 
-ASTnode* new_ASTnode_WHILE(ASTnode* left, ASTnode* right)
+ASTnode* new_ASTnode_WHILE(ASTnode* left, ASTnode* right, int line)
 {
     ASTnode *n = mkASTnode(left, right);
     n->nodetype = WHILE_NODE;
+    n->line = line;
     return (n);
 }
 
-ASTnode* new_ASTnode_DO(ASTnode* left, ASTnode* right)
+ASTnode* new_ASTnode_DO(ASTnode* left, ASTnode* right, int line)
 {
     ASTnode *n = mkASTnode(left, right);
     n->nodetype = DO_NODE;
+    n->line = line;
     return (n);
 }
 
-ASTnode* new_ASTnode_FOR(ASTnode* left, ASTnode* right)
+ASTnode* new_ASTnode_FOR(ASTnode* left, ASTnode* right, int line)
 {
     ASTnode *n = mkASTnode(left, right);
     n->nodetype = FOR_NODE;
+    n->line = line;
     return (n);
 }
 
-ASTnode* new_ASTnode_LABEL(ASTnode* left, ASTnode* right)
+ASTnode* new_ASTnode_LABEL(ASTnode* left, ASTnode* right, int line)
 {
     ASTnode *n = mkASTnode(left, right);
     n->nodetype = LABEL_NODE;
+    n->line = line;
     return (n);
 }
 
@@ -183,23 +191,25 @@ ASTnode* new_ASTnode_CONTINUE(ASTnode* left, ASTnode* right, int line)
     return (n);
 }
 
-ASTnode* new_ASTnode_DEFAULT(ASTnode* left, ASTnode* right)
+ASTnode* new_ASTnode_DEFAULT(ASTnode* left, ASTnode* right, int line)
 {
     ASTnode *n = mkASTnode(left, right);
     n->nodetype = DEFAULT_NODE;
+    n->line = line;
     return (n);
 }
 
-ASTnode* new_ASTnode_SWITCH(ASTnode* left, ASTnode* right)
+ASTnode* new_ASTnode_SWITCH(ASTnode* left, ASTnode* right, int line)
 {
     ASTnode *n = mkASTnode(left, right);
     n->nodetype = SWITCH_NODE;
+    n->line = line;
     return (n);
 }
 
 ASTnode* new_ASTnode_CASE(ASTnode* left, ASTnode* right, ASTnode *const_exp, int lineno)
 {
-    ASTnode *case_body = mkASTnode(left, new_ASTnode_EXPRESSION(new_ASTnode_OPERATION(LOGIC_EQU_OP, const_exp, NULL, lineno), NULL));
+    ASTnode *case_body = mkASTnode(left, new_ASTnode_EXPRESSION(new_ASTnode_OPERATION(LOGIC_EQU_OP, const_exp, NULL, lineno), NULL, lineno));
     case_body->nodetype = CASE_BODY_NODE;
     case_body->line = lineno;
 
