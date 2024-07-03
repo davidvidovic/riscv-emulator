@@ -21,6 +21,18 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+
+    // Load existing input soruce code into editor
+    QFile file(QStringLiteral("../input.c"));
+    if (file.open(QIODevice::ReadOnly))
+    {
+        QTextStream in(&file);
+        QString content = in.readAll();
+        file.close();
+
+
+        ui->code_textbox->setText(content);
+    }
 }
 
 MainWindow::~MainWindow()
@@ -32,8 +44,6 @@ MainWindow::~MainWindow()
 
 int MainWindow::on_pushButton_pressed()
 {
-    ui->asm_textbox->clear();
-
     QString text = ui->code_textbox->toPlainText();
 
     QFile file(QStringLiteral("../input.c")); // define the file to write
@@ -73,21 +83,25 @@ int MainWindow::on_pushButton_pressed()
     if(terminal_content.compare("Compile success\n") == 0)
     {
         ui->terminal_output->setTextBackgroundColor(QColor(124, 232, 123));
+
+        // Print output.asm into asm_textbox
+        QFile asm_file(QStringLiteral("../output.s"));
+        asm_file.open(QIODevice::ReadOnly);
+        QTextStream stream(&asm_file);
+        QString content = stream.readAll();
+        asm_file.close();
+        ui->asm_textbox->setText(content);
     }
     else
     {
         ui->terminal_output->setTextBackgroundColor(QColor(254, 126, 120));
+
+        ui->asm_textbox->clear();
     }
     ui->terminal_output->setText(terminal_content);
 
 
-    // Print output.asm into asm_textbox
-    QFile asm_file(QStringLiteral("../output.s"));
-    asm_file.open(QIODevice::ReadOnly);
-    QTextStream stream(&asm_file);
-    QString content = stream.readAll();
-    asm_file.close();
-    ui->asm_textbox->setText(content);
+
 
     return 0;
 }

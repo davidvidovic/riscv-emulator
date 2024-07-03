@@ -217,11 +217,11 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                         IR_node *temp;
                         temp = store_array_element(rp, table, root, node, head);
                         temp->prev = NULL;
-                        temp->next = node;
-                        node->prev = temp;
+                        temp->next = head; // ##
+                        head->prev = temp;
 
-                        temp->line = root->line;
-                        update_line_number_IR(&temp);
+                        temp->line = -1;
+                        //update_line_number_IR(&temp);
 
                         return temp;
                     }
@@ -477,6 +477,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                         node->instr_type = ADDI;
                         node->instruction = "addi";
 
+                        node->rs1.reg = node->rs2.reg;
                         node->rs2.int_constant = root->right->value.value_INT; // INT only
 
                         if(root->left->nodetype == FUNCTION_CALL_NODE)
@@ -495,10 +496,10 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                         node->instr_type = ADDI;
                         node->instruction = "addi";
 
-                        if(root->right->nodetype == ID_NODE || root->right->nodetype == POINTER_NODE)
-                        {
-                            node->rs1.reg = node->rs2.reg;
-                        }
+                        // if(root->right->nodetype == ID_NODE || root->right->nodetype == POINTER_NODE)
+                        // {
+                        //     node->rs1.reg = node->rs2.reg;
+                        // }
 
                         node->rs2.int_constant = root->left->value.value_INT; // INT only 
 
@@ -531,6 +532,8 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
 
                 case SUB_OP:
                     node = get_OP_node(rp, table, root, node, &head);
+
+                    
                 
                     node->instr_type = SUB;
                     node->ir_type = IR_OP;
@@ -1245,6 +1248,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
         break;
 
         case FOR_NODE:
+        
             node->instr_type = JAL;
             node->ir_type = IR_JUMP;
             node->instruction = "jal";
@@ -1255,6 +1259,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
             //root->value.label_count = label_counter++;
             node->line = root->line;
             update_line_number_IR(&node);
+            
         break;
 
         case LABEL_NODE:
@@ -1560,7 +1565,7 @@ void print_IR(IR_node *IR_head, IR_node *IR_tail)
     {
       IR_head = IR_head->prev;
 
-      if(IR_head->line != 0) fprintf(rows_lookup_file, "%d\n", IR_head->line);
+      if(IR_head->line != 0 && IR_head->line != -1) fprintf(rows_lookup_file, "%d\n", IR_head->line);
 
       IR_head->ir_address = ir_address;
       ir_address += 4;
@@ -1648,33 +1653,33 @@ IR_node* get_reg(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_
             /* WARNING: VERY GREEDY! */
             holding_reg = min_count_register(rp);   
     
-            // IR_node* sw_temp;
-            // if(get_register_count(rp, holding_reg) != 0)
-            // {             
-            //     sw_temp = (IR_node*)malloc(sizeof(IR_node)); 	
-            //     sw_temp->instr_type = SW;
-            //     sw_temp->ir_type = IR_STORE;
-            //     sw_temp->instruction = "sw";
-            //     sw_temp->rs1.name = get_id_from_register(rp, holding_reg);
-            //     remove_id_from_register(rp, holding_reg, sw_temp->rs1.name);
-            //     sw_temp->sf_offset = get_sf_offset(table, sw_temp->rs1.name)*(-1);
-            //     sw_temp->rd.reg = s0;
-            //     sw_temp->rs1.reg = holding_reg;
+            IR_node* sw_temp;
+            if(get_register_count(rp, holding_reg) != 0)
+            {             
+                sw_temp = (IR_node*)malloc(sizeof(IR_node)); 	
+                sw_temp->instr_type = SW;
+                sw_temp->ir_type = IR_STORE;
+                sw_temp->instruction = "sw";
+                sw_temp->rs1.name = get_id_from_register(rp, holding_reg);
+                remove_id_from_register(rp, holding_reg, sw_temp->rs1.name);
+                sw_temp->sf_offset = get_sf_offset(table, sw_temp->rs1.name)*(-1);
+                sw_temp->rd.reg = s0;
+                sw_temp->rs1.reg = holding_reg;
             
-            //     sw_temp->next = *head;
-            //     sw_temp->prev = NULL;
-            //     (*head)->prev = sw_temp;
-            //     //*head = sw_temp;    
+                sw_temp->next = *head;
+                sw_temp->prev = NULL;
+                (*head)->prev = sw_temp;
+                //*head = sw_temp;    
 
-            //     node->prev = NULL;
-            //     node->next = sw_temp;
-            //     sw_temp->prev = node;
-            // }
-            while(get_register_count(rp, holding_reg) != 0)
-            {  
-                head = store_from_register(rp, table, &head, holding_reg); 
+                node->prev = NULL;
+                node->next = sw_temp;
+                sw_temp->prev = node;
             }
-            node->next = head;
+            // while(get_register_count(rp, holding_reg) != 0)
+            // {  
+            //     head = store_from_register(rp, table, &head, holding_reg); 
+            // }
+            // node->next = head;
         }
         
         node->rd.reg = holding_reg; 
@@ -1951,7 +1956,7 @@ IR_node* get_reg(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_
         }
         else
         {
-            node->rs2.reg = holding_reg;    
+            node->rs2.reg = holding_reg;   
 
             if(root->right->nodetype == ID_NODE || root->right->nodetype == POINTER_NODE)
                 add_id_to_register(rp, holding_reg, root->right->name);
@@ -2079,41 +2084,63 @@ IR_node* get_OP_node(register_pool *rp, ht *table, ASTnode *root, IR_node *node,
 {
     IR_node *temp_left = (IR_node*)malloc(sizeof(IR_node));
     IR_node *temp_right = (IR_node*)malloc(sizeof(IR_node));
-    if(1)
-    {     
+
+    if(root->operation != ADD_OP) // no need to load a constant, "addi" can be used
+    {
         if(root->left != NULL && root->left->nodetype == CONSTANT_NODE)
         {     
             temp_left = get_reg(rp, table, root->left, temp_left, head);
-            node->rs1.reg = temp_left->rd.reg;
+            node->rs2.reg = temp_left->rd.reg;
             node->next = temp_left;
             temp_left->prev = node;
             temp_left->next = head;
             (*head)->prev = temp_left;
-            
         }
         if(root->right != NULL && root->right->nodetype == CONSTANT_NODE)
-        {
-            
-            temp_right = get_reg(rp, table, root->right, temp_right, head);
-            node->rs2.reg = temp_right->rd.reg; 
+        { 
+            temp_right = get_reg(rp, table, root->right, temp_right, node->next);
+            node->rs1.reg = temp_right->rd.reg; 
             node->next = temp_right;
             temp_right->prev = node;
             temp_right->next = head;
             (*head)->prev = temp_right;
         }
+    }
 
-        node = get_reg(rp, table, root, node, &(node->next));    
+    if((root->left != NULL && root->left->nodetype == ID_NODE) || (root->right != NULL && root->right->nodetype == ID_NODE))
+    {     
+        // ##
+        int rs1 = node->rs1.reg;
+        int rs2 = node->rs2.reg;
+
+        node = get_reg(rp, table, root, node, &(node->next));   
+
+        
+        int temp_switch = node->rs1.reg;
+        node->rs1.reg = node->rs2.reg;
+        node->rs2.reg = temp_switch; 
+
+        if(rs1 != 0)
+        {
+            node->rs1.reg = rs1;
+        }
+
+        if(rs2 != 0)
+        {
+            node->rs2.reg = rs2;
+        }
+
         node->prev = NULL;
     }
     
-    if (root->left->nodetype == OPERATION_NODE)
+    if(root->left->nodetype == OPERATION_NODE)
     {
-        node->rs1.reg = (*head)->rd.reg;
+        node->rs2.reg = (*head)->rd.reg;
     }
     else if(root->right->nodetype == OPERATION_NODE)
     {
         /* Operation to the right */
-        node->rs2.reg = (*head)->rd.reg;     
+        node->rs1.reg = (*head)->rd.reg;     
     }
 
     return node;
@@ -2185,33 +2212,33 @@ IR_register get_holding_reg(register_pool *rp, ht *table, IR_node **node, IR_nod
         /* WARNING: VERY GREEDY! */         
         holding_reg = min_count_register_without_REGs(rp, without_reg1, without_reg2);
 
-        // IR_node* sw_temp;
-        // if(get_register_count(rp, holding_reg) != 0)
-        // {             
-        //     sw_temp = (IR_node*)malloc(sizeof(IR_node)); 	
-        //     sw_temp->instr_type = SW;
-        //     sw_temp->ir_type = IR_STORE;
-        //     sw_temp->instruction = "sw";
-        //     sw_temp->rs1.name = get_id_from_register(rp, holding_reg);
-        //     remove_id_from_register(rp, holding_reg, sw_temp->rs1.name);
-        //     sw_temp->sf_offset = get_sf_offset(table, sw_temp->rs1.name)*(-1);
-        //     sw_temp->rd.reg = s0;
-        //     sw_temp->rs1.reg = holding_reg;
+        IR_node* sw_temp;
+        if(get_register_count(rp, holding_reg) != 0)
+        {             
+            sw_temp = (IR_node*)malloc(sizeof(IR_node)); 	
+            sw_temp->instr_type = SW;
+            sw_temp->ir_type = IR_STORE;
+            sw_temp->instruction = "sw";
+            sw_temp->rs1.name = get_id_from_register(rp, holding_reg);
+            remove_id_from_register(rp, holding_reg, sw_temp->rs1.name);
+            sw_temp->sf_offset = get_sf_offset(table, sw_temp->rs1.name)*(-1);
+            sw_temp->rd.reg = s0;
+            sw_temp->rs1.reg = holding_reg;
         
-        //     sw_temp->next = *head;
-        //     sw_temp->prev = NULL;
-        //     (*head)->prev = sw_temp;
-        //     //*head = sw_temp;    
+            sw_temp->next = *head;
+            sw_temp->prev = NULL;
+            (*head)->prev = sw_temp;
+            //*head = sw_temp;    
 
-        //     (*node)->prev = NULL;
-        //     (*node)->next = sw_temp;
-        //     sw_temp->prev = (*node);
-        // }
-        while(get_register_count(rp, holding_reg) != 0)
-        {  
-            head = store_from_register(rp, table, &head, holding_reg); 
+            (*node)->prev = NULL;
+            (*node)->next = sw_temp;
+            sw_temp->prev = (*node);
         }
-        (*node)->next = head;
+        // while(get_register_count(rp, holding_reg) != 0)
+        // {  
+        //     head = store_from_register(rp, table, &head, holding_reg); 
+        // }
+        // (*node)->next = head;
 
         return holding_reg;
     }
@@ -2311,7 +2338,6 @@ int get_label_address(char* label, IR_node *IR_head, IR_node *IR_tail)
 
 void update_line_number_IR(IR_node** node)
 {   
-    printf("\n");
     int line = (*node)->line;
     IR_node *temp = *node;
     while(temp->next != HEAD && temp->next->line == 0)
@@ -2485,9 +2511,7 @@ void load_array_element(register_pool *rp, ht *table, ASTnode *root, IR_node **n
     srli_node->next = calc_address;
     calc_address->prev = srli_node;
 
-    (*node) = srli_node;
-
-    
+    (*node) = srli_node;    
 }
 
 

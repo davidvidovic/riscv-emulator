@@ -11,9 +11,10 @@ int main()
 	a = 4097;
 	a = a + b;
 	c = 19 + b - a;
-	for(i = 0; i < 10; i++)
+	for(i = 0; i < 10; i=i+1)
 	{
 		arr[i] = c + i;
+		a = a + 888;
 	}
 	
 	b = foo(b);
