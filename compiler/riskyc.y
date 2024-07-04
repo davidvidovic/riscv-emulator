@@ -22,6 +22,8 @@
 
     void yyerror(const char *s);
     int yylex();
+	ASTnode* get_assign_node(operation_type operation, ASTnode* left_operand, ASTnode* right_operand, int lineno);
+	ASTnode* init_array(ASTnode* node, ASTnode* array_element, int offset);
     // int yywrap();
 %}
 
@@ -118,7 +120,7 @@ primary_expression
   	| SCI_CONSTANT {$$ = new_ASTnode_FLOAT($1);} // Should get looked at
   	| FLT_CONSTANT {$$ = new_ASTnode_FLOAT($1);}
 	| STRING_LITERAL {$$ = new_ASTnode_INT($1);}
-	| '(' expression ')' {$$ = $2;}
+	| '(' expression ')' {$$ = $2->left;}
 	;
 
 postfix_expression
@@ -134,8 +136,8 @@ postfix_expression
 	}
 	| postfix_expression '.' IDENTIFIER
 	| postfix_expression PTR_OP IDENTIFIER
-	| postfix_expression INC_OP
-	| postfix_expression DEC_OP
+	| postfix_expression INC_OP {yyerror("Post-expression increment not supported.\n"); exit(1);}
+	| postfix_expression DEC_OP {yyerror("Post-expression decrement not supported.\n"); exit(1);}
 	;
 
 argument_expression_list
@@ -169,7 +171,7 @@ unary_operator
 
 cast_expression
 	: unary_expression {$$ = $1;}
-	| '(' type_name ')' cast_expression {}
+	| '(' type_name ')' cast_expression {yyerror("Casting is not supported.\n"); exit(1);}
 	;
 
 multiplicative_expression
@@ -187,8 +189,8 @@ additive_expression
 
 shift_expression
 	: additive_expression {$$ = $1;}
-	| shift_expression LEFT_OP additive_expression
-	| shift_expression RIGHT_OP additive_expression
+	| shift_expression LEFT_OP additive_expression {$$ = new_ASTnode_OPERATION(BITWISE_SHIFT_LEFT, $3, $1, lineno);}
+	| shift_expression RIGHT_OP additive_expression {$$ = new_ASTnode_OPERATION(BITWISE_SHIFT_RIGHT, $3, $1, lineno);}
 	;
 
 relational_expression
@@ -207,17 +209,17 @@ equality_expression
 
 and_expression
 	: equality_expression {$$ = $1;}
-	| and_expression '&' equality_expression
+	| and_expression '&' equality_expression {$$ = new_ASTnode_OPERATION(BITWISE_AND, $3, $1, lineno);}
 	;
 
 exclusive_or_expression
 	: and_expression {$$ = $1;}
-	| exclusive_or_expression '^' and_expression
+	| exclusive_or_expression '^' and_expression {$$ = new_ASTnode_OPERATION(BITWISE_XOR, $3, $1, lineno);}
 	;
 
 inclusive_or_expression
 	: exclusive_or_expression {$$ = $1;}
-	| inclusive_or_expression '|' exclusive_or_expression
+	| inclusive_or_expression '|' exclusive_or_expression {$$ = new_ASTnode_OPERATION(BITWISE_OR, $3, $1, lineno);}
 	;
 
 logical_and_expression
@@ -279,8 +281,7 @@ assignment_expression
 		{
 			if($1->nodetype == ARRAY_ELEMENT_NODE)
 			{
-				
-				$$ = new_ASTnode_OPERATION($2, $1, $3, lineno);
+				$$ = get_assign_node($2, $1, $3, lineno);
 			}
 			else
 			{
@@ -292,14 +293,15 @@ assignment_expression
 				{
 					type_check($1, $3);
 				}
-				$$ = new_ASTnode_OPERATION($2, $1, $3, lineno); // maybe 3,1?
+
+				$$ = get_assign_node($2, $1, $3, lineno);
 			}
 		}		
 	}
 	;
 
 assignment_operator
-	: '='	{$$ = EQU_OP;}
+	: '='			{$$ = EQU_OP;}
 	| MUL_ASSIGN	{$$ = MUL_ASSIGN_OP;}
 	| DIV_ASSIGN	{$$ = DIV_ASSIGN_OP;}
 	| MOD_ASSIGN	{$$ = MOD_ASSIGN_OP;}
@@ -334,6 +336,7 @@ declaration
 	: declaration_specifiers ';'  {}
 	| declaration_specifiers init_declarator_list ';' {
 		$$ = $2; 
+		
 		if($$->nodetype == ID_NODE)
 		{
 			$$->type = $1;
@@ -389,7 +392,7 @@ declaration
 			multiline_declaration_cnt = 0;
 
 			$$ = set_right_init_to_null($$);
-			free(temp);
+			//free(temp);
 		}
 		
 	}
@@ -418,8 +421,14 @@ init_declarator_list
 init_declarator
 	: declarator {$$ = $1;}
 	| declarator '=' initializer {
-		ASTnode *temp = new_ASTnode_OPERATION(EQU_OP, $1, $3, lineno);
-		$$ = new_ASTnode_EXPRESSION(temp, NULL, lineno);
+		if($1->structure == ARRAY)
+		{
+			$$ = init_array($3, $1, $1->element_number);
+		}
+		else
+		{
+			$$ = new_ASTnode_EXPRESSION(new_ASTnode_OPERATION(EQU_OP, $1, $3, lineno), NULL, lineno);
+		}
 	}
 	;
 
@@ -432,12 +441,12 @@ storage_class_specifier
 	;
 
 type_specifier
-	: VOID	{$$ = TYPE_VOID;}
-	| CHAR	{$$ = TYPE_CHAR;}
-	| SHORT	{$$ = TYPE_SHORT;}
-	| INT	{$$ = TYPE_INT;}
-	| LONG	{$$ = TYPE_LONG;}
-	| FLOAT	{$$ = TYPE_FLOAT;}
+	: VOID		{$$ = TYPE_VOID;}
+	| CHAR		{$$ = TYPE_CHAR;}
+	| SHORT		{$$ = TYPE_SHORT;}
+	| INT		{$$ = TYPE_INT;}
+	| LONG		{$$ = TYPE_LONG;}
+	| FLOAT		{$$ = TYPE_FLOAT;}
 	| DOUBLE	{$$ = TYPE_DOUBLE;}
 	| SIGNED	{$$ = TYPE_SIGNED;}
 	| UNSIGNED	{$$ = TYPE_UNSIGNED;}
@@ -642,13 +651,13 @@ direct_abstract_declarator
 
 initializer
 	: assignment_expression {$$ = $1;}
-	| '{' initializer_list '}' {}
+	| '{' initializer_list '}' {$$ = $2;}
 	| '{' initializer_list ',' '}' {}
 	;
 
 initializer_list
 	: initializer {$$ = $1;}
-	| initializer_list ',' initializer
+	| initializer_list ',' initializer {$$ = $3; $$->right = $1;}
 	;
 
 statement
@@ -853,7 +862,8 @@ selection_statement
 
 iteration_statement
 	: WHILE '(' expression ')' statement {
-		$$ = new_ASTnode_WHILE($5, $3, lineno);
+		$3->right = $3;
+		$$ = new_ASTnode_WHILE($5, $3, lineno); 
 	}
 	| DO statement WHILE '(' expression ')' ';' {
 		ASTnode *do_node = new_ASTnode_DO($2, NULL, lineno);
@@ -992,3 +1002,44 @@ int calculate_sp_offset(int sp_offset, id_type type, int num_of_elements)
 	return sp_offset;
 }
 
+ASTnode* get_assign_node(operation_type operation, ASTnode* left_operand, ASTnode* right_operand, int lineno)
+{
+	switch(operation)
+	{
+		case EQU_OP:
+			return new_ASTnode_OPERATION(operation, left_operand, right_operand, lineno);
+
+		case ADD_ASSIGN_OP:
+			return new_ASTnode_OPERATION(EQU_OP, left_operand, new_ASTnode_OPERATION(ADD_OP, right_operand, left_operand, lineno), lineno);
+
+		case SUB_ASSIGN_OP:
+			return new_ASTnode_OPERATION(EQU_OP, left_operand, new_ASTnode_OPERATION(SUB_OP, right_operand, left_operand, lineno), lineno);
+
+		case LEFT_ASSIGN_OP:
+			return new_ASTnode_OPERATION(EQU_OP, left_operand, new_ASTnode_OPERATION(BITWISE_SHIFT_LEFT, right_operand, left_operand, lineno), lineno);
+
+		case RIGHT_ASSIGN_OP:
+			return new_ASTnode_OPERATION(EQU_OP, left_operand, new_ASTnode_OPERATION(BITWISE_SHIFT_RIGHT, right_operand, left_operand, lineno), lineno);
+
+		case AND_ASSIGN_OP:
+			return new_ASTnode_OPERATION(EQU_OP, left_operand, new_ASTnode_OPERATION(BITWISE_AND, right_operand, left_operand, lineno), lineno);
+
+		case XOR_ASSIGN_OP:
+			return new_ASTnode_OPERATION(EQU_OP, left_operand, new_ASTnode_OPERATION(BITWISE_XOR, right_operand, left_operand, lineno), lineno);
+
+		case OR_ASSIGN_OP:
+			return new_ASTnode_OPERATION(EQU_OP, left_operand, new_ASTnode_OPERATION(BITWISE_OR, right_operand, left_operand, lineno), lineno);
+	}
+}
+
+ASTnode* init_array(ASTnode* node, ASTnode* array_element, int offset)
+{
+	ASTnode* temp = NULL;
+	if(node->right != NULL)
+		temp = init_array(node->right, array_element, offset-1);
+
+	node->right = NULL;
+	ASTnode* rtn = new_ASTnode_EXPRESSION(new_ASTnode_OPERATION(EQU_OP, new_ASTnode_ARRAY_ELEMENT(array_element, new_ASTnode_EXPRESSION(new_ASTnode_INT(offset), NULL, lineno), lineno), node, lineno), temp, lineno);
+
+	return rtn;
+}

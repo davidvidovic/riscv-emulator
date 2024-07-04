@@ -478,6 +478,21 @@ char* print_operation(operation_type op)
 
     case BITWISE_NOT_OP:
         return "BITWISE_NOT_OP";
+
+    case BITWISE_SHIFT_LEFT:
+        return "Node BITWISE_SHIFT_LEFT\n";
+
+    case BITWISE_SHIFT_RIGHT:
+        return "Node BITWISE_SHIFT_RIGHT\n";
+
+    case BITWISE_AND:
+        return "Node BITWISE_AND\n";
+
+    case BITWISE_OR:
+        return "Node BITWISE_OR\n";
+
+    case BITWISE_XOR:
+        return "Node BITWISE_XOR\n";
     
     default:
         return "NOT VALID OPERATION";

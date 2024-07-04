@@ -198,29 +198,42 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
        
                     if(root->left->nodetype == ARRAY_ELEMENT_NODE)
                     {
+                        IR_node *temp;
+
                         if(root->right->nodetype == CONSTANT_NODE)
                         {
                             node = get_reg(rp, table, root->right, node, &head);
+                            temp = store_array_element(rp, table, root, node, head);
+                            temp->prev = NULL;
+                            temp->next = node; // ##
+                            node->prev = temp;
+                            temp->line = root->line;
+                            update_line_number_IR(&temp);
                         }
                         else if(root->right->nodetype == ID_NODE)
                         {
                             node = get_reg(rp, table, root, node, &head);
                             node->rd.reg = node->rs2.reg;
+
+                            temp = store_array_element(rp, table, root, node, head);
+                            temp->prev = NULL;
+                            temp->next = head; // ##
+                            head->prev = temp;
+                            temp->line = -1;
                         }
                         else
                         {
                             /* Operation to the right */
                             
                             node->rd.reg = pop(array_element_stack)->rd.reg;
+                            temp = store_array_element(rp, table, root, node, head);
+                            temp->prev = NULL;
+                            temp->next = head; // ##
+                            head->prev = temp;
+                            temp->line = -1;
                         }
 
-                        IR_node *temp;
-                        temp = store_array_element(rp, table, root, node, head);
-                        temp->prev = NULL;
-                        temp->next = head; // ##
-                        head->prev = temp;
-
-                        temp->line = -1;
+                        
                         //update_line_number_IR(&temp);
 
                         return temp;
@@ -274,15 +287,15 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                                     sw_temp->instr_type = SW;
                                     sw_temp->instruction = "sw";
                                     sw_temp->rs1.reg = operand2_reg;
-                                    sw_temp->rs1.name = get_id_from_register(rp, operand2_reg);
-                                    sw_temp->sf_offset = get_sf_offset(table, sw_temp->rs1.name)*(-1);
+                                    char* name = get_id_from_register(rp, operand2_reg);
+                                    sw_temp->sf_offset = get_sf_offset(table, name)*(-1);
                                     sw_temp->rd.reg = s0;
                                     sw_temp->prev = NULL;
                                     sw_temp->next = head;
                                     head->prev = sw_temp;
 
                                     head = sw_temp;
-                                    remove_id_from_register(rp, operand2_reg, sw_temp->rs1.name);
+                                    remove_id_from_register(rp, operand2_reg, name);
                                 }
                                 
                                 node->next = head;
@@ -391,7 +404,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                         {
                             /* Copy instruction */
 
-                            /* In exspression: c = b; 
+                            /* In expression: c = b; 
                             * If c exists in some register already, look for b in another register
                             * If b is found, remove c from it's register and simply add c to b's register, but first store everything from b's register
                             * If b is not found, load value of b inside C's existing register
@@ -419,15 +432,16 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                                     sw_temp->instr_type = SW;
                                     sw_temp->instruction = "sw";
                                     sw_temp->rs1.reg = operand2_reg;
-                                    sw_temp->rs1.name = get_id_from_register(rp, operand2_reg);
-                                    sw_temp->sf_offset = get_sf_offset(table, sw_temp->rs1.name)*(-1);
+                                    
+                                    char* name = get_id_from_register(rp, operand2_reg);
+                                    sw_temp->sf_offset = get_sf_offset(table, name)*(-1);
                                     sw_temp->rd.reg = s0;
                                     sw_temp->prev = NULL;
                                     sw_temp->next = head;
                                     head->prev = sw_temp;
 
                                     head = sw_temp;
-                                    remove_id_from_register(rp, operand2_reg, sw_temp->rs1.name);
+                                    remove_id_from_register(rp, operand2_reg, name);
                                 }
 
                                 add_id_to_register(rp, operand2_reg, root->left->name);
@@ -467,9 +481,6 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     node = get_OP_node(rp, table, root, node, &head);
 
                     node->rd.reg = get_holding_reg(rp, table, node, &head, 0, 0);       
-
-                    /* Very dirty */
-                    add_id_to_register(rp, node->rd.reg, "19");
                     
                     if(root->right->nodetype == CONSTANT_NODE)
                     {
@@ -531,9 +542,8 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                 break;
 
                 case SUB_OP:
-                    node = get_OP_node(rp, table, root, node, &head);
-
-                    
+                    node = get_OP_node(rp, table, root, node, &head);   
+                    node->rd.reg = get_holding_reg(rp, table, node, &head, 0, 0);     
                 
                     node->instr_type = SUB;
                     node->ir_type = IR_OP;
@@ -827,6 +837,171 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                         node->rs2.reg = a0;
                     }
                 break;
+
+                case BITWISE_SHIFT_LEFT:
+                    node = get_OP_node(rp, table, root, node, &head);
+                    
+                    if(root->right->nodetype == CONSTANT_NODE)
+                    {
+                        node->ir_type = IR_OP_IMM;
+                        node->instr_type = SLLIW;
+                        node->instruction = "slliw";
+                        node->rs1.reg = node->rs2.reg;
+                        node->rs2.int_constant = root->right->value.value_INT;
+                    }
+                    else
+                    {
+                        node->ir_type = IR_OP;
+                        node->instr_type = SLLW;
+                        node->instruction = "sllw";
+                    }
+
+                    if(root->left->nodetype == FUNCTION_CALL_NODE)
+                    {
+                        node->rs1.reg = a0;
+                    }
+                    if(root->right->nodetype == FUNCTION_CALL_NODE)
+                    {
+                        node->rs2.reg = a0;
+                    }
+                break;
+
+                case BITWISE_SHIFT_RIGHT:
+                    node = get_OP_node(rp, table, root, node, &head);
+                    
+                    if(root->right->nodetype == CONSTANT_NODE)
+                    {
+                        node->ir_type = IR_OP_IMM;
+                        node->instr_type = SRAIW;
+                        node->instruction = "sraiw";
+                        node->rs1.reg = node->rs2.reg;
+                        node->rs2.int_constant = root->right->value.value_INT;
+                    }
+                    else
+                    {
+                        node->ir_type = IR_OP;
+                        node->instr_type = SRAW;
+                        node->instruction = "sraw";
+                    }
+
+                    if(root->left->nodetype == FUNCTION_CALL_NODE)
+                    {
+                        node->rs1.reg = a0;
+                    }
+                    if(root->right->nodetype == FUNCTION_CALL_NODE)
+                    {
+                        node->rs2.reg = a0;
+                    }
+                break;
+
+                case BITWISE_AND:
+                    node = get_OP_node(rp, table, root, node, &head);
+                    
+                    if(root->right->nodetype == CONSTANT_NODE)
+                    {
+                        node->ir_type = IR_OP_IMM;
+                        node->instr_type = ANDI;
+                        node->instruction = "andi";
+                        node->rs1.reg = node->rs2.reg;
+                        node->rs2.int_constant = root->right->value.value_INT;
+                    }
+                    else if(root->left->nodetype == CONSTANT_NODE)
+                    {
+                        node->ir_type = IR_OP_IMM;
+                        node->instr_type = ANDI;
+                        node->instruction = "andi";
+                        node->rs2.int_constant = root->left->value.value_INT;
+                    }
+                    else
+                    {
+                        node->ir_type = IR_OP;
+                        node->instr_type = AND;
+                        node->instruction = "and";
+                    }
+
+                    if(root->left->nodetype == FUNCTION_CALL_NODE)
+                    {
+                        node->rs1.reg = a0;
+                    }
+                    if(root->right->nodetype == FUNCTION_CALL_NODE)
+                    {
+                        node->rs2.reg = a0;
+                    }
+                break;
+
+
+                case BITWISE_OR:
+                    node = get_OP_node(rp, table, root, node, &head);
+                    
+                    if(root->right->nodetype == CONSTANT_NODE)
+                    {
+                        node->ir_type = IR_OP_IMM;
+                        node->instr_type = ORI;
+                        node->instruction = "ori";
+                        node->rs1.reg = node->rs2.reg;
+                        node->rs2.int_constant = root->right->value.value_INT;
+                    }
+                    else if(root->left->nodetype == CONSTANT_NODE)
+                    {
+                        node->ir_type = IR_OP_IMM;
+                        node->instr_type = ORI;
+                        node->instruction = "ori";
+                        node->rs2.int_constant = root->left->value.value_INT;
+                    }
+                    else
+                    {
+                        node->ir_type = IR_OP;
+                        node->instr_type = OR;
+                        node->instruction = "or";
+                    }
+
+                    if(root->left->nodetype == FUNCTION_CALL_NODE)
+                    {
+                        node->rs1.reg = a0;
+                    }
+                    if(root->right->nodetype == FUNCTION_CALL_NODE)
+                    {
+                        node->rs2.reg = a0;
+                    }
+                break;
+
+                case BITWISE_XOR:
+                    node = get_OP_node(rp, table, root, node, &head);
+                    
+                    if(root->right->nodetype == CONSTANT_NODE)
+                    {
+                        node->ir_type = IR_OP_IMM;
+                        node->instr_type = XORI;
+                        node->instruction = "xori";
+                        node->rs1.reg = node->rs2.reg;
+                        node->rs2.int_constant = root->right->value.value_INT;
+                    }
+                    else if(root->left->nodetype == CONSTANT_NODE)
+                    {
+                        node->ir_type = IR_OP_IMM;
+                        node->instr_type = XORI;
+                        node->instruction = "xori";
+                        node->rs2.int_constant = root->left->value.value_INT;
+                    }
+                    else
+                    {
+                        node->ir_type = IR_OP;
+                        node->instr_type = XOR;
+                        node->instruction = "xor";
+                    }
+
+                    if(root->left->nodetype == FUNCTION_CALL_NODE)
+                    {
+                        node->rs1.reg = a0;
+                    }
+                    if(root->right->nodetype == FUNCTION_CALL_NODE)
+                    {
+                        node->rs2.reg = a0;
+                    }
+                break;
+
+
+                
             }
 
             /* Implement other operations */    
@@ -1660,9 +1835,9 @@ IR_node* get_reg(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_
                 sw_temp->instr_type = SW;
                 sw_temp->ir_type = IR_STORE;
                 sw_temp->instruction = "sw";
-                sw_temp->rs1.name = get_id_from_register(rp, holding_reg);
-                remove_id_from_register(rp, holding_reg, sw_temp->rs1.name);
-                sw_temp->sf_offset = get_sf_offset(table, sw_temp->rs1.name)*(-1);
+                char* name = get_id_from_register(rp, holding_reg);
+                remove_id_from_register(rp, holding_reg, name);
+                sw_temp->sf_offset = get_sf_offset(table, name)*(-1);
                 sw_temp->rd.reg = s0;
                 sw_temp->rs1.reg = holding_reg;
             
@@ -1728,9 +1903,9 @@ IR_node* get_reg(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_
                     sw_temp->instr_type = SW;
                     sw_temp->ir_type = IR_STORE;
                     sw_temp->instruction = "sw";
-                    sw_temp->rs1.name = get_id_from_register(rp, holding_reg);
-                    remove_id_from_register(rp, holding_reg, sw_temp->rs1.name);
-                    sw_temp->sf_offset = get_sf_offset(table, sw_temp->rs1.name)*(-1);
+                    char* name = get_id_from_register(rp, holding_reg);
+                    remove_id_from_register(rp, holding_reg, name);
+                    sw_temp->sf_offset = get_sf_offset(table, name)*(-1);
                     sw_temp->rd.reg = s0;
                     sw_temp->rs1.reg = holding_reg;
                 
@@ -1880,9 +2055,9 @@ IR_node* get_reg(register_pool *rp, ht *table, ASTnode *root, IR_node *node, IR_
                     sw_temp->instr_type = SW;
                     sw_temp->ir_type = IR_STORE;
                     sw_temp->instruction = "sw";
-                    sw_temp->rs1.name = get_id_from_register(rp, holding_reg);
-                    remove_id_from_register(rp, holding_reg, sw_temp->rs1.name);
-                    sw_temp->sf_offset = get_sf_offset(table, sw_temp->rs1.name)*(-1);
+                    char* name = get_id_from_register(rp, holding_reg);
+                    remove_id_from_register(rp, holding_reg, name);
+                    sw_temp->sf_offset = get_sf_offset(table, name)*(-1);
                     sw_temp->rd.reg = s0;
                     sw_temp->rs1.reg = holding_reg;
                 
@@ -1996,9 +2171,9 @@ IR_node* get_reg_single_ID(register_pool *rp, ht *table, ASTnode *root, IR_node 
                     sw_temp->instr_type = SW;
                     sw_temp->ir_type = IR_STORE;
                     sw_temp->instruction = "sw";
-                    sw_temp->rs1.name = get_id_from_register(rp, holding_reg);
-                    remove_id_from_register(rp, holding_reg, sw_temp->rs1.name);
-                    sw_temp->sf_offset = get_sf_offset(table, sw_temp->rs1.name)*(-1);
+                    char* name = get_id_from_register(rp, holding_reg);
+                    remove_id_from_register(rp, holding_reg, name);
+                    sw_temp->sf_offset = get_sf_offset(table, name)*(-1);
                     sw_temp->rd.reg = s0;
                     sw_temp->rs1.reg = holding_reg;
                 
@@ -2219,9 +2394,9 @@ IR_register get_holding_reg(register_pool *rp, ht *table, IR_node **node, IR_nod
             sw_temp->instr_type = SW;
             sw_temp->ir_type = IR_STORE;
             sw_temp->instruction = "sw";
-            sw_temp->rs1.name = get_id_from_register(rp, holding_reg);
-            remove_id_from_register(rp, holding_reg, sw_temp->rs1.name);
-            sw_temp->sf_offset = get_sf_offset(table, sw_temp->rs1.name)*(-1);
+            char* name = get_id_from_register(rp, holding_reg);
+            remove_id_from_register(rp, holding_reg, name);
+            sw_temp->sf_offset = get_sf_offset(table, name)*(-1);
             sw_temp->rd.reg = s0;
             sw_temp->rs1.reg = holding_reg;
         
@@ -2239,11 +2414,13 @@ IR_register get_holding_reg(register_pool *rp, ht *table, IR_node **node, IR_nod
         //     head = store_from_register(rp, table, &head, holding_reg); 
         // }
         // (*node)->next = head;
-
+        add_id_to_register(rp, holding_reg, "19");
         return holding_reg;
     }
     else
     {
+        /* Very dirty */
+        add_id_to_register(rp, holding_reg, "19");
         return holding_reg;
     }
 }
@@ -2561,9 +2738,9 @@ IR_node* store_from_register(register_pool *rp, ht *table, IR_node **head, IR_re
         sw_temp->instr_type = SW;
         sw_temp->ir_type = IR_STORE;
         sw_temp->instruction = "sw";
-        sw_temp->rs1.name = get_id_from_register(rp, reg);
-        remove_id_from_register(rp, reg, sw_temp->rs1.name);
-        sw_temp->sf_offset = get_sf_offset(table, sw_temp->rs1.name)*(-1);
+        char* name = get_id_from_register(rp, reg);
+        remove_id_from_register(rp, reg, name);
+        sw_temp->sf_offset = get_sf_offset(table, name)*(-1);
         sw_temp->rd.reg = s0;
         sw_temp->rs1.reg = reg;
     

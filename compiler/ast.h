@@ -61,7 +61,13 @@ typedef enum operation_type {
     LOGIC_GT_OP,
     LOGIC_LET_OP,
     LOGIC_GET_OP,
-    BITWISE_NOT_OP
+    // Bitwise
+    BITWISE_NOT_OP,
+    BITWISE_SHIFT_LEFT,
+    BITWISE_SHIFT_RIGHT,
+    BITWISE_AND,
+    BITWISE_OR,
+    BITWISE_XOR
 } operation_type;
 
 typedef enum id_type {

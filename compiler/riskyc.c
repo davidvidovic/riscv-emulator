@@ -98,6 +98,9 @@ void ht_set_type_sp_offset(const char* key, id_type type, int sp_offset, ht* tab
 
 void type_check(ASTnode *op1, ASTnode *op2)
 {
+  if(op1->nodetype == EXPRESSION_NODE || op2->nodetype == EXPRESSION_NODE)
+    return;
+  
   id_type op1_type, op2_type;
   char *op1_name, *op2_name;
   ht_entry *temp, *temp2;
