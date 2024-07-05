@@ -1,11 +1,10 @@
 int main()
 {
 	int a, b, c, i;
-	int arr[5] = {88, 6, 7, 8, 9};
 	b = 1;
-	c = 9;
-	a = 8;
-	a <<= c + b;
+	c = 1;
+	a = 16;
+	a >>= c + 1;
 
 	return 0;
 }

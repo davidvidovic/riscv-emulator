@@ -35,7 +35,7 @@ sudo apt install bison flex
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/your-repo-name.git
+git clone https://github.com/davidvidovic/riscv-toolchain.git
 ```
 
 ## Usage

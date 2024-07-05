@@ -1734,13 +1734,20 @@ void print_IR(IR_node *IR_head, IR_node *IR_tail)
 
     FILE *asm_file = fopen("../output.s", "w");
     FILE *rows_lookup_file = fopen("lookup_rows.txt", "w");
-
+    FILE *bin_rows_lookup_file = fopen("bin_lookup_rows.txt", "w");
 
     while(IR_head != IR_tail)
     {
       IR_head = IR_head->prev;
 
-      if(IR_head->line != 0 && IR_head->line != -1) fprintf(rows_lookup_file, "%d\n", IR_head->line);
+      if(IR_head->line != 0 && IR_head->line != -1) 
+      {
+        fprintf(rows_lookup_file, "%d\n", IR_head->line);
+        if(IR_head->ir_type != IR_LABEL)
+        {
+            fprintf(bin_rows_lookup_file, "%d\n", IR_head->line);
+        }
+      }
 
       IR_head->ir_address = ir_address;
       ir_address += 4;
@@ -1807,6 +1814,7 @@ void print_IR(IR_node *IR_head, IR_node *IR_tail)
 
     fclose(asm_file);
     fclose(rows_lookup_file);
+    fclose(bin_rows_lookup_file);
 }
 
 

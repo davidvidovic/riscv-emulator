@@ -1,6 +1,8 @@
 #pragma once
 
 #include <iostream>
+#include <fstream>
+#include <iomanip>
 #include "bus.hpp"
 #include "opcodes.hpp"
 #include "error_codes.hpp"

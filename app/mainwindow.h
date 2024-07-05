@@ -19,6 +19,8 @@ private slots:
     int on_pushButton_pressed();
     void on_code_textbox_cursorPositionChanged();
 
+    void on_run_button_clicked();
+
 private:
     Ui::MainWindow *ui;
 };

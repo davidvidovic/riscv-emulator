@@ -252,4 +252,42 @@ void CPU::dump_regs()
 	std::cout << "t5  (x30):		0x" << std::hex << regs[30] << std::endl;
 	std::cout << "t6  (x31):		0x" << std::hex << regs[31] << std::endl;
 	std::cout << "#######################################################\n\n";
+
+	std::ofstream dump_regs_output_file;
+  	dump_regs_output_file.open("dump_regs_output.txt");
+
+	dump_regs_output_file << "0x" << std::hex << std::setw(8) << std::setfill('0') << 0 << std::endl;
+	dump_regs_output_file << "0x" << std::hex << std::setw(8) << std::setfill('0') << regs[1] << std::endl;
+	dump_regs_output_file << "0x" << std::hex << std::setw(8) << std::setfill('0') << regs[2] << std::endl;
+	dump_regs_output_file << "0x" << std::hex << std::setw(8) << std::setfill('0') << regs[3] << std::endl;
+	dump_regs_output_file << "0x" << std::hex << std::setw(8) << std::setfill('0') << regs[4] << std::endl;
+	dump_regs_output_file << "0x" << std::hex << std::setw(8) << std::setfill('0') << regs[5] << std::endl;
+	dump_regs_output_file << "0x" << std::hex << std::setw(8) << std::setfill('0') << regs[6] << std::endl;
+	dump_regs_output_file << "0x" << std::hex << std::setw(8) << std::setfill('0') << regs[7] << std::endl;
+	dump_regs_output_file << "0x" << std::hex << std::setw(8) << std::setfill('0') << regs[8] << std::endl;
+	dump_regs_output_file << "0x" << std::hex << std::setw(8) << std::setfill('0') << regs[9] << std::endl;
+	dump_regs_output_file << "0x" << std::hex << std::setw(8) << std::setfill('0') << regs[10] << std::endl;
+	dump_regs_output_file << "0x" << std::hex << std::setw(8) << std::setfill('0') << regs[11] << std::endl;
+	dump_regs_output_file << "0x" << std::hex << std::setw(8) << std::setfill('0') << regs[12] << std::endl;
+	dump_regs_output_file << "0x" << std::hex << std::setw(8) << std::setfill('0') << regs[13] << std::endl;
+	dump_regs_output_file << "0x" << std::hex << std::setw(8) << std::setfill('0') << regs[14] << std::endl;
+	dump_regs_output_file << "0x" << std::hex << std::setw(8) << std::setfill('0') << regs[15] << std::endl;
+	dump_regs_output_file << "0x" << std::hex << std::setw(8) << std::setfill('0') << regs[16] << std::endl;
+	dump_regs_output_file << "0x" << std::hex << std::setw(8) << std::setfill('0') << regs[17] << std::endl;
+	dump_regs_output_file << "0x" << std::hex << std::setw(8) << std::setfill('0') << regs[18] << std::endl;
+	dump_regs_output_file << "0x" << std::hex << std::setw(8) << std::setfill('0') << regs[19] << std::endl;
+	dump_regs_output_file << "0x" << std::hex << std::setw(8) << std::setfill('0') << regs[20] << std::endl;
+	dump_regs_output_file << "0x" << std::hex << std::setw(8) << std::setfill('0') << regs[21] << std::endl;
+	dump_regs_output_file << "0x" << std::hex << std::setw(8) << std::setfill('0') << regs[22] << std::endl;
+	dump_regs_output_file << "0x" << std::hex << std::setw(8) << std::setfill('0') << regs[23] << std::endl;
+	dump_regs_output_file << "0x" << std::hex << std::setw(8) << std::setfill('0') << regs[24] << std::endl;
+	dump_regs_output_file << "0x" << std::hex << std::setw(8) << std::setfill('0') << regs[25] << std::endl;
+	dump_regs_output_file << "0x" << std::hex << std::setw(8) << std::setfill('0') << regs[26] << std::endl;
+	dump_regs_output_file << "0x" << std::hex << std::setw(8) << std::setfill('0') << regs[27] << std::endl;
+	dump_regs_output_file << "0x" << std::hex << std::setw(8) << std::setfill('0') << regs[28] << std::endl;
+	dump_regs_output_file << "0x" << std::hex << std::setw(8) << std::setfill('0') << regs[29] << std::endl;
+	dump_regs_output_file << "0x" << std::hex << std::setw(8) << std::setfill('0') << regs[30] << std::endl;
+	dump_regs_output_file << "0x" << std::hex << std::setw(8) << std::setfill('0') << regs[31] << std::endl;
+
+	dump_regs_output_file.close();
 }

@@ -41,6 +41,15 @@
     ((imm) & 0x004 ? '1' : '0'), \
     ((imm) & 0x002 ? '1' : '0'), \
     ((imm) & 0x001 ? '1' : '0') 
+    
+#define IMM_SPECIAL_TO_BINARY_PATTERN "%c%c%c%c%c%c"
+#define IMM_SPECIAL_TO_BINARY(imm)  \
+    ((imm) & 0x020 ? '1' : '0'), \
+    ((imm) & 0x010 ? '1' : '0'), \
+    ((imm) & 0x008 ? '1' : '0'), \
+    ((imm) & 0x004 ? '1' : '0'), \
+    ((imm) & 0x002 ? '1' : '0'), \
+    ((imm) & 0x001 ? '1' : '0') 
 
 #define STORE_UPPER_IMM_TO_BINARY_PATTERN "%c%c%c%c%c%c%c"
 #define STORE_UPPER_IMM_TO_BINARY(imm)  \
@@ -170,7 +179,25 @@ char* assemble_I_type(IR_node *node)
         break;
 
         case IR_OP_IMM:
-            sprintf(instruction, IMM_TO_BINARY_PATTERN, IMM_TO_BINARY(node->rs2.int_constant));
+            switch(node->instr_type)
+            {
+            case SLLI:
+			case SRLI:
+				sprintf(instruction, "000000");
+				sprintf(temp, IMM_SPECIAL_TO_BINARY_PATTERN, IMM_SPECIAL_TO_BINARY(node->rs2.int_constant));
+				strcat(instruction, temp);
+			break;
+			
+			case SRAI:
+				sprintf(instruction, "010000");
+				sprintf(temp, IMM_SPECIAL_TO_BINARY_PATTERN, IMM_SPECIAL_TO_BINARY(node->rs2.int_constant));
+				strcat(instruction, temp);
+			break;
+			
+			default:
+				sprintf(instruction, IMM_TO_BINARY_PATTERN, IMM_TO_BINARY(node->rs2.int_constant));
+			break;
+            }
         break;
     }
 
@@ -188,6 +215,7 @@ char* assemble_I_type(IR_node *node)
         break;
 
         case LH:
+        case SLLI:
             sprintf(temp, "001");
         break;
 
@@ -207,6 +235,8 @@ char* assemble_I_type(IR_node *node)
         break;
 
         case LHU:
+        case SRLI:
+        case SRAI:
             sprintf(temp, "101");
         break;
 
@@ -252,9 +282,10 @@ char* assemble_R_type(IR_node *node)
     // funct7 field
     switch(node->instr_type)
     {
-        case SUB:
+		case SUB:
         case SRA:
-        case SRAI:
+        case SRAW:
+        case SRAIW:
             sprintf(instruction, "0100000");
         break;
 
@@ -281,6 +312,8 @@ char* assemble_R_type(IR_node *node)
 
         case SLL:
         case SLLI:
+        case SLLW:
+        case SLLIW:
             sprintf(temp, "001");
         break;
 
@@ -300,6 +333,9 @@ char* assemble_R_type(IR_node *node)
         case SRA:
         case SRLI:
         case SRAI:
+        case SRLIW:
+        case SRAIW:
+        case SRLW:
             sprintf(temp, "101");
         break;
 
@@ -318,7 +354,34 @@ char* assemble_R_type(IR_node *node)
     strcat(instruction, temp);
 
     // opcode field
-    sprintf(temp, R_TYPE_OPCODE);
+    switch(node->instr_type)
+    {
+        case ADD:
+        case SUB:
+        case SLL:
+        case SLT:
+        case SLTU:
+        case XOR:
+        case SRL:
+        case SRA:
+        case OR:
+        case AND:
+            sprintf(temp, R_TYPE_OPCODE);
+        break;
+
+        case SRAI:
+        case SLLI:
+        case SRLI:
+        	sprintf(temp, I_TYPE_OPCODE_OP);
+        break;
+        
+        case SLLIW:
+        case SLLW:
+        case SRLW:
+        case SRLIW:
+        	sprintf(temp, "0111011");
+        break;
+    }
     strcat(instruction, temp);
     
     return instruction;
