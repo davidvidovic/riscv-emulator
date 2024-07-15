@@ -78,6 +78,7 @@ int MainWindow::on_pushButton_pressed()
     ui->x29reg->clear();
     ui->x30reg->clear();
     ui->x31reg->clear();
+    ui->terminal_output->clear();
 
     QString text = ui->code_textbox->toPlainText();
 
@@ -100,7 +101,6 @@ int MainWindow::on_pushButton_pressed()
 
     // Call the bash script
     int ret = system(script);
-
 
     if (chdir(original_dir) != 0) {
         //std::cerr << "Failed to change back to original directory" << std::endl;

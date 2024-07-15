@@ -114,7 +114,7 @@ color: rgb(0, 0, 0);</string>
         <item>
          <widget class="QTabWidget" name="data_tabs">
           <property name="currentIndex">
-           <number>0</number>
+           <number>1</number>
           </property>
           <widget class="QWidget" name="register_tab">
            <attribute name="title">
@@ -579,6 +579,19 @@ color: rgb(0, 0, 0);</string>
            <attribute name="title">
             <string>Memory</string>
            </attribute>
+           <layout class="QGridLayout" name="gridLayout_6">
+            <item row="0" column="0">
+             <layout class="QGridLayout" name="gridLayout_5">
+              <item row="0" column="0">
+               <widget class="QTableView" name="tableView">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+           </layout>
           </widget>
          </widget>
         </item>

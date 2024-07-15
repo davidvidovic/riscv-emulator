@@ -14,13 +14,13 @@
 	#define LB	0x00
 	#define LH	0x01
 	#define LW	0x02
-	#define	LD	0x04
+	#define	LD	0x03
 
 #define STORE_TYPE	0x23
 	#define SB	0x00
 	#define SH	0x01
 	#define SW	0x02
-	#define SD	0x04
+	#define SD	0x03
 
 #define R_TYPE	0x33
 	#define ADD_SUB	0x0

@@ -1,15 +1,16 @@
 #pragma once
 
 #include <iostream>
+#include <fstream>
 #include <cstdint>
 
-#define DRAM_SIZE	1024*1024*1
+#define DRAM_SIZE	256*256*1
 #define DRAM_BASE	0x80000000
 
 class DRAM
 {
     private:
-        uint8_t mem[DRAM_SIZE];
+        int mem[DRAM_SIZE];
 
         // Private functions to be called internally after public function was called
 
@@ -27,4 +28,5 @@ class DRAM
         DRAM();
         uint64_t dram_load(uint64_t, uint64_t);
         void dram_store(uint64_t, uint64_t, uint64_t);
+        void stack_dump(int);
 };

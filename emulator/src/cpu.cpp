@@ -139,6 +139,7 @@ int CPU::cpu_execute(uint32_t instruction)
 
 		default:
 			std::cout << "[cpu_execute]		ERROR: Not found instruction.\n### PANIC ### opcode: 0x" << std::hex << opcode << " funct3: 0x" << std::hex << funct3 << " funct7: 0x" << std::hex << funct7 << std::endl;
+			std::cout << std::hex << instruction << std::endl;
 			return -1;
 		break;
 	}
@@ -290,4 +291,9 @@ void CPU::dump_regs()
 	dump_regs_output_file << "0x" << std::hex << std::setw(8) << std::setfill('0') << regs[31] << std::endl;
 
 	dump_regs_output_file.close();
+}
+
+void CPU::stack_dump(int print_size)
+{
+	bus.stack_dump(print_size);
 }

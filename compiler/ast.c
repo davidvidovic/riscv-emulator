@@ -28,7 +28,7 @@ ASTnode* new_ASTnode_ID(const char* name, id_type type, ASTnode *left, ASTnode *
     n->name = name;
     n->type = type;
     n->structure = VARIABLE;
-    n->element_number = 0;
+    n->element_number = 1;
 
     return (n);
 }

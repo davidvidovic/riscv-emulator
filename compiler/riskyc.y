@@ -335,7 +335,7 @@ constant_expression
 declaration
 	: declaration_specifiers ';'  {}
 	| declaration_specifiers init_declarator_list ';' {
-		$$ = $2; 
+		$$ = $2;
 		
 		if($$->nodetype == ID_NODE)
 		{
@@ -346,14 +346,25 @@ declaration
 		else if($$->nodetype == EXPRESSION_NODE)
 		{
 			$$->left->left->type = $1;
-			sp_offset = calculate_sp_offset(sp_offset, $1, $2->element_number);
+			sp_offset = calculate_sp_offset(sp_offset, $1, $$->left->left->element_number);
 			ht_set_type_sp_offset($$->left->left->name, $1, sp_offset, HEAD_table);
 		}
 		else if($$->nodetype == POINTER_NODE)
 		{
 			$$->type = $1;
-			sp_offset = calculate_sp_offset(sp_offset, TYPE_POINTER, $2->element_number);
-			ht_set_type_sp_offset($$->name, $1, sp_offset, HEAD_table);
+
+			if($$->type == ARRAY) 
+			{
+				sp_offset = calculate_sp_offset(sp_offset, TYPE_POINTER, 1);
+				ht_set_type_sp_offset($$->name, $1, sp_offset, HEAD_table); 
+				sp_offset = calculate_sp_offset(sp_offset, TYPE_INT, $2->element_number);
+			}
+			else
+			{
+				sp_offset = calculate_sp_offset(sp_offset, TYPE_POINTER, 1);
+				ht_set_type_sp_offset($$->name, $1, sp_offset, HEAD_table); 
+			}
+			
 		}
 		
 		/* 
@@ -377,9 +388,9 @@ declaration
 				}
 				else if(temp->nodetype == EXPRESSION_NODE)
 				{
-					temp->left->left->type = $1;
-					sp_offset = calculate_sp_offset(sp_offset, $1, $2->element_number);
-					ht_set_type_sp_offset(temp->left->left->name, $1, sp_offset, HEAD_table);
+					$$->left->left->type = $1;
+					sp_offset = calculate_sp_offset(sp_offset, $1, $$->left->left->element_number);
+					ht_set_type_sp_offset($$->left->left->name, $1, sp_offset, HEAD_table);
 				}
 				else if($$->nodetype == POINTER_NODE)
 				{
@@ -423,7 +434,7 @@ init_declarator
 	| declarator '=' initializer {
 		if($1->structure == ARRAY)
 		{
-			$$ = init_array($3, $1, $1->element_number);
+			$$ = init_array($3, $1, ($1->element_number)-1);
 		}
 		else
 		{
@@ -531,6 +542,8 @@ direct_declarator
 		$$->nodetype = POINTER_NODE;
 		$$->structure = ARRAY;
 		$$->element_number = $3->value.value_INT;
+
+		//sp_offset = calculate_sp_offset(sp_offset, TYPE_INT, $$->element_number);
 	}
 	| direct_declarator '[' ']'
 	| direct_declarator '(' parameter_type_list ')' {
@@ -979,19 +992,19 @@ int calculate_sp_offset(int sp_offset, id_type type, int num_of_elements)
 	switch(type)
 	{
 		case TYPE_INT:
-			sp_offset += SIZE_INT * (num_of_elements+1);
+			sp_offset += SIZE_INT * (num_of_elements);
 		break;
 
 		case TYPE_CHAR:
-			sp_offset += SIZE_CHAR * (num_of_elements+1);
+			sp_offset += SIZE_CHAR * (num_of_elements);
 		break;
 
 		case TYPE_FLOAT:
-			sp_offset += SIZE_FLOAT * (num_of_elements+1);
+			sp_offset += SIZE_FLOAT * (num_of_elements);
 		break;
 
 		case TYPE_POINTER:
-			sp_offset += SIZE_POINTER * (num_of_elements+1);
+			sp_offset += SIZE_POINTER ;
 		break;
 
 		default:

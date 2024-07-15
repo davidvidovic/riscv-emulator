@@ -275,6 +275,8 @@ int main()
 
     assemble_binary_output(IR_head, IR_tail);
 
+    //print_register_allocation_ALL(rp);
+
     ht_destroy(HEAD_table);
     freeAST(root);
 

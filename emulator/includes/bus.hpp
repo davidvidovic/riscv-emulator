@@ -10,4 +10,5 @@ class BUS {
         BUS();
         uint64_t bus_load(uint64_t, uint64_t);
         void bus_store(uint64_t, uint64_t, uint64_t);
+        void stack_dump(int);
 };

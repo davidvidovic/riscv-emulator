@@ -90,4 +90,5 @@ class CPU {
         // Function to communicate through BUS with DRAM
         uint64_t cpu_load(uint64_t, uint64_t);
         void cpu_store(uint64_t, uint64_t, uint64_t);
+        void stack_dump(int);
 };

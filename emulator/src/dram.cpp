@@ -1,7 +1,10 @@
 #include "../includes/dram.hpp"
 
 DRAM::DRAM()
-{}
+{
+	for(int i = 0; i < DRAM_SIZE; i++)
+		mem[i] = 0;
+}
 
 void DRAM::dram_store(uint64_t addr, uint64_t size, uint64_t value)
 {
@@ -31,62 +34,74 @@ uint64_t DRAM::dram_load(uint64_t addr, uint64_t size)
 
 void DRAM::dram_store_8(uint64_t addr, uint64_t value)
 {
-	mem[addr] = (uint8_t)(value & 0xff);
+	mem[addr] = (value & 0xff);
 }
 
 void DRAM::dram_store_16(uint64_t addr, uint64_t value)
 {
-	mem[addr]   = (uint8_t)(value & 0xff);
-	mem[addr+1] = (uint8_t)((value >> 8) & 0xff);
+	mem[addr]   = (value & 0xff);
+	mem[addr+1] = ((value >> 8) & 0xff);
 }
 
 void DRAM::dram_store_32(uint64_t addr, uint64_t value)
 {
-	mem[addr]   = (uint8_t)(value & 0xff);
-	mem[addr+1] = (uint8_t)((value >> 8)  & 0xff);
-	mem[addr+2] = (uint8_t)((value >> 16) & 0xff);
-	mem[addr+3] = (uint8_t)((value >> 24) & 0xff);
+	mem[addr]   = (value & 0xff); 
+	mem[addr+1] = ((value >> 8)  & 0xff); 
+	mem[addr+2] = ((value >> 16) & 0xff); 
+	mem[addr+3] = ((value >> 24) & 0xff); 
 }
 
 void DRAM::dram_store_64(uint64_t addr, uint64_t value)
 {
-	mem[addr]   = (uint8_t)(value & 0xff);
-	mem[addr+1] = (uint8_t)((value >> 8)  & 0xff);
-	mem[addr+2] = (uint8_t)((value >> 16) & 0xff);
-	mem[addr+3] = (uint8_t)((value >> 24) & 0xff);
-	mem[addr+4] = (uint8_t)((value >> 32) & 0xff);
-	mem[addr+5] = (uint8_t)((value >> 40) & 0xff);
-	mem[addr+6] = (uint8_t)((value >> 48) & 0xff);
-	mem[addr+7] = (uint8_t)((value >> 56) & 0xff);
+	mem[addr]   = (value & 0xff);
+	mem[addr+1] = ((value >> 8)  & 0xff);
+	mem[addr+2] = ((value >> 16) & 0xff);
+	mem[addr+3] = ((value >> 24) & 0xff);
+	mem[addr+4] = ((value >> 32) & 0xff);
+	mem[addr+5] = ((value >> 40) & 0xff);
+	mem[addr+6] = ((value >> 48) & 0xff);
+	mem[addr+7] = ((value >> 56) & 0xff);
 }
 
 uint64_t DRAM::dram_load_8(uint64_t addr)
 {
-	return (uint64_t) mem[addr];
+	return  mem[addr];
 }
 
 uint64_t DRAM::dram_load_16(uint64_t addr)
 {
-	return (uint64_t) 	((uint64_t)mem[addr] 			|
-				((uint64_t)mem[addr+1] << 8));
+	return  	(mem[addr] 			|
+				(mem[addr+1] << 8));
 }
 
 uint64_t DRAM::dram_load_32(uint64_t addr)
 {
-	return (uint64_t) 	((uint64_t)mem[addr] 			|
-				((uint64_t)mem[addr+1] << 8) 	|
-				((uint64_t)mem[addr+2] << 16) 	|
-				((uint64_t)mem[addr+3] << 24));
+	return  	(mem[addr] 			|
+				(mem[addr+1] << 8) 	|
+				(mem[addr+2] << 16) 	|
+				(mem[addr+3] << 24));
 }
 
 uint64_t DRAM::dram_load_64(uint64_t addr)
 {
-	return (uint64_t) 	((uint64_t)mem[addr] 			|
-				((uint64_t)mem[addr+1] << 8) 	|
-				((uint64_t)mem[addr+2] << 16) 	|
-				((uint64_t)mem[addr+3] << 24) 	|
-				((uint64_t)mem[addr+4] << 32) 	|
-				((uint64_t)mem[addr+5] << 40) 	|
-				((uint64_t)mem[addr+6] << 48) 	|
-				((uint64_t)mem[addr+7] << 56));
+	return  	(mem[addr] 			|
+				(mem[addr+1] << 8) 	|
+				(mem[addr+2] << 16) 	|
+				(mem[addr+3] << 24) 	|
+				(mem[addr+4] << 32) 	|
+				(mem[addr+5] << 40) 	|
+				(mem[addr+6] << 48) 	|
+				(mem[addr+7] << 56));
+}
+
+void DRAM::stack_dump(int print_size)
+{
+	std::ofstream stack_dump_file("stack_dump.txt");
+
+	for(long long i = DRAM_SIZE-1; i > DRAM_SIZE-print_size-1; i--)
+	{
+		stack_dump_file << std::hex << mem[i] << std::endl;
+	}
+
+	stack_dump_file.close();
 }

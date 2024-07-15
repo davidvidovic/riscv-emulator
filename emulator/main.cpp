@@ -39,11 +39,12 @@ int main(int argv, char* argc)
     {
         instruction = cpu.cpu_fetch();
         cpu.cpu_increment_pc(4);
-
+        
         if(cpu.cpu_execute(instruction) != 0) break;
     }
 
     cpu.dump_regs();
+    cpu.stack_dump(50);
 
     return 0;
 }
