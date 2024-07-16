@@ -23,11 +23,11 @@ IS			(u|U|l|L)*
 
 "auto"			{ count(); return(AUTO); }
 "break"			{ count(); return(BREAK); }
-"case"			{ count(); return(CASE); }
+"case"			{ count(); yylval.value_int = lineno; return(CASE); }
 "char"			{ count(); return(CHAR); }
 "const"			{ count(); return(CONST); }
 "continue"		{ count(); return(CONTINUE); }
-"default"		{ count(); return(DEFAULT); }
+"default"		{ count(); yylval.value_int = lineno; return(DEFAULT); }
 "do"			{ count(); return(DO); }
 "double"		{ count(); return(DOUBLE); }
 "else"			{ count(); return(ELSE); }

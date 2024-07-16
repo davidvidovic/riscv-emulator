@@ -1,15 +1,15 @@
 #include "ir.h"
 
-/*
-* Function that walks the AST and creates IR tree based on it
-*/
-
 int register_counter = 1;
 int label_counter = 1;
 int ST_pointer = 0;
 IR_register argument_register_usage = a0;
 
 extern ht** ST_vector;
+
+/*
+* Function that walks the AST and creates IR tree based on it
+*/
 
 IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack, Stack *break_stack, Stack *continue_stack, Stack *return_stack, Stack *array_element_stack, register_pool *rp, ht* table)
 {
@@ -100,7 +100,7 @@ IR_node* populate_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondar
     if(root->nodetype == IF_NODE
         || root->nodetype == ELSE_NODE 
         || (root->right != NULL && (root->right->nodetype == IF_NODE 
-                                    ||root->right->nodetype == ELSE_NODE 
+                                    || root->right->nodetype == ELSE_NODE 
                                     || root->right->nodetype == WHILE_NODE 
                                     || root->right->nodetype == FOR_NODE
                                     )
@@ -127,7 +127,7 @@ IR_node* create_IR()
 }
 
 /*
-* Create base IR node
+* Create IR node
 */
 
 IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_stack, Stack *break_stack, Stack *continue_stack, Stack *return_stack, Stack* array_element_stack, register_pool *rp, ht* table)
@@ -1462,8 +1462,12 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                     node->line = root->right->left->line;
                 }
             }
+
+
+            // Added this, not sure if it introduces any bugs
+            node->line = root->line;
+            update_line_number_IR(&node);
             
-            //update_line_number_IR(&node);
         break;
 
 
@@ -1492,7 +1496,7 @@ IR_node* insert_IR(ASTnode *root, IR_node *head, Stack *stack, Stack *secondary_
                 else if(help->ir_type == IR_BRANCH)
                     help->rd.label = tmp;
             }
-
+            
             node->line = root->line;
             update_line_number_IR(&node);
         break;
@@ -2298,8 +2302,6 @@ IR_node* get_OP_node(register_pool *rp, ht *table, ASTnode *root, IR_node *node,
         }
 
         node->prev = NULL;
-
-        printf("tu sam za %d %d : %s\n", node->rs1.reg, node->rs2.reg, node->next->instruction);
     }
     
     if(root->left->nodetype == OPERATION_NODE)

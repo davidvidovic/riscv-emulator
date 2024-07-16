@@ -56,7 +56,8 @@
 %token CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE CONST VOLATILE VOID
 %token STRUCT UNION ENUM ELLIPSIS
 
-%token CASE DEFAULT IF ELSE SWITCH WHILE DO FOR GOTO CONTINUE BREAK RETURN
+%token <value_int> CASE DEFAULT 
+%token IF ELSE SWITCH WHILE DO FOR GOTO CONTINUE BREAK RETURN
 
 %start translation_unit
 
@@ -683,8 +684,17 @@ statement
 
 labeled_statement
 	: IDENTIFIER ':' statement {}
-	| CASE constant_expression ':' statement_list {$$ = new_ASTnode_CASE($4, NULL, $2, lineno);}
-	| DEFAULT ':' statement_list {$$ = new_ASTnode_DEFAULT($3, NULL, lineno);}
+	| CASE constant_expression ':' statement_list {$2->line = $1; $$ = new_ASTnode_CASE($4, NULL, $2, $1);}
+	| DEFAULT ':' statement_list {
+		if($3->nodetype == BREAK_NODE)
+		{
+			$$ = new_ASTnode_DEFAULT($3->right, NULL, $1);
+		}
+		else
+		{
+			$$ = new_ASTnode_DEFAULT($3, NULL, $1);
+		}
+	}
 	;
 
 labeled_statements
@@ -700,14 +710,14 @@ labeled_statements
 		if($1->nodetype == DEFAULT_NODE)
 		{
 			$$ = $1;
-			label_node = new_ASTnode_LABEL(NULL, $1->right->right, lineno);
+			label_node = new_ASTnode_LABEL(NULL, $1->right->right, $2->line);
 			$2->right = label_node;
 			$$->right->right = $2;
 		}
 		else
 		{
 			$$ = $2;
-			label_node = new_ASTnode_LABEL(NULL, $1, lineno);
+			label_node = new_ASTnode_LABEL(NULL, $1, $2->line);
 			$$->right = label_node;
 		}	
 	}
