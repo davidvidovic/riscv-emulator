@@ -1,6 +1,6 @@
 # RISC-V Toolchain
 
-A simple RISC-V toolchain containing ANSI C to RV64I compiler built from scratch, RV assembler and RV software emulator that takes binary file as input. Built on top of it is Qt application with interactive text field, compile button and text box to show assembly output. Additionaly, it highlights what ANSI C lines compiled into which assembly lines of code.  
+A simple RISC-V toolchain containing ANSI C to RV64I compiler built from scratch, RV assembler and RV software emulator that takes binary file as input. Built on top of it is Qt application with interactive text field, compile button and text box to show assembly output. Additionaly, it highlights which ANSI C lines compiled into which assembly lines of code.  
 
 ## Table of Contents
 
@@ -48,6 +48,9 @@ To run Qt app, an app should be first built from Qt Creator using `.pro` file in
 
 Examples of app usage:
 
-![Compile success is shown for correct input syntax](https://i.ibb.co/Z6Bz5qm/example1.png)
+![Compile success is shown for correct input syntax](https://i.ibb.co/QrhCnRR/assembly-example.png)
 
-![Any error that compile reports is shown in UI textbox](https://i.ibb.co/1JM85cP/example2.png)
+![You can switch tabs to show binary output](https://i.ibb.co/P1mNYGn/binary-example.png)
+
+![Any error that compile reports is shown in UI textbox](https://i.ibb.co/Hhf0GHQ/error-example.png)
+
